@@ -1,0 +1,18 @@
+---
+layout: post
+title: "Welcome to 2012"
+date: 2012-01-30 16:31
+comments: true
+categories: links
+---
+January's been a long month; not in a *bad* sense, just sort of interminable. Looking through my links collection in notational velocity today, I found a good twenty plus from the last six weeks. I've culled them down a bit to the true standouts:
+
+* An Object is not (Always) a Hash &mdash; Great post from Guillermo Rauch about [the perils of using Javascript Objects as Hashes](http://www.devthought.com/2012/01/18/an-object-is-not-a-hash/). Definitely some tricky gotchas here that you may not have thought about.
+
+* Hot Node Reloading &mdash; Also from Guillermo, a solution to the annoying problem of continuously restarting your node app during development: [Staying Up with Node.JS](http://www.devthought.com/2012/01/29/staying-up-with-node-js/)
+
+* Shedding Light on SPDY &mdash; If you haven't been hearing a great deal about SPDY lately, you will be soon. SPDY, if you couldn't tell from the name, serves as a next-generation protocol to speed up web communication. Nodejitsu posts [a helpful introduction to SPDY](http://blog.nodejitsu.com/what-is-node-spdy).
+
+* Improving your Git Logs &mdash; Git log, out of the box, is so wordy that it proves fairly worthless. Check out Oli Studholme's [aliases for taming the git log beast](http://oli.jp/2012/git-powerup/).
+
+* Hack Learning &mdash; One of the key lessons I've learned as a developer is that getting good at something requires hours, and hours, and hours, and **hours** of work, and many of these hours will be exhausting displays of ignorance which you'll want to quickly forget. The good news is that you can pick up nearly any skill with enough effort and time. Jack Kinsella provides a hack for cutting back on how many hours separate "terrible newb" from "fairly competent practitioner". His [Janki Method](http://www.jackkinsella.ie/2011/12/05/janki-method.html) may *sound* like a get rich quick scheme, but it's really just a simple approach to improving your effiency at learning. Maybe you can cut those 10,000 hours of practice to a more managable... 6,000.

@@ -1,0 +1,40 @@
+---
+layout: default
+single: true
+---
+  <div id="content" class="nine">
+    {% include article.html %}
+      <p class="post-date">
+        {% include post/author.html %}
+        {% include post/date.html %}{% if updated %}{{ updated }}{% else %}{{ time }}{% endif %}
+        {% include post/categories.html %}
+      </p>
+      {% unless page.sharing == false %}
+        {% include post/sharing.html %}
+      {% endunless %}
+     <div>
+       <p class="meta">
+        {% if page.previous.url %}
+          <a class="left" href="{{page.previous.url}}" title="Previous Post: {{page.previous.title}}">&laquo; {{page.previous.title}}</a>
+        {% endif %}
+        {% if page.next.url %}
+          <a class="right" href="{{page.next.url}}" title="Next Post: {{page.next.title}}">{{page.next.title}} &raquo;</a>
+        {% endif %}
+      </p>
+     </div>
+      {% if site.disqus_short_name and page.comments == true %}
+      <section id="comments" class="clear">
+        <h1>Comments</h1>
+        <div id="disqus_thread" aria-live="polite">{% include post/disqus_thread.html %}</div>
+      </section>
+     {% endif %}
+  </div>
+  {% unless page.sidebar == false %}
+  <div id="asides" class="three last">
+    {% if site.post_asides.size %}
+      {% include_array post_asides %}
+    {% else %}
+      {% include_array default_asides %}
+    {% endif %}
+  </div>
+  {% endunless %}
