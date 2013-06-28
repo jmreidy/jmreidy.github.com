@@ -1,0 +1,163 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: vows-bdd | Razor Sharp Design]]></title>
+  <link href="http://rzrsharp.net/blog/categories/vows-bdd/atom.xml" rel="self"/>
+  <link href="http://rzrsharp.net/"/>
+  <updated>2013-06-27T20:53:40-07:00</updated>
+  <id>http://rzrsharp.net/</id>
+  <author>
+    <name><![CDATA[Justin Reidy]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[Better Support for Helpers in vows-bdd]]></title>
+    <link href="http://rzrsharp.net/2011/12/05/better-support-for-helpers-in-vows-bdd.html"/>
+    <updated>2011-12-05T15:31:00-08:00</updated>
+    <id>http://rzrsharp.net/2011/12/05/better-support-for-helpers-in-vows-bdd</id>
+    <content type="html"><![CDATA[<p>This last week has been a particularly busy one, so I&rsquo;ve been delayed in blogging,
+but I released v0.2 of vows-bdd to NPM a week ago. There&rsquo;s two changes of note.
+The first is proper documentation for the library: you can see the docco documentation
+<a href="http://rzrsharp.net/vows-bdd">here</a>. If you&rsquo;re new to vows-bdd, or just want to learn
+more about how it&rsquo;s working, the docs should provide all the answers you&rsquo;re looking
+for.</p>
+
+<p>The more important change relates to the testing syntax. In some conversations I had
+online with <a href="http://graemef.com/">Graeme Foster</a>, I realized that the vows-bdd syntax
+left some room for improvement. Specifically, the syntax introduced a potential for
+redundancy when creating labels for integration tests. While named functions could
+be used for test statements that were repeated, there wasn&rsquo;t an easy to way to handle
+repeated labels.</p>
+
+<p>In order to make the use of test helpers even easier with vows-bdd, I have adjusted
+the <code>given/when/then/and</code> syntax to allow for array arguments <em>in addition to</em> the
+previous arguments of <code>label,test_function</code>. It&rsquo;s easiest to demonstrate the change with
+an example. One area of code that frequently is repeated is login code in integration tests.
+Here&rsquo;s how I had my tests setup with vows-bdd before:</p>
+
+<p>``` coffeescript</p>
+
+<h1>a test snippet</h1>
+
+<p>  .given &ldquo;I am an admin user&rdquo;, &ndash;></p>
+
+<pre><code>@user = Model.Factory.create "user", {role: 'admin'}
+@callback()
+return
+</code></pre>
+
+<p>  .when &ldquo;I go to login&rdquo;, &ndash;></p>
+
+<pre><code>zombie.visit Server.path_for("/login"), @callback
+</code></pre>
+
+<p>  .when &ldquo;I click login&rdquo;, (browser,status) &ndash;></p>
+
+<pre><code>browser.fill("email", "#{@user.email}")
+       .fill("password", "#{@user.password}")
+       .pressButton "Login", @callback
+</code></pre>
+
+<p>  .then &ldquo;I should be on the admin index&rdquo;, (err,browser,status) &ndash;></p>
+
+<pre><code>Test.assert.shouldBeOn browser, "/admin"
+</code></pre>
+
+<h1>snippet from another test</h1>
+
+<p>  .given &ldquo;I am an admin user&rdquo;, ></p>
+
+<pre><code>@password = "foo"
+@user = Model.Factory.build( "user", password: @password, passwordConf: @password, role: "admin" )
+@user.save @callback
+</code></pre>
+
+<p>  .when &ldquo;I am logged in&rdquo;, ></p>
+
+<pre><code>user = @user
+cb = @callback
+pw = @password
+zombie.visit Server.path_for("/login"), (e,browser,status) &gt;
+  browser.fill "email", user.email
+  browser.fill "password", pw
+  browser.pressButton "Login", cb
+return
+</code></pre>
+
+<p>```</p>
+
+<p>Even with the previous syntax, this code could be improved by creating a named <code>login</code>
+function that handles the duplicated code. And you could add a property to that function
+that provides a label. But I felt that the vows-bdd syntax should be improved to make
+this code repetition even easier. So the new <code>[label,function]</code> syntax looks like
+this:</p>
+
+<p>``` coffeescript</p>
+
+<h1>first test</h1>
+
+<p>  .scenario(&ldquo;&lsquo;/admin&rsquo; is accessible to logged in admin users&rdquo;)</p>
+
+<p>  .when(I.login_as &ldquo;an admin&rdquo;)</p>
+
+<p>  .then &ldquo;I should be on the admin index&rdquo;, (err,browser,status) &ndash;></p>
+
+<pre><code>Test.assert.shouldBeOn browser, "/admin"
+</code></pre>
+
+<h1>other test</h1>
+
+<p>  .scenario(&ldquo;Logging Out&rdquo;)</p>
+
+<p>  .given(I.login_as &ldquo;an admin&rdquo;)</p>
+
+<p>  .when &ldquo;I click logout&rdquo;, (browser,status) &ndash;></p>
+
+<pre><code>browser.pressButton "Logout", @callback
+</code></pre>
+
+<p>  .then &ldquo;I should be redirected to the login page&rdquo;, (err,browser,status) &ndash;></p>
+
+<pre><code>#continues
+</code></pre>
+
+<p>```</p>
+
+<p>The <code>login_as</code> function is included in a helper file:</p>
+
+<p>``` coffeescript</p>
+
+<p>exports.login_as = (type_of_user) &ndash;>
+  label = &ldquo;I login as #{type_of_user}&rdquo;
+  fixture = () &ndash;></p>
+
+<pre><code>cb = @callback
+@user = user = Model.Factory.create type_of_user.match(/a[n]? (\w+)/)[1]
+zombie.visit Server.path_for("/login"), (err,browser,status) -&gt;
+  browser.fill("email", "#{user.email}")
+         .fill("password", "#{user.password}")
+         .pressButton "Login", cb
+return
+</code></pre>
+
+<p>  return [label,fixture]</p>
+
+<p>```</p>
+
+<p>Note that the function returns an array of arguments to be supplied to the vows-bdd
+method. Also note that the fixture method is using <code>this</code> &mdash; which will point to the
+vows <code>context</code> when the test is evaluated &mdash; and that the fixture returns <code>undefined</code>
+to indicate to vows that the test should be performed asynchronously.</p>
+
+<p>I think this new syntax works really perfectly for integration tests; it goes a long
+way to supporting declarative testing style.</p>
+
+<p>As always, please let me know if you run into any problems with the library or
+have any suggestions!</p>
+]]></content>
+  </entry>
+  
+</feed>

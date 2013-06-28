@@ -1,0 +1,2107 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Razor Sharp Design]]></title>
+  <link href="http://rzrsharp.net/atom.xml" rel="self"/>
+  <link href="http://rzrsharp.net/"/>
+  <updated>2013-06-27T20:53:40-07:00</updated>
+  <id>http://rzrsharp.net/</id>
+  <author>
+    <name><![CDATA[Justin Reidy]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[In Theory, Not Practice]]></title>
+    <link href="http://rzrsharp.net/2013/04/11/in-theory-not-practice.html"/>
+    <updated>2013-04-11T19:49:00-07:00</updated>
+    <id>http://rzrsharp.net/2013/04/11/in-theory-not-practice</id>
+    <content type="html"><![CDATA[<p>In <a href="http://rzrsharp.net/2013/04/02/towards-a-unified-js-stack.html">my previous post</a>, I wrote about the quest towards unifying web application architecture around a single shared codebase. <a href="https://github.com/airbnb/rendr">Airbnb’s Rendr library</a> provides one path forward on that quest. In this post, I’d like to provide a high-level explanation of my own solution for unifying application code.</p>
+
+<p>There’s a few segments of an application’s code that will almost certainly be repeated on both the client and server: views, view state, and data models (excluding data access). To a certain extent, routing could be repeated as well; if you’re not using hashbangs, you’ll need to implement the same named routes on the client and server (although the actions you perform for those routes will be dramatically different).</p>
+
+<p>The solution I’ve put together is still a work in progress, and is more a set of practices and conventions than a library. This flexibility means that while I’ve been implementing the approach using Handlebars, Backbone, and Express, you could theoretically use a completely different set of libraries. In this post, I’ll go over the basic ideas behind my approach; I’ll be putting together a sample implementation on Github that I’ll be able to write about in more detail in the future.</p>
+
+<h2>Unifying View Templates</h2>
+
+<p>Sharing template code is perhaps the easiest step towards achieving web application unity. With a full-JS stack, you’re compiling the same templates for rendering both server-side and client-side. So why not use the same templates for each?</p>
+
+<p>In my experiments, I’ve been using <a href="http://handlebarsjs.com/">Handlebars</a> as my templating system. It’s based on the Mustache syntax, but has a number of powerful features, including partials and custom helpers. Handlebars is also the templating system behind Ember.js.</p>
+
+<p>The key to sharing templates is the realization that what constitutes a “partial” can be relative to where the template is used — that is to say, the same template can be used as a full template on the client, and a partial template on the server. My templates are divided into three groups:</p>
+
+<ul>
+<li>client &ndash; client only templates</li>
+<li>shared &ndash; used on both the client and server</li>
+<li>server &ndash; server only templates</li>
+</ul>
+
+
+<p>For the client, the templates in the client and shared folders are pre-compiled in a Grunt step, so for all intents and purposes there’s a single flat collection of templates. The server, however, references all of the templates in the shared folder as partials. What’s more, view helpers (in this case, special Handlebars tags) are stored in a <code>shared/helpers</code> directory that is referenced by both the client (in a Grunt step) and the server.</p>
+
+<p>If you’re confused now, you won’t be when you see the actual implementation in my next post. What sounds complicated here is quite straightforward in practice.</p>
+
+<h2>Populating View Templates</h2>
+
+<p>If it’s easy to share templates on the client and server, getting the right data into those templates is a bit of a harder proposition. Handlebars renders data by running the template against a “context”, which is just a plain old hash. But how can we make sure that the contents of that hash are synchronized when rendering the same view on both the client and server?</p>
+
+<p>The problem is exacerbated with how Backbone muddles view rendering logic. In Backbone, there’s not a fine line between the View logic (in Backbone.View) and Model logic (in Backbone.Model and Backbone.Collection). Backbone Views end up performing view state management by manipulating model instances, in order to avoid bloating Models with View specific code. But adding stateful logic into a Backbone View causes two problems:</p>
+
+<p>1) it makes for larger, more complex views, as concerns are split between UX event management and controlling model state;</p>
+
+<p>2) it makes it harder to share code with the server, as rendering state gets locked in a Backbone view.</p>
+
+<p>We can get around these problems by reconsidering the role of a Backbone View — separating its concerns into that of Mediator and View Model. The Mediator role is one of event manager and template marshal; the view model is, most basically, a state controller.</p>
+
+<p>By splitting the state controller into an object of its own concern, you can extract the logic into a module that can be shared by both the client (via Browserify) and the server (via require). The Backbone Mediator simply invokes the View Model, declaratively calling functions on it as users interact with the app — transitioning Backbone away from its traditional role of MVC framework into more of <a href="http://addyosmani.com/blog/understanding-mvvm-a-guide-for-javascript-developers/">an MVVM implementation</a>.</p>
+
+<p>A View Model just returns a hash with the current state of data, which is supplied to the template. On the server, a View Model is instantiated with data accessed from the backend; the results of the View Model instance’s <code>toJSON</code> method are passed to the template for rendering. On the client, the same pattern is repeated, but the data is accessed via AJAX instead.</p>
+
+<h2>Sharing Models on Client and Server</h2>
+
+<p>Synchronizing model code on both the client and server is perhaps the hardest step towards achieving web application unity. The challenge primarily derives from a characteristic of Model code that we’ve inherited from the Rails world: specifically, a conflation of Model concerns between “data model object” and “data access object”. A data model object should identify a model object’s properties, its getters and setters, its relationships, and some convenient accessors; a data access object should deal with querying data sources for populating the data model objects.</p>
+
+<p>Unfortunately, Backbone follows in the tradition of Rails’ ActiveRecord, flattening data accessing and data modeling into a single object. This flattening causes problems even beyond unifying a web application stack. How many Backbone applications have you seen that globally override the sync method, and use properties on model classes to determine how sync invocation works? (Not to pick on Backbone; it’s just the web application framework with which I’m most familiar.)</p>
+
+<p>For now, I’ve abandoned trying to get Backbone Models and Collections to work on both the client and server. But there’s alternatives that can fill the gap nicely. The first of which I’m familiar is <a href="https://github.com/dandean/tubbs">Dan Dean’s Tubbs library</a>. Tubbs provides a DSL for defining data model objects, but also provides a pluggable dataStore. A single model module can be defined in a shared folder, and then required on both the client and server, with both supplying their own dataStore.</p>
+
+<p>In order to make the separation between data modeling and data accessing even clearer, and the sharing of model code on the server and client easier, I created by own <a href="https://github.com/jmreidy/voltron-model/tree/0.1.x">voltron-model</a> library. While Voltron isn’t ready for primetime (yet), it should make the unified definition of data models significantly easier.</p>
+
+<p>Whichever modeling library is chosen, the basic approach should be the same: data models are defined in a shared folder. These models are then imported by code on the server (or packaged with Browserify for the client). The server and client should decorate the models appropriately (either by adding to the model’s prototype or adding an accessor component). Thus, a model can be made to access Mongo or Postgres on the backend, or a REST service on the client.</p>
+
+<p>The benefit of using Backbone on the client is that it doesn’t care if you only use limited parts of the library. Arrays of event-emitting models can provide much of the same benefit of Backbone Collections and Models, and Backbone Views and Routers see no difference.</p>
+
+<h2>Wrapping Up</h2>
+
+<p>All this discussion may be a bit confusing without a concrete implementation to reference; hopefully, I’ll be able to put together a sample application in the next few weeks. But the basic takeaway of the post is that unification of JS web applications can be made significantly easier with two factors:</p>
+
+<ul>
+<li><p>structuring your code so that it can be required by the server or packaged for the client in the same ways, whether by ingesting templates as partials or packaging code with Browserify;</p></li>
+<li><p>following the Node.js approach of writing small, single-purpose modules means that there’s less boilerplate to prevent you from using code in multiple environments</p></li>
+</ul>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Towards a Unified JS Stack]]></title>
+    <link href="http://rzrsharp.net/2013/04/02/towards-a-unified-js-stack.html"/>
+    <updated>2013-04-02T19:49:00-07:00</updated>
+    <id>http://rzrsharp.net/2013/04/02/towards-a-unified-js-stack</id>
+    <content type="html"><![CDATA[<p>It’s been a long time since I’ve written anything for this site. Neither neglect nor procrastination prompted my absence, but rather, lots and lots of coding. All that code has left me with a surfeit of topics to cover here, so instead of talking about what I’ve been working on, I’m going to dive straight into the good stuff.</p>
+
+<p>I want to write about the current “Holy Grail” of web application development: a unified application stack. Any dev who’s built a thick-client web app (regardless of library &ndash; Ember, Backbone, this problem is independent of tool choice) has dealt with the frustration of recreating logic in multiple parts of the application stack. It’s incredibly annoying to be writing the same code to handle model accessors, view state, and rendering logic in two different places; it’s even more irksome to be fixing bugs in one or both areas as your application matures. But let’s back up a bit. Why do we need to be writing the same logic in multiple places at all?</p>
+
+<p>Generally speaking, modern web app development requires a choice from one of three architectural thrusts:</p>
+
+<ul>
+<li><p>thick server, thin client: view logic is written on the server, and rendering happens there as well. The client code deals with interactivity and AJAX requests, but is mostly just updating areas of the page with rendered view content returned by the server. This approach is <a href="http://37signals.com/svn/posts/3112-how-basecamp-next-got-to-be-so-damn-fast-without-using-much-client-side-ui">most famously advocated for by 37 Signals</a>. A thick server simplifies view code, but does so at the expense of larger AJAX payloads; why pull fully rendered code when you can just pull JSON data and render it with a client-side template?</p></li>
+<li><p>thick client, thin server: This architecture inverts the first approach; the server provides an API, which is basically just a wrapper around data access and caching. All of the app logic resides in the client. This approach can make for quick interactivity and rendering on the client, but presents a massive problem with “first load” delay, as the client needs to make two connections to the server: the first to load the client application code, and the second to pull the appropriate data to render. You may remember this problem from <a href="http://engineering.twitter.com/2012/05/improving-performance-on-twittercom.html">Old New Twitter</a>.</p></li>
+<li><p>thick client, thick server: Unsurprisingly, this approach combines both of the previous options. Views are rendered on the server, which means the initial load is fast, but the client handles all the rendering from that point forward. The good news is that you have two fairly independent, (hopefully) highly performant application structures; the bad news is that you’re now repeating logic in view templates, view states, model helpers, even route handlers.</p></li>
+</ul>
+
+
+<p>One exciting prospect of Node.js is that it makes Javascript an “isomorphic language”, which is to say that “any given line of code (with notable exceptions) can execute both on the client and the server” (h/t <a href="http://blog.nodejitsu.com/scaling-isomorphic-javascript-code">Nodejitsu</a>). But that said, there haven’t been very compelling demonstrations that solve the code-duplication problem.</p>
+
+<p>In the last few months, I’ve come up with a solution that allows for code reuse on client and server, leading to a unified codebase for handling view rendering, view states, and model interaction. It’s using components and libraries that you already know: Browserify, Backbone, Express, and Handlebars. But I’m going to hold off on describing that solution for now, and instead write about Rendr.</p>
+
+<p>Rendr <a href="http://nerds.airbnb.com/weve-launched-our-first-nodejs-app-to-product">is the result of Airbnb’s first Node app</a>, and it’s also the library that finally prompted me to close Vim and start writing here again. It’s the fulfillment of an idea that I first heard about from <a href="https://github.com/tbranyen">Tim Branyen</a>: what if we used Express to render the same Backbone Views that we render on the client? That question is what prompted me on my own path towards application stack unity, so I’ve been very eager to learn more about Rendr.</p>
+
+<p>Rendr took Tim Branyen’s initial idea and made it a reality. It’s important to note that Airbnb’s experiments here weren’t an excuse for architecture aeronautics; rather, they were expressly concerned with solving the “time to content” problem, which is to say, the rendering delay that Twitter famously faced. And by unifying client and server code, Rendr not only makes developers’ lives easier, it solves that time to content problem.</p>
+
+<p>Rendr has a number of features and design approaches that I very much like:</p>
+
+<ul>
+<li><p>it’s described as “a library, not a framework”</p></li>
+<li><p>it doesn’t create a server side DOM</p></li>
+<li><p>it doesn’t try to collapse backend data access into the client tier, as some other frameworks have done</p></li>
+<li><p>it utilizes existing, familiar code (Express and Backbone)</p></li>
+<li><p>it keeps the rendered DOM on first load and attaches client objects to it, rather than instantiating client views and replacing the DOM with the results of those client views.</p></li>
+</ul>
+
+
+<p>This last item is particularly important: rendering a page on the server, sending it to the client, and then recreating the DOM on the client can lead to odd rendering issues, interactivity problems, and problems with event listeners. But dynamically instantiating client objects and attaching them to an already-rendered DOM is not a trivial problem, and I commend <a href="https://github.com/spikebrehm">Spike Brehm</a> and the rest of the Airbnb team for taking the time to get this right.</p>
+
+<p>You should definitely take the time to <a href="https://github.com/airbnb/rendr">explore Rendr’s codebase</a>. If it existed when I first set out to solve this same set of problems last year, then I probably would’ve abandoned my own quest and just used this library. But the key point of differentiation with the approach I took from Rendr’s design is modularity. Is it possible to achieve application stack unity, while using objects and code that can be implemented with any number of frameworks in any number of ways?</p>
+
+<p>Stay tuned.</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Error Isolation with Promises]]></title>
+    <link href="http://rzrsharp.net/2012/10/01/error-isolation-with-promises.html"/>
+    <updated>2012-10-01T09:39:00-07:00</updated>
+    <id>http://rzrsharp.net/2012/10/01/error-isolation-with-promises</id>
+    <content type="html"><![CDATA[<p>The entirety of the Javascript and Node.js universe is based around a
+continuation-passing coding style &mdash; that is to say, callbacks. This style of
+async coding greatly aggrevates Node critics, who constantly argue that
+continuation-passing invariably results in &ldquo;callback hell&rdquo;
+spaghetti code for any non-trivial problem. Node.js proponents respond that
+continuation-passing presents an easier mental model for async coding
+than alternative approaches, and that properly abstracted code avoids any
+gross &ldquo;chains of doom.&rdquo;</p>
+
+<p>This post has nothing to do with that argument.</p>
+
+<p>If you&rsquo;re coding in Javascript, you&rsquo;re going to be using callbacks, and if you&rsquo;re
+building a library, you&rsquo;re going to be supporting callbacks. It&rsquo;s the reality
+of the ecosystem. But there are certain problems for which some syntactic sugar is helpful.
+<a href="http://wiki.commonjs.org/wiki/Promises">Promises</a> provide a wrapper for callbacks that
+allow for a chainable API around a sequence of continuations. They&rsquo;re not a native part of
+the language, but there&rsquo;s <a href="http://wiki.ecmascript.org/doku.php?id=strawman:concurrency#promises_and_promise_states">a strawman</a>
+for the inclusion of Promises in a future version of JS. In the meantime, you can use
+the excellent <a href="https://github.com/kriskowal/q">Q Library</a> from
+<a href="https://github.com/kriskowal">Kris Kowal</a>.
+jQuery includes its own Promises implementation (<code>$.ajax</code> calls return Promises), but they&rsquo;re slightly
+divergent from the Q spec. You can read <a href="https://github.com/kriskowal/q/wiki/Coming-from-jQuery">this excellent guide</a>
+explaining the differences between jQuery and Q promises, if you&rsquo;re coming from one direction
+or the other.</p>
+
+<p>So much for introductions. I&rsquo;ve been using promises for awhile now in some of my
+Node code, and there&rsquo;s several cases where their inclusion can clean up an API. (One
+area: Mongo integration, where any simple action can require several callbacks.) One benefit
+of Promises is that they can provide exception isolation, just like continuation-passing.
+<a href="https://github.com/kriskowal/q/wiki/On-Exceptions">The Q wiki</a> provides the following
+example:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+</pre></td><td class='code'><pre><code class='javascript'><span class='line'><span class="kd">var</span> <span class="nx">info</span><span class="p">,</span> <span class="nx">processed</span><span class="p">;</span>
+</span><span class='line'><span class="k">try</span> <span class="p">{</span>
+</span><span class='line'>  <span class="nx">info</span> <span class="o">=</span> <span class="nx">JSON</span><span class="p">.</span><span class="nx">parse</span><span class="p">(</span><span class="nx">json</span><span class="p">);</span>
+</span><span class='line'>  <span class="nx">processed</span> <span class="o">=</span> <span class="nx">process</span><span class="p">(</span><span class="nx">info</span><span class="p">);</span>
+</span><span class='line'><span class="p">}</span> <span class="k">catch</span> <span class="p">(</span><span class="nx">exception</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>  <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;Information JSON malformed.&quot;</span><span class="p">);</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>In the above snippet, errors generated from the parser and the process function arne&rsquo;t isolated.
+Promises, meanwhile, offer this exception isolation out of the box:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+</pre></td><td class='code'><pre><code class='javascript'><span class='line'><span class="kd">var</span> <span class="nx">processed</span> <span class="o">=</span> <span class="nx">Q</span><span class="p">.</span><span class="nx">call</span><span class="p">(</span><span class="kd">function</span> <span class="p">(</span><span class="nx">json</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>  <span class="k">return</span> <span class="nx">JSON</span><span class="p">.</span><span class="nx">parse</span><span class="p">(</span><span class="nx">json</span><span class="p">);</span>
+</span><span class='line'><span class="p">})</span>
+</span><span class='line'><span class="p">.</span><span class="nx">then</span><span class="p">(</span><span class="kd">function</span> <span class="p">(</span><span class="nx">info</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>  <span class="k">return</span> <span class="nx">process</span><span class="p">(</span><span class="nx">info</span><span class="p">);</span>
+</span><span class='line'><span class="p">},</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">exception</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>  <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;Information JSON malformed.&quot;</span><span class="p">);</span>
+</span><span class='line'><span class="p">})</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>In the second example, the process function is only executed if <code>JSON.parse</code>
+doesn&rsquo;t throw an error. Conversely, this same goal could be achieved
+with continuation-passing:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+</pre></td><td class='code'><pre><code class='javascript'><span class='line'><span class="kd">var</span> <span class="nx">processFn</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">cb</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>  <span class="nx">asyncJSONParser</span><span class="p">(</span><span class="nx">json</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">info</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>    <span class="k">if</span> <span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>      <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;Information JSON malformed.&quot;</span><span class="p">);</span>
+</span><span class='line'>      <span class="k">return</span> <span class="nx">cb</span><span class="p">(</span><span class="nx">err</span><span class="p">);</span>
+</span><span class='line'>    <span class="p">}</span>
+</span><span class='line'>    <span class="nx">cb</span><span class="p">(</span><span class="kc">null</span><span class="p">,</span> <span class="nx">process</span><span class="p">(</span><span class="nx">info</span><span class="p">));</span>
+</span><span class='line'>  <span class="p">});</span>
+</span><span class='line'><span class="p">};</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>One caveat is that when you&rsquo;re chaining your promises together, the behavior is slightly
+different than you might expect:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+</pre></td><td class='code'><pre><code class='javascript'><span class='line'><span class="kd">var</span> <span class="nx">existingUser</span><span class="p">;</span>
+</span><span class='line'><span class="kd">var</span> <span class="nx">promise</span> <span class="o">=</span> <span class="nx">User</span><span class="p">.</span><span class="nx">findOne</span><span class="p">({</span><span class="nx">username</span><span class="o">:</span> <span class="nx">username</span><span class="p">})</span>
+</span><span class='line'>  <span class="p">.</span><span class="nx">then</span><span class="p">(</span><span class="kd">function</span> <span class="p">(</span><span class="nx">user</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>    <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="nx">user</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>      <span class="k">throw</span> <span class="k">new</span> <span class="nb">Error</span><span class="p">(</span><span class="s2">&quot;Username is incorrect&quot;</span><span class="p">);</span>
+</span><span class='line'>    <span class="p">}</span>
+</span><span class='line'>    <span class="nx">existingUser</span> <span class="o">=</span> <span class="nx">user</span><span class="p">;</span>
+</span><span class='line'>    <span class="k">return</span> <span class="nx">User</span><span class="p">.</span><span class="nx">_hashPassword</span><span class="p">(</span><span class="nx">password</span><span class="p">,</span> <span class="nx">user</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s1">&#39;salt&#39;</span><span class="p">));</span>
+</span><span class='line'>    <span class="p">},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">error</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>      <span class="nx">console</span><span class="p">.</span><span class="nx">error</span><span class="p">(</span><span class="s1">&#39;error in findOne&#39;</span><span class="p">);</span>
+</span><span class='line'>      <span class="k">throw</span> <span class="nx">error</span><span class="p">;</span>
+</span><span class='line'>  <span class="p">})</span>
+</span><span class='line'>  <span class="p">.</span><span class="nx">then</span><span class="p">(</span><span class="kd">function</span> <span class="p">(</span><span class="nx">hashedPassword</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>    <span class="k">if</span> <span class="p">(</span><span class="nx">existingUser</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s1">&#39;hashedPassword&#39;</span><span class="p">)</span> <span class="o">===</span> <span class="nx">hashedPassword</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>      <span class="k">return</span> <span class="nx">existingUser</span><span class="p">;</span>
+</span><span class='line'>    <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+</span><span class='line'>      <span class="k">throw</span> <span class="k">new</span> <span class="nb">Error</span><span class="p">(</span><span class="s2">&quot;Password is incorrect&quot;</span><span class="p">);</span>
+</span><span class='line'>    <span class="p">}</span>
+</span><span class='line'>  <span class="p">},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">error</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>    <span class="nx">console</span><span class="p">.</span><span class="nx">error</span><span class="p">(</span><span class="s1">&#39;error in _hashPassword&#39;</span><span class="p">);</span>
+</span><span class='line'>    <span class="k">throw</span> <span class="nx">error</span><span class="p">;</span>
+</span><span class='line'>  <span class="p">});</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>In the above example, if there is an error in <code>User.findOne</code>, the error is
+propagated throughout the chain, which means that your console will have both
+<code>error in findOne</code> and <code>error in _hashPassword</code> printed. There&rsquo;s no way
+of &ldquo;breaking&rdquo; from the promise chain early. But here&rsquo;s the thing: you don&rsquo;t have to.
+Unless you&rsquo;re interested in transforming error objects, there&rsquo;s not much
+point in catching promise errors in intermediary steps in the chain. So the
+above code would be abbreviated:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+</pre></td><td class='code'><pre><code class='javascript'><span class='line'><span class="kd">var</span> <span class="nx">promise</span> <span class="o">=</span> <span class="nx">User</span><span class="p">.</span><span class="nx">findOne</span><span class="p">({</span><span class="nx">username</span><span class="o">:</span> <span class="nx">username</span><span class="p">})</span>
+</span><span class='line'>  <span class="p">.</span><span class="nx">then</span><span class="p">(</span><span class="kd">function</span> <span class="p">(</span><span class="nx">user</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>    <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="nx">user</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>      <span class="k">throw</span> <span class="k">new</span> <span class="nb">Error</span><span class="p">(</span><span class="s2">&quot;Username is incorrect&quot;</span><span class="p">);</span>
+</span><span class='line'>    <span class="p">}</span>
+</span><span class='line'>    <span class="nx">existingUser</span> <span class="o">=</span> <span class="nx">user</span><span class="p">;</span>
+</span><span class='line'>    <span class="k">return</span> <span class="nx">User</span><span class="p">.</span><span class="nx">_hashPassword</span><span class="p">(</span><span class="nx">password</span><span class="p">,</span> <span class="nx">user</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s1">&#39;salt&#39;</span><span class="p">));</span>
+</span><span class='line'>  <span class="p">})</span>
+</span><span class='line'>  <span class="p">.</span><span class="nx">then</span><span class="p">(</span><span class="kd">function</span> <span class="p">(</span><span class="nx">hashedPassword</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>    <span class="k">if</span> <span class="p">(</span><span class="nx">existingUser</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s1">&#39;hashedPassword&#39;</span><span class="p">)</span> <span class="o">===</span> <span class="nx">hashedPassword</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>      <span class="k">return</span> <span class="nx">existingUser</span><span class="p">;</span>
+</span><span class='line'>    <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+</span><span class='line'>      <span class="k">throw</span> <span class="k">new</span> <span class="nb">Error</span><span class="p">(</span><span class="s2">&quot;Password is incorrect&quot;</span><span class="p">);</span>
+</span><span class='line'>    <span class="p">}</span>
+</span><span class='line'>  <span class="p">});</span>
+</span><span class='line'>
+</span><span class='line'><span class="c1">//later in chain or in a diffent function</span>
+</span><span class='line'><span class="nx">promise</span><span class="p">.</span><span class="nx">then</span><span class="p">(</span><span class="kd">function</span> <span class="p">(</span><span class="nx">eventualResult</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>    <span class="c1">//do something with result</span>
+</span><span class='line'>  <span class="p">},</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">error</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>    <span class="c1">//handle error</span>
+</span><span class='line'>  <span class="p">});</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>There&rsquo;s simply no point to having <code>then</code> failure handlers that just throw
+an error, since the library throws and propagates errors for you automatically.
+In promise chains, then, you have the benefit of isolating exceptions (only proceeding
+from step to step if everything is ok) without the extra semantics of <code>if (err) return cb(err)</code>
+from continuation passing.</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Client-Side Testing Insanity]]></title>
+    <link href="http://rzrsharp.net/2012/08/01/client-side-testing-insanity.html"/>
+    <updated>2012-08-01T10:31:00-07:00</updated>
+    <id>http://rzrsharp.net/2012/08/01/client-side-testing-insanity</id>
+    <content type="html"><![CDATA[<p>Client-side unit testing is crazy.</p>
+
+<p>Before you skip below to yell at me in the comments section, I don&rsquo;t mean that
+the <em>idea</em> of client-side unit testing is crazy. On the contrary: we need
+client-side tests more than ever! With ever-increasing complexity in our
+frontend code, not to mention the reliance on frameworks, building a web
+application without client-side tests is completely inadvisible.</p>
+
+<p>But the process. Ohhhh, the <em>process</em> of client-side testing is bonkers.</p>
+
+<p>Let&rsquo;s take the example of a modern Node.js web app setup.
+I’ve got the app’s configuration wired with <a href="http://gruntjs.com">grunt.js</a>.
+(If you’re not using grunt, you should be!) During development, server
+files are watched for changes and automatically kickoff <a href="http://visionmedia.github.com/mocha/">mocha</a> tests, which
+display their results in the grunt console. Great!</p>
+
+<p>Client-side changes kickoff their own unit tests, which of course are also
+using mocha for consitency in testing vocabulary. But because of the nature of
+client-side testing, we can’t just call <code>require</code> on the unit under test.
+Instead, we need something like the following setup:</p>
+
+<ul>
+<li><p><a href="http://requirejs.org/">requirejs</a> for managing dependencies</p></li>
+<li><p><a href="http://phantomjs.org/">PhantomJS</a> for running a headless browser</p></li>
+<li><p><a href="https://github.com/kmiyashiro/grunt-mocha">grunt-mocha</a>, which manages the
+PhantomJS process and reports test results to the grunt console</p></li>
+<li><p>an HTML fixture for loading the requirejs config, the browser environment, and test files</p></li>
+</ul>
+
+
+<p>This setup worked. It also felt downright medieval compared to the simple
+server-side mocha testing configuration.</p>
+
+<p>I’m not the only person who’s frustrated with this process. Chris Dickinson at
+<a href="http://urbanairship.com/">Urban Airship</a> recently released <a href="https://github.com/urbanairship/drive.js">Drive.js</a>,
+a unit testing framework and test driver that eases some of the above
+configuration. But in any of the setups I&rsquo;ve seen, your client-side “unit” tests feel
+much more like integration tests. If you need to load your entire client-side
+framework, load a headless browser, or even fire up an instance of your server
+to test a single function of your client-side code&hellip; why not just ignore
+client-side unit testing and skip straight to integration tests? The lack of
+true isolation of the system under test could lead to some frustrating false
+results anyway.</p>
+
+<p>There needs to be a better way. I’m not looking for a lot in my testing setup:</p>
+
+<ul>
+<li><p>I want to run my client-side tests with the same mocha vocabulary and
+configuration as my server tests</p></li>
+<li><p>I want to isolate my tests to requiring a single file and its immediate
+dependencies, and testing it</p></li>
+</ul>
+
+
+<p>That’s really it. And I think I’ve found a solution.</p>
+
+<p>First, I’ve needed to refactor my client-side code to follow the
+<a href="http://wiki.commonjs.org/wiki/Modules/1.1">CommonJS requires model</a>. I’ve also switched to
+<a href="https://github.com/substack/node-browserify">browserify</a> from requirejs, although this switch
+is no longer a necessity — requirejs has introduced a
+<a href="https://github.com/jrburke/r.js/blob/master/build/example.build.js#L412">new configuration option</a>,
+<code>cjsTranslate</code>, which will wrap CommonJS defined modules. Using the CommonJS
+approach means that my mocha tests can require my client-side files. Great.</p>
+
+<p>But the much larger problem with client-side testing is those pesky browser
+globals: the <code>window</code>object, the DOM itself, not to mention global code like
+jQuery, Backbone, etc.  How can we test code that relies on the presence of
+those globals, <em>without</em> resorting to running PhantomJS?</p>
+
+<p>The answer comes in two parts: <a href="https://github.com/tmpvar/jsdom/">jsdom</a>, and
+<a href="http://nodejs.org/api/vm.html">the Node.js vm module</a>.</p>
+
+<p>jsdom provides a server-side implementation of the DOM, while the vm module
+provides the “global” object that we can use to provide a fake browser
+environment to our client-side files. While I’m still fleshing out the
+implementation, the results so far have drastically improved my ease with
+client-side testing.</p>
+
+<p>Here&rsquo;s how it works. In a mocha test file, instead of a strict require call, I’m using a helper
+(passing <code>this</code>, the mocha test context):</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='javascript'><span class='line'><span class="nx">setupClientScript</span><span class="p">.</span><span class="nx">call</span><span class="p">(</span><span class="k">this</span><span class="p">,</span> <span class="s2">&quot;admin/postEdit&quot;</span><span class="p">,</span> <span class="nx">done</span><span class="p">);</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p><code>setupClientScript</code> loads a jsdom window, injects global javascripts (like jQuery),
+and wires the client-side file being tested. Here it looks in a slightly simplified form:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+</pre></td><td class='code'><pre><code class='javascript'><span class='line'><span class="kd">var</span> <span class="nx">setupClientScript</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">path</span><span class="p">,</span> <span class="nx">done</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>  <span class="kd">var</span> <span class="nx">relPath</span> <span class="o">=</span> <span class="nx">context</span><span class="p">.</span><span class="nx">clientRoot</span> <span class="o">+</span> <span class="nx">path</span><span class="p">;</span>
+</span><span class='line'>  <span class="kd">var</span> <span class="nx">self</span> <span class="o">=</span> <span class="k">this</span><span class="p">;</span>
+</span><span class='line'>  <span class="nx">jsdom</span><span class="p">.</span><span class="nx">env</span><span class="p">({</span>
+</span><span class='line'>    <span class="nx">html</span><span class="o">:</span> <span class="s1">&#39;&lt;html&gt;&lt;head&gt;&lt;/head&gt;&lt;body&gt;&lt;/body&gt;&lt;/html&gt;&#39;</span><span class="p">,</span>
+</span><span class='line'>    <span class="nx">src</span><span class="o">:</span> <span class="nx">context</span><span class="p">.</span><span class="nx">globalScripts</span><span class="p">,</span>
+</span><span class='line'>    <span class="nx">done</span><span class="o">:</span> <span class="kd">function</span><span class="p">(</span><span class="nx">errors</span><span class="p">,</span> <span class="nb">window</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>    <span class="nx">self</span><span class="p">.</span><span class="nx">clientRequires</span> <span class="o">=</span> <span class="nx">requireClientScript</span><span class="p">(</span><span class="nx">relPath</span><span class="p">,</span> <span class="nb">window</span><span class="p">,</span> <span class="p">{});</span>
+</span><span class='line'>    <span class="nx">self</span><span class="p">.</span><span class="nx">clientRequires</span><span class="p">[</span><span class="nx">path</span><span class="p">]</span> <span class="o">=</span> <span class="nx">self</span><span class="p">.</span><span class="nx">clientRequires</span><span class="p">[</span><span class="nx">relPath</span><span class="p">];</span>
+</span><span class='line'>      <span class="nx">done</span><span class="p">();</span>
+</span><span class='line'>    <span class="p">}</span>
+</span><span class='line'>  <span class="p">});</span>
+</span><span class='line'><span class="p">};</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Remember, the client-side <code>require</code> can’t <em>just</em> inject the DOM into the
+file under test, it also needs to make sure the file’s dependencies have access to
+the DOM:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+</pre></td><td class='code'><pre><code class='javascript'><span class='line'><span class="kd">var</span> <span class="nx">requireClientScript</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">path</span><span class="p">,</span> <span class="nb">window</span><span class="p">,</span> <span class="nx">r</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>  <span class="kd">var</span> <span class="nx">script</span> <span class="o">=</span> <span class="nx">fs</span><span class="p">.</span><span class="nx">readFileSync</span><span class="p">(</span><span class="nx">require</span><span class="p">.</span><span class="nx">resolve</span><span class="p">(</span><span class="nx">path</span><span class="p">)).</span><span class="nx">toString</span><span class="p">();</span>
+</span><span class='line'>  <span class="kd">var</span> <span class="nx">module</span> <span class="o">=</span> <span class="p">{</span> <span class="nx">exports</span><span class="o">:</span> <span class="p">{}</span> <span class="p">};</span>
+</span><span class='line'>  <span class="kd">var</span> <span class="nx">context</span> <span class="o">=</span> <span class="nx">vm</span><span class="p">.</span><span class="nx">createContext</span><span class="p">(</span><span class="nx">global</span><span class="p">);</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="nx">context</span><span class="p">.</span><span class="nb">window</span> <span class="o">=</span> <span class="nb">window</span><span class="p">;</span>
+</span><span class='line'>  <span class="nx">context</span><span class="p">.</span><span class="nx">exports</span> <span class="o">=</span> <span class="nx">module</span><span class="p">.</span><span class="nx">exports</span><span class="p">;</span>
+</span><span class='line'>  <span class="nx">context</span><span class="p">.</span><span class="nx">module</span> <span class="o">=</span> <span class="nx">module</span><span class="p">;</span>
+</span><span class='line'>  <span class="nx">context</span><span class="p">.</span><span class="nx">require</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">path</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>    <span class="nx">r</span><span class="p">[</span><span class="nx">path</span><span class="p">]</span> <span class="o">=</span> <span class="nx">requireClientScript</span><span class="p">(</span><span class="nx">path</span><span class="p">,</span> <span class="nb">window</span><span class="p">);</span>
+</span><span class='line'>    <span class="k">return</span> <span class="nx">r</span><span class="p">[</span><span class="nx">path</span><span class="p">];</span>
+</span><span class='line'>  <span class="p">};</span>
+</span><span class='line'>  <span class="nx">vm</span><span class="p">.</span><span class="nx">runInNewContext</span><span class="p">(</span><span class="nx">script</span><span class="p">,</span> <span class="nx">context</span><span class="p">);</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="k">if</span> <span class="p">(</span><span class="nx">r</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>    <span class="nx">r</span><span class="p">[</span><span class="nx">path</span><span class="p">]</span> <span class="o">=</span> <span class="nx">module</span><span class="p">.</span><span class="nx">exports</span><span class="p">;</span>
+</span><span class='line'>    <span class="nx">r</span><span class="p">.</span><span class="nb">window</span> <span class="o">=</span> <span class="nb">window</span><span class="p">;</span>
+</span><span class='line'>    <span class="k">return</span> <span class="nx">r</span><span class="p">;</span>
+</span><span class='line'>  <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+</span><span class='line'>    <span class="k">return</span> <span class="nx">module</span><span class="p">.</span><span class="nx">exports</span><span class="p">;</span>
+</span><span class='line'>  <span class="p">}</span>
+</span><span class='line'><span class="p">};</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>And that’s it. Now, any test function can call <code>this.clientRequires</code> to have
+access to the client-side file under test. No test server being spun up. No
+complex configuration or requirejs rewiring. No full-on headless browsers like
+PhantomJS. Just a single <code>before</code> setup call, and you can test with
+mocha as you normally would.</p>
+
+<p>As I wrote above, I’m still fleshing out the implementation, working out the
+interface and fixing deficiencies. I’ll be publishing the code when things are more
+mature, but in the meantime I&rsquo;d love to hear some feedback.</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Reflections on NodeConf 2012]]></title>
+    <link href="http://rzrsharp.net/2012/07/06/reflections-on-nodeconf-2012.html"/>
+    <updated>2012-07-06T20:16:00-07:00</updated>
+    <id>http://rzrsharp.net/2012/07/06/reflections-on-nodeconf-2012</id>
+    <content type="html"><![CDATA[<p>NodeConf 2012 was my first real &ldquo;developer&rdquo; conference. I had attended
+conferences in the past, but because of the heavy sponsorship of industry, most
+had felt like trade shows or job fairs. NodeConf was advertised as a conference
+for developers, by developers; Mikeal Rogers, the event&rsquo;s main organizer,
+boasted that NodeConf 2012 would feature more core committers as presenters
+than any other Node.js conference.</p>
+
+<p>As the event grew closer, my curiosity about what NodeConf would entail
+heightened. Mikeal didn&rsquo;t divulge a clue as to the event&rsquo;s schedule, and even
+perusing the twitter feeds of probable speakers and
+<a href="http://lanyrd.com/2012/nodeconf/">NodeConf&rsquo;s site on lanyard</a> didn&rsquo;t reveal any helpful
+intelligence. At the opening party on Sunday, a general sense of cautious
+curiosity permeated the crowd. No one had ever attended a conference where the
+schedule would be revealed in realtime (appropriately for Node); my own
+conference inexperience left me more curious than most.</p>
+
+<p>Mikeal <em>had</em> revealed two details:  the major themes of each day of the
+conference.  Day 1 was structured around the world of Node; Day 2 around the
+power of Node. NodeConf began with Node creator Ryan Dahl reconstructing the
+origins of the framework from livejournal entries and blurry photos of late
+night coding session in Germany.  But as the day continued, I couldn&rsquo;t see how
+the talks related to each other, or what I should be taking away from them.
+Each of the presentations, while excellent and often inspiring, didn&rsquo;t leave me
+with a consistent narrative. I had expected &ldquo;the world of Node&rdquo; to consist
+mostly of talks like Isaac Schlueter&rsquo;s &ldquo;State of Node&rdquo; presentation: perhaps a
+roundup of the big open source projects and frameworks that dominate the Node
+ecosystem, and a discussion of where they were headed.  Instead, talks covered
+everything from realtime solutions with <a href="http://socket.io/">socket.io</a>, to
+<a href="https://github.com/indutny/candor">the creation of a whole new language</a>. I had
+started the first day of NodeConf curious, but ended it confused.</p>
+
+<p>Day Two changed all that.</p>
+
+<p>As one talk on the &ldquo;power of Node&rdquo; led into the next, the topics and structure
+of the first day of NodeConf started to make sense to me. Each speaker
+demonstrated amazing new contributions to the Node ecosystem, from the
+Node-inspired <a href="http://luvit.io/">Luvit framework</a> built with
+<a href="http://www.lua.org/">Lua</a>, to bleeding edge debugging tooling with dtrace, to
+ridiculous hardware demonstrations featuring human-detecting arduinos,
+three-dimensional saws, and
+<a href="https://dl.dropbox.com/u/3531958/nodeconf/index.html#/">radar laser robots</a> controlled by
+Javascript. These talks didn&rsquo;t just demonstrate powerful and frequently
+unexpected uses of Node: they helped me make sense of the previous day&rsquo;s
+selection of talks.</p>
+
+<p>Node is not <em>just</em> the Node framework: it&rsquo;s a philosophy, an approach to
+solving problems. The first inkling of &ldquo;Node as philosophy&rdquo; came in
+<a href="http://substack.net/posts/b96642/the-node-js-aesthetic">substack&rsquo;s post on Node&rsquo;s aesthetic</a>,
+discussing the &ldquo;limited surface area&rdquo; approach to Node&rsquo;s modular problem-solving. But
+NodeConf demonstrated that the node philosophy goes much further than that:</p>
+
+<ol>
+<li><p>async all of the things: Ryan&rsquo;s initial work with libuv focused on the
+challenges of creating an async IO layer that worked across platforms, but that
+work has been extended with new languages like
+<a href="https://twitter.com/indutny/">Fedor Indutny&rsquo;s</a> Candor and
+<a href="https://github.com/creationix/">Tim Caswell&rsquo;s</a> Luvit framework. But it&rsquo;s not just
+file IO &ndash; <a href="https://twitter.com/maxogden">Max Ogden</a> showed that the importance
+of a beautiful async API
+<a href="https://github.com/maxogden/domnode">could be extended to browsers</a> (utilizing ideas put forth by
+substack in day one), while <a href="https://twitter.com/rwaldron">Rick Waldron</a>
+brilliantly demonstrated how JavaScript&rsquo;s async nature could be used to solve
+problems which had always been approached synchronously. (Like robots. With
+lasers.)</p></li>
+<li><p>embrace the hard problems: JavaScript may frequently be maligned for its odd
+&ldquo;bad parts&rdquo;, and JS developers have been looked down on in the past because of
+the history of DOM based spaghetti code, but NodeConf 2012 demonstrated a
+community that was unabashed in its tackling of serious computing issues. From
+<a href="https://twitter.com/felixge/">Felix Geisendorfer&rsquo;s&rsquo;s</a> writing of a binary MySQL parser that
+surpassed a c library in performance, to the community&rsquo;s embracing of the
+concept of IO streams, to the use of dtrace in debugging: Node developers on
+the bleeding edge are not shying away from the toughest technical problems, but
+instead are taking them on at full speed and with high expectations.</p></li>
+<li><p>a virtuous cycle of framework and community: Node&rsquo;s &ldquo;limited surface area&rdquo;
+design of the core framework, along with the ease of use of NPM for publishing
+open source code and small useful modules, have led to an explosion of code. At
+NodeConf 2011, around 1800 packages had been published to NPM; now there are
+over 12000! Modules range from
+<a href="https://github.com/substack/earl-grey">steaming cups of earl grey</a>, to
+<a href="http://voiceboxpdx.com/">karaoke bar APIs</a>, to websocket adapters and arduino libraries.
+The design of the framework drove its community adoption, but the community
+adoption has further developed the framework.</p></li>
+</ol>
+
+
+<p>In the last talk of day two, <a href="https://twitter.com/tmpvar">Elijah Insua</a>
+discussed the hardware hacking he&rsquo;d done with Node. At one point, he mentioned
+that he came up with an idea that needed a midi driver, and he said something
+along the lines of: he never expected needing a midi driver, but as soon as he
+needed one, he came across one on NPM. The word that came to mind was
+serendipity: the contributions to Node, and the explorations of its philosophy,
+are feeding on themselves and driving completely unexpected innovation.</p>
+
+<p>As I thought of the serendipitous nature of the Node ecosystem, Mikeal&rsquo;s
+construction of NodeConf finally clicked for me. The two days of talks had been
+divided into groups of four presentations around a single theme; neither the
+themes nor the talks were made public, but each talk and theme bled into the
+next, with later speakers surprisingly stating how happy they were that a
+previous speaker had touched on a similar topic. The talks seemed to develop
+naturally, if unexpectedly; the overall direction was unclear to everyone
+except Mikeal, and gave the impression of the community simply exploring new
+ideas and pushing boundaries organically. The serendipity of Node&rsquo;s
+development, then, found itself reflected in Mikeal&rsquo;s construction of the
+conference. Does this sound ridiculously meta? Yes, but it completely worked.</p>
+
+<p>As Node grows up and attracts adoption, it will be increasingly difficult to
+maintain the philosophically-driven, community-minded hacker ethos of the Node
+ecosystem, but I hope that Mikeal and the other stewards of the Node community
+can continue to foster talks and events that focus on the behind-the-scenes
+developers who are laying the building blocks for the future of this
+fascinating set of technologies.</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Mastering Your Toolset]]></title>
+    <link href="http://rzrsharp.net/2012/06/25/mastering-your-toolset.html"/>
+    <updated>2012-06-25T15:29:00-07:00</updated>
+    <id>http://rzrsharp.net/2012/06/25/mastering-your-toolset</id>
+    <content type="html"><![CDATA[<p>When I originally started thinking about writing this post, I was going to
+phrase it in terms of spring cleaning. When I moved to Portland, I took the
+opportunity to reasses my development environment and to cleanup the libraries
+and source repositories I had scattered across my system. Since then, I&rsquo;ve
+become the proud owner of a new retina MBP, so I&rsquo;ve ended up building a new
+environment from scratch. Provisioning a new laptop is incredibly fast
+now; if you have your projects stored in version control, and you keep your
+dotfiles controlled as well, setting up a new laptop is as easy as:</p>
+
+<ul>
+<li>installing <a href="http://mxcl.github.com/homebrew/">Homebrew</a></li>
+<li>installing <a href="http://www.iterm2.com/#/section/home">iTerm2</a></li>
+<li>brew install git, macvim, tmux, tmuxinator, whatever langs and dbs you need</li>
+<li>pulling down your <a href="https://github.com/jmreidy/dotfiles">.dotfiles</a></li>
+<li>installing and syncing your <a href="http://www.dropbox.com">Dropbox</a></li>
+</ul>
+
+
+<p>I was developing on my new machine the day it arrived.</p>
+
+<p>That experience of provisioning a machine so easily, and getting productive
+with it in no time at all, left me reconsidiering my original post on my
+toolset, which primarily boils down to zsh, tmux, and Vim.  There&rsquo;s plenty of
+material online to learn about these tools; a few of note are:</p>
+
+<ul>
+<li><a href="http://www.drbunsen.org/text-triumvirate.html">The Text Triumvirate</a></li>
+<li><a href="http://blog.sanctum.geek.nz/series/unix-as-ide/">Unix as IDE</a></li>
+<li><a href="http://stevelosh.com/blog/2010/09/coming-home-to-vim/">Coming Home to Vim</a></li>
+<li><a href="http://robots.thoughtbot.com/post/2641409235/a-tmux-crash-course">A Tmux Crash Course</a></li>
+<li><a href="http://wynnnetherland.com/journal/dotfiles-discovery">Dotfile Discovery</a></li>
+<li><a href="http://www.mahdiyusuf.com/post/24784023641/beautiful-tools">Beautiful Tools</a></li>
+</ul>
+
+
+<p>So why should you adopt tools with such a steep learning curve? Most discussions of IDEs
+and development environments quickly devolve into pointless arguments over the
+superiority of one tool over another, when in most cases the tool isn&rsquo;t the most
+important factor; differences in productivity will more frequently boil down to
+experience and mastery of a toolset, rather than the toolset itself. I&rsquo;ve seen
+masters of Vim, Eclipse, IntelliJ, and Textmate; in every case, the interface
+breaks down and gets out of the way of the user, who always &ldquo;does&rdquo; without any
+thought as to &ldquo;how to do&rdquo;.</p>
+
+<p>So if mastery is more important than toolset, does your choice really matter?</p>
+
+<p>Yes.</p>
+
+<p>There&rsquo;s two huge benefits of the Vim/tmux/shell toolset: ubiquity, and
+permanence.</p>
+
+<p>Mastery of a tool takes many, many, many hours: <blockquote
+class="twitter-tweet"><p>&ldquo;Malcolm Gladwell&rsquo;s observation that it takes 10,000
+hours to become truly expert at something.&rdquo; A little more than 3 years
+typically</p>&mdash; Jeff Atwood (@codinghorror) <a
+href="https://twitter.com/codinghorror/status/1066301753"
+data-datetime="2008-12-19T02:48:10+00:00">December 19, 2008</a></blockquote></p>
+
+<script src="http://rzrsharp.net//platform.twitter.com/widgets.js" charset="utf-8"></script>
+
+
+<p>So whatever tool you choose, you want to be able to use it as much of the time
+as possible, in as many environments as possible.</p>
+
+<p>A mastery of Eclipse, for example, doesn&rsquo;t help you when you need to ssh into a
+unix environment (but vi/m would).  Knowing Visual Studio inside and out can&rsquo;t
+help you if you need to work on a Max or Linux box (but gvim and cygwin will
+still work on Windows). There&rsquo;s not a lot that can compete with Vim in the ubiquity
+category; Emacs is the only other tool that comes to mind.</p>
+
+<p>Permanence is a whole other matter. Technology changes constantly; some tools
+are improved, others are abandoned, still others fall out of use entirely. Are
+you a Flex developer who spent spent huge amounts of time mastering FlexBuilder
+and Eclipse?  Out of luck now. Textmate? The tool that influenced countless
+developers to leave the Windows ecosystem eventually became pseudo-abandonware,
+leading to the current growth of tools liks <a href="http://www.sublimetext.com/2">Sublime Text 2</a>.</p>
+
+<p>Vim has been around since 1991. Its progenitor vi was written in 1976. (Again,
+Emacs is the only competitor here, having also been written in 1976.)</p>
+
+<p>All of this is to say: <strong>don&rsquo;t</strong> go and abandon your current toolset for mine!
+Just because what I use works for me, doesn&rsquo;t mean it&rsquo;s the best choice for
+you. If you&rsquo;ve already mastered your toolset and are happy with it, <strong>stay</strong> there:
+you&rsquo;d be wasting many productive hours on a new tool for the potential of
+hating it. And as wonderful as Vim/tmux/shell are for most, it&rsquo;s not the right
+toolset for everyone or everything. If you&rsquo;re doing mostly front-end web UX
+work, for example, <a href="http://panic.com/coda/">Coda 2</a> would probably be perfect
+for your needs; iOS means you&rsquo;re going to be stuck with Xcode, for better or worse.</p>
+
+<p>But if you&rsquo;re feeling constrained by your current toolset, or are making the jump
+from one technology to another, and haven&rsquo;t given &ldquo;the text triumvirate&rdquo; a try,
+I&rsquo;d very strongly recommend doing so. It&rsquo;s worth the effort.</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Blog Bankruptcy]]></title>
+    <link href="http://rzrsharp.net/2012/06/11/blog-bankruptcy.html"/>
+    <updated>2012-06-11T16:13:00-07:00</updated>
+    <id>http://rzrsharp.net/2012/06/11/blog-bankruptcy</id>
+    <content type="html"><![CDATA[<p>If you only know me through this blog, and have spent any amount of
+time playing Oregon Trail in your youth, you may have grown a bit
+concerned. It&rsquo;s been four months since
+<a href="http://rzrsharp.net/2012/02/17/goodbye-brooklyn-hello-portland.html">my last post</a>, in which I wrote
+about my upcoming move to Portland, OR; since then, there&rsquo;s been total
+silence here. I&rsquo;m happy to report that, over the course of my
+cross-country move, I didn&rsquo;t contract dysentery,
+drown in a reckless attempt at fording a river, or suffer a terrible
+firearms accident while hunting squirrels. In fact, I had better luck
+with the move than I possibly could have imagined. Our drive to
+Minneapolis avoided any nasty weather; our flight from Minneapolis to
+Portland proceeded without incident; our new house was solidly intact and
+without any animal squatters; and our movers arrived with all of our
+belongings at the exactly scheduled time (to the minute!) with nothing
+broken or lost.</p>
+
+<p>Portland has lived up to, and perhaps exceeded, our expectations.
+Being able to bike around a city without a constant fear of death and
+dismemberment has been quite a refreshing change. Living in a house
+has allowed us to actually grow a legitimate garden instead of
+stuffing a few pots in a fire escape. We couldn&rsquo;t be happier with the
+food scene here; the amount of craft beer in
+Portland is downright intimidating. And it&rsquo;s been extraordinarily
+exciting to meet so many other new Portlanders who&rsquo;ve moved here for
+similar reasons. Needless to say, if you&rsquo;re a developer who&rsquo;s thinking
+about Portland as a place to call home, feel free to drop me a line,
+or introduce yourself if you&rsquo;ll be coming to
+<a href="http://nodeconf.com">node conf</a> in July.</p>
+
+<p>I&rsquo;ve finally had to declare blog bankruptcy here, in order to just
+wipe the list of well-intentioned-blog-topics clear and get started
+writing again. Two topics will survive the culling. First, the move to
+Portland presented an opportunity for a spring cleaning of my
+development environment. I&rsquo;ll be writing about how I organized my
+dotfiles, and explaining why tmux is not just a cargo culting fad, but
+a ridiculously awesome tool for maximizing your terminal productivity.</p>
+
+<p>The other surviving topic surrounds Backbone.js. Since moving to
+Portland, I&rsquo;ve continued working with Bloomberg Sports in New York on
+their application for MLB team analytics. (Think a modern web app
+version of Moneyball spreadsheets.) Working on such a large app has
+presented me with some difficult lessons on how to best use Backbone,
+especially for interacting with a polyglot backend, which I think
+would prove useful to any other web devs working on larger Backbone
+applications.</p>
+
+<p>So now, back to work so I can actually get these posts written in the
+next week!</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Goodbye, Brooklyn. Hello, Portland!]]></title>
+    <link href="http://rzrsharp.net/2012/02/17/goodbye-brooklyn-hello-portland.html"/>
+    <updated>2012-02-17T13:23:00-08:00</updated>
+    <id>http://rzrsharp.net/2012/02/17/goodbye-brooklyn-hello-portland</id>
+    <content type="html"><![CDATA[<p>Two and a half years ago, Meaghin and I moved from Washington, DC to Brooklyn.
+Our move came as a bit of a shock to our family and friends &ndash; partly because of
+its suddenness, and also because of its proximity to our marriage. The move to
+Brooklyn was not motivated by a job opportunity or anything similar; instead,
+we had started feeling constrained by DC after five years of living there, and
+couldn&rsquo;t imagine a more challenging and exciting place to live than New York
+(and Brooklyn in particular). A week after getting married, we made the
+decision to move, and three weeks after that, we found ourselves surrounded by
+boxes in an apartment overlooking the East River and Manhattan.</p>
+
+<p>The first few months of living in New York definitely delivered on the
+&ldquo;challenging&rdquo; part of our expectations; not a day went by that didn&rsquo;t evoke
+memories of Seinfeld plot-lines. Crazy co-op boards? Difficult supers?
+Ridiculous encounters on the subway? More than one New York stereotype proved
+its roots in authenticity. But as we grew used to the city and its
+neighborhoods, learned how to quickly cut from one area to another, discovered
+which subway lines consistently failed, and realized that one should avoid 5th
+Ave and Times Square at all costs, the challenges started to dissipate and left
+only excitement. New York, in its intensity and genuine melting pot of cultures
+and backgrounds, presents an amazing opportunity for people to define
+themselves. What matters most to you, and why does it matter? In a city where
+practically any hobby or interest can be pursued, you&rsquo;ve got to seriously
+prioritize your time, and that prioritization goes a long way towards
+identifying exactly who you are.</p>
+
+<p>But for all the excitement and growth, I started to notice another development
+in myself: pernicious cynicism. While I had once dreamed of tackling big
+problems and making the world a better place, years of living in DC and New
+York made me view such ideas as hopelessly naive. The seeming intractability of
+so many daily problems, the realization that apparently important movements
+were actually driven by petty motivations; older, wiser me didn&rsquo;t look at
+idealists with disdain, but rather with a wistful admiration of their blissful
+ignorance.</p>
+
+<p>Then I spent time in Portland, OR.</p>
+
+<p>It&rsquo;s hard to describe the feeling of Portland. And I don&rsquo;t mean the city
+portrayed on Portlandia &ndash; although that show is certainly accurate in its
+skewering. I have never been to a place where so many people devote themselves
+to mastering a craft, not just because of the rewards of the mastery, but
+because <em>not</em> mastering that craft is simply not an option. There&rsquo;s an
+entrepreneurial spirit that pervades Portland, but it&rsquo;s one that&rsquo;s devoted to
+developing new ideas and contributing back to the community. Even this &ldquo;return
+to community&rdquo; is not the traditional &ldquo;I&rsquo;ve done well so I&rsquo;m giving back&rdquo; idea,
+but rather a networked entrepreneurship, a continuous exploration of &ldquo;How can
+my idea involve the unique work of that awesome <whatever>?&rdquo;</p>
+
+<p>Mikeal Rogers, organizer of NodeConf, <a href="http://www.mikealrogers.com/posts/what-is-the-maximum-number-of-courses.html">described Portland with
+admiration</a>:</p>
+
+<pre><code>There are times and places, great cities, that are remembered much more
+fondly than they were thought of at the time. Paris in the twenties when it
+was home to Hemingway, Picaso and Fitzgerald. Or San Francisco in the 50s
+when the beat generation migrated from New York to call it home. So
+impressionable were those years that the echo fuels future, lesser,
+generations for decades.
+
+When you're in Portland, Oregon you can't help but think it might be such
+a place and the time. For what it will be remembered I have no idea, but
+everyone seems to be bursting with creativity and no one is content until
+they have done more.
+</code></pre>
+
+<p>Spending time in Portland pierced the shell of cynicism that I&rsquo;d developed, and
+rekindled my motivations to build something real and lasting, to improve my
+community. Portland provides the inspiration; New York has provided the
+confidence and skillset to do something about it.</p>
+
+<p>So once again Meaghin and I find ourselves surrounded by boxes and preparing
+for a big move. In a month I&rsquo;ll be a resident of Portland. I can&rsquo;t wait to find
+out what the future will bring.</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Why JavaScript on the Server Isn't Such a Bad Idea]]></title>
+    <link href="http://rzrsharp.net/2012/02/15/why-javascript-on-the-server-isnt-such-a-bad-idea.html"/>
+    <updated>2012-02-15T14:39:00-08:00</updated>
+    <id>http://rzrsharp.net/2012/02/15/why-javascript-on-the-server-isnt-such-a-bad-idea</id>
+    <content type="html"><![CDATA[<p>Preaching the gospel of Node can be a tough job: how do you express your
+excitement for the technology without coming across as a fanboy? And how do you
+deal with people that view it as a cancer? I had to answer these questions when
+crafting a presentation last week introducting Node.js as part of
+a developer tech talk. Given the radically divergent opinions that Node has
+elicited, I wanted to address the FUD head on.  I tried to focus on the gut
+reaction most people tend to have towards Node (&ldquo;WHO would want to code their
+server in JS?!&rdquo;), and I think the talk went fairly well. I&rsquo;m embedding the
+slides here if anyone would like to take a look. Speakerdeck is a fantastic
+resource and I was happy to finally put it to use as a producer, instead of
+just a reader.</p>
+
+<script src="http://speakerdeck.com/embed/4f35ad1868bb50001f004b7f.js"></script>
+
+
+<p>For even more insight into the developing world of &ldquo;JavaScript everywhere&rdquo;, check out <a href="http://www.youtube.com/watch?v=AG6dyk8lkZg">this video</a> from Joe McCann, principal architect of subPrint Interactive, on &ldquo;End to End JavaScript&rdquo;.</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Welcome to 2012]]></title>
+    <link href="http://rzrsharp.net/2012/01/30/welcome-to-2012.html"/>
+    <updated>2012-01-30T16:31:00-08:00</updated>
+    <id>http://rzrsharp.net/2012/01/30/welcome-to-2012</id>
+    <content type="html"><![CDATA[<p>January&rsquo;s been a long month; not in a <em>bad</em> sense, just sort of interminable. Looking through my links collection in notational velocity today, I found a good twenty plus from the last six weeks. I&rsquo;ve culled them down a bit to the true standouts:</p>
+
+<ul>
+<li><p>An Object is not (Always) a Hash &mdash; Great post from Guillermo Rauch about <a href="http://www.devthought.com/2012/01/18/an-object-is-not-a-hash/">the perils of using Javascript Objects as Hashes</a>. Definitely some tricky gotchas here that you may not have thought about.</p></li>
+<li><p>Hot Node Reloading &mdash; Also from Guillermo, a solution to the annoying problem of continuously restarting your node app during development: <a href="http://www.devthought.com/2012/01/29/staying-up-with-node-js/">Staying Up with Node.JS</a></p></li>
+<li><p>Shedding Light on SPDY &mdash; If you haven&rsquo;t been hearing a great deal about SPDY lately, you will be soon. SPDY, if you couldn&rsquo;t tell from the name, serves as a next-generation protocol to speed up web communication. Nodejitsu posts <a href="http://blog.nodejitsu.com/what-is-node-spdy">a helpful introduction to SPDY</a>.</p></li>
+<li><p>Improving your Git Logs &mdash; Git log, out of the box, is so wordy that it proves fairly worthless. Check out Oli Studholme&rsquo;s <a href="http://oli.jp/2012/git-powerup/">aliases for taming the git log beast</a>.</p></li>
+<li><p>Hack Learning &mdash; One of the key lessons I&rsquo;ve learned as a developer is that getting good at something requires hours, and hours, and hours, and <strong>hours</strong> of work, and many of these hours will be exhausting displays of ignorance which you&rsquo;ll want to quickly forget. The good news is that you can pick up nearly any skill with enough effort and time. Jack Kinsella provides a hack for cutting back on how many hours separate &ldquo;terrible newb&rdquo; from &ldquo;fairly competent practitioner&rdquo;. His <a href="http://www.jackkinsella.ie/2011/12/05/janki-method.html">Janki Method</a> may <em>sound</em> like a get rich quick scheme, but it&rsquo;s really just a simple approach to improving your effiency at learning. Maybe you can cut those 10,000 hours of practice to a more managable&hellip; 6,000.</p></li>
+</ul>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[A Year in Coffee]]></title>
+    <link href="http://rzrsharp.net/2012/01/12/a-year-in-coffee.html"/>
+    <updated>2012-01-12T13:48:00-08:00</updated>
+    <id>http://rzrsharp.net/2012/01/12/a-year-in-coffee</id>
+    <content type="html"><![CDATA[<p>Last year was the first that I dove deeply into the coffee world, turning what
+was previously an interest into a full-blown passion. While I had previously
+ground beans at home and brewed in a french press, I decided sometime in 2010
+that I wanted to learn more. Going into 2011, I started brewing with an
+aeropress and chemex, upgraded my grinder to a Baratza Virtuoso, and furthered my coffee knowledge by reading <a href="http://www.amazon.com/God-Cup-Obsessive-Perfect-Coffee/dp/0470173580">God in a Cup</a> and <a href="http://www.amazon.com/Uncommon-Grounds-History-Coffee-Transformed/dp/0465054676">Uncommon Grounds</a>. I began taking notes on my home brews and asking questions at coffee bars. And I bought <em>lots</em> of coffee. Lots and lots and lots of coffee.</p>
+
+<p><img src="http://s3.cheeryobservations.com/coffee2011_redone.jpg" alt="Lots of coffee" /></p>
+
+<p>Meaghin <a href="http://www.cheeryobservations.com/photography/2011-coffee-more-coffee-than-weeks-in-the-year/">has more pictures and a full rundown of our 2011 coffee purchases</a>, but I wanted to highlight a few bags in particular.</p>
+
+<p><img src="http://s3.cheeryobservations.com/coffee2011_15.jpg" alt="Coava and Wrecking Ball" /></p>
+
+<p><a href="http://www.wreckingballcoffee.com/">Wrecking Ball Coffee Roasters</a> is a new enterprise from Trish Rothgeb and Nick
+Cho; I was lucky enough to get one of the first bags they shipped this year.
+Their coffee presented a perfect example of what makes me love Ethiopian
+coffees, offering a pleasantly light body without being too acidic. I like to
+compare good east African coffees to pinot noir &ndash; almost all have a juiciness
+to them, but the best are balanced with strong bass notes. I loved
+Wrecking Ball&rsquo;s fully biodegradable package. But beyond the coffee itself,
+I was happy to order from Wrecking Ball because of Nick Cho. Cho used to run
+the amazing Murky Coffee in Arlington, VA, which I visited very frequently when
+I lived in the DC area. Ironically, I didn&rsquo;t drink much coffee at the time, having
+been exposed to some swill in college. But Murky is what enticed me to learn
+more: the intoxicating smell of freshly ground Counter Culture coffee, the
+precise movements of the baristas as they brewed espressos, the clear passion
+of everyone involved. Drinking the Wrecking Ball made me feel as if I were
+making up for the coffee I never enjoyed at Murky.</p>
+
+<p>If Murky induced my coffee passion, <a href="http://coavacoffee.com">Coava</a> revealed the heights to which this
+passion could be taken. I drank Coava&rsquo;s David Mancia from Honduras early in the
+year; later, I would visit Coava&rsquo;s Portland shop in person. The David Mancia
+completely blew my mind. Even in my early days of home-brewing, I couldn&rsquo;t
+screw this coffee up: chocalate, berries, an amazing finish, thick and juicy
+and succulent. I couldn&rsquo;t wait to see how Coava&rsquo;s shop measured up to the
+coffee they roasted, and found one of my favorite coffee shops in the country.
+I can&rsquo;t wait to go back.</p>
+
+<p><img src="http://s3.cheeryobservations.com/coffee2011_21.jpg" alt="Coffee Collective" /></p>
+
+<p>One of the highlights of 2011 was my trip to Copenhagen with Meaghin. Before the
+trip, I greatly anticipated experiencing Danish culture, perhaps
+most intrigued by their coffee culture. Almost everywhere we bought coffee in
+Copenhagen, we felt pleased with the product, but <a href="http://thecoffeecollective.dk/">Coffee Collective</a> is an
+entity unto itself. We visited their new location in Torvehallerne, a glorious
+outdoor food market, a few times, trying various coffee drinks on each visit;
+the Kieni from Nyeri, Kenya proved particularly delicious.</p>
+
+<p>Two weeks into 2012 and as many bags brewed; I&rsquo;m currently finishing up a great
+roast from <a href="http://www.cafegrumpy.com">Cafe Grumpy</a>, from Finca La Coqueta in
+Columbia. I look forward to finding out what my favorites will be <em>this</em> year.</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Better Support for Helpers in vows-bdd]]></title>
+    <link href="http://rzrsharp.net/2011/12/05/better-support-for-helpers-in-vows-bdd.html"/>
+    <updated>2011-12-05T15:31:00-08:00</updated>
+    <id>http://rzrsharp.net/2011/12/05/better-support-for-helpers-in-vows-bdd</id>
+    <content type="html"><![CDATA[<p>This last week has been a particularly busy one, so I&rsquo;ve been delayed in blogging,
+but I released v0.2 of vows-bdd to NPM a week ago. There&rsquo;s two changes of note.
+The first is proper documentation for the library: you can see the docco documentation
+<a href="http://rzrsharp.net/vows-bdd">here</a>. If you&rsquo;re new to vows-bdd, or just want to learn
+more about how it&rsquo;s working, the docs should provide all the answers you&rsquo;re looking
+for.</p>
+
+<p>The more important change relates to the testing syntax. In some conversations I had
+online with <a href="http://graemef.com/">Graeme Foster</a>, I realized that the vows-bdd syntax
+left some room for improvement. Specifically, the syntax introduced a potential for
+redundancy when creating labels for integration tests. While named functions could
+be used for test statements that were repeated, there wasn&rsquo;t an easy to way to handle
+repeated labels.</p>
+
+<p>In order to make the use of test helpers even easier with vows-bdd, I have adjusted
+the <code>given/when/then/and</code> syntax to allow for array arguments <em>in addition to</em> the
+previous arguments of <code>label,test_function</code>. It&rsquo;s easiest to demonstrate the change with
+an example. One area of code that frequently is repeated is login code in integration tests.
+Here&rsquo;s how I had my tests setup with vows-bdd before:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+</pre></td><td class='code'><pre><code class='coffeescript'><span class='line'><span class="c1"># a test snippet</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="p">.</span><span class="nx">given</span> <span class="s">&quot;I am an admin user&quot;</span><span class="p">,</span> <span class="nf">-&gt;</span>
+</span><span class='line'>    <span class="vi">@user = </span><span class="nx">Model</span><span class="p">.</span><span class="nx">Factory</span><span class="p">.</span><span class="nx">create</span> <span class="s">&quot;user&quot;</span><span class="p">,</span> <span class="p">{</span><span class="nv">role: </span><span class="s">&#39;admin&#39;</span><span class="p">}</span>
+</span><span class='line'>    <span class="nx">@callback</span><span class="p">()</span>
+</span><span class='line'>    <span class="k">return</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="p">.</span><span class="nx">when</span> <span class="s">&quot;I go to login&quot;</span><span class="p">,</span> <span class="nf">-&gt;</span>
+</span><span class='line'>    <span class="nx">zombie</span><span class="p">.</span><span class="nx">visit</span> <span class="nx">Server</span><span class="p">.</span><span class="nx">path_for</span><span class="p">(</span><span class="s">&quot;/login&quot;</span><span class="p">),</span> <span class="nx">@callback</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="p">.</span><span class="nx">when</span> <span class="s">&quot;I click login&quot;</span><span class="p">,</span> <span class="nf">(browser,status) -&gt;</span>
+</span><span class='line'>    <span class="nx">browser</span><span class="p">.</span><span class="nx">fill</span><span class="p">(</span><span class="s">&quot;email&quot;</span><span class="p">,</span> <span class="s">&quot;</span><span class="si">#{</span><span class="nx">@user</span><span class="p">.</span><span class="nx">email</span><span class="si">}</span><span class="s">&quot;</span><span class="p">)</span>
+</span><span class='line'>           <span class="p">.</span><span class="nx">fill</span><span class="p">(</span><span class="s">&quot;password&quot;</span><span class="p">,</span> <span class="s">&quot;</span><span class="si">#{</span><span class="nx">@user</span><span class="p">.</span><span class="nx">password</span><span class="si">}</span><span class="s">&quot;</span><span class="p">)</span>
+</span><span class='line'>           <span class="p">.</span><span class="nx">pressButton</span> <span class="s">&quot;Login&quot;</span><span class="p">,</span> <span class="nx">@callback</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="p">.</span><span class="nx">then</span> <span class="s">&quot;I should be on the admin index&quot;</span><span class="p">,</span> <span class="nf">(err,browser,status) -&gt;</span>
+</span><span class='line'>    <span class="nx">Test</span><span class="p">.</span><span class="nx">assert</span><span class="p">.</span><span class="nx">shouldBeOn</span> <span class="nx">browser</span><span class="p">,</span> <span class="s">&quot;/admin&quot;</span>
+</span><span class='line'>
+</span><span class='line'><span class="c1"># snippet from another test</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="p">.</span><span class="nx">given</span> <span class="s">&quot;I am an admin user&quot;</span><span class="p">,</span> <span class="o">&gt;</span>
+</span><span class='line'>    <span class="vi">@password = </span><span class="s">&quot;foo&quot;</span>
+</span><span class='line'>    <span class="vi">@user = </span><span class="nx">Model</span><span class="p">.</span><span class="nx">Factory</span><span class="p">.</span><span class="nx">build</span><span class="p">(</span> <span class="s">&quot;user&quot;</span><span class="p">,</span> <span class="nv">password: </span><span class="nx">@password</span><span class="p">,</span> <span class="nv">passwordConf: </span><span class="nx">@password</span><span class="p">,</span> <span class="nv">role: </span><span class="s">&quot;admin&quot;</span> <span class="p">)</span>
+</span><span class='line'>    <span class="nx">@user</span><span class="p">.</span><span class="nx">save</span> <span class="nx">@callback</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="p">.</span><span class="nx">when</span> <span class="s">&quot;I am logged in&quot;</span><span class="p">,</span> <span class="o">&gt;</span>
+</span><span class='line'>    <span class="nv">user = </span><span class="nx">@user</span>
+</span><span class='line'>    <span class="nv">cb = </span><span class="nx">@callback</span>
+</span><span class='line'>    <span class="nv">pw = </span><span class="nx">@password</span>
+</span><span class='line'>    <span class="nx">zombie</span><span class="p">.</span><span class="nx">visit</span> <span class="nx">Server</span><span class="p">.</span><span class="nx">path_for</span><span class="p">(</span><span class="s">&quot;/login&quot;</span><span class="p">),</span> <span class="p">(</span><span class="nx">e</span><span class="p">,</span><span class="nx">browser</span><span class="p">,</span><span class="nx">status</span><span class="p">)</span> <span class="o">&gt;</span>
+</span><span class='line'>      <span class="nx">browser</span><span class="p">.</span><span class="nx">fill</span> <span class="s">&quot;email&quot;</span><span class="p">,</span> <span class="nx">user</span><span class="p">.</span><span class="nx">email</span>
+</span><span class='line'>      <span class="nx">browser</span><span class="p">.</span><span class="nx">fill</span> <span class="s">&quot;password&quot;</span><span class="p">,</span> <span class="nx">pw</span>
+</span><span class='line'>      <span class="nx">browser</span><span class="p">.</span><span class="nx">pressButton</span> <span class="s">&quot;Login&quot;</span><span class="p">,</span> <span class="nx">cb</span>
+</span><span class='line'>    <span class="k">return</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Even with the previous syntax, this code could be improved by creating a named <code>login</code>
+function that handles the duplicated code. And you could add a property to that function
+that provides a label. But I felt that the vows-bdd syntax should be improved to make
+this code repetition even easier. So the new <code>[label,function]</code> syntax looks like
+this:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+</pre></td><td class='code'><pre><code class='coffeescript'><span class='line'><span class="c1"># first test</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="p">.</span><span class="nx">scenario</span><span class="p">(</span><span class="s">&quot;&#39;/admin&#39; is accessible to logged in admin users&quot;</span><span class="p">)</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="p">.</span><span class="nx">when</span><span class="p">(</span><span class="nx">I</span><span class="p">.</span><span class="nx">login_as</span> <span class="s">&quot;an admin&quot;</span><span class="p">)</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="p">.</span><span class="nx">then</span> <span class="s">&quot;I should be on the admin index&quot;</span><span class="p">,</span> <span class="nf">(err,browser,status) -&gt;</span>
+</span><span class='line'>    <span class="nx">Test</span><span class="p">.</span><span class="nx">assert</span><span class="p">.</span><span class="nx">shouldBeOn</span> <span class="nx">browser</span><span class="p">,</span> <span class="s">&quot;/admin&quot;</span>
+</span><span class='line'>
+</span><span class='line'><span class="c1"># other test</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="p">.</span><span class="nx">scenario</span><span class="p">(</span><span class="s">&quot;Logging Out&quot;</span><span class="p">)</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="p">.</span><span class="nx">given</span><span class="p">(</span><span class="nx">I</span><span class="p">.</span><span class="nx">login_as</span> <span class="s">&quot;an admin&quot;</span><span class="p">)</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="p">.</span><span class="nx">when</span> <span class="s">&quot;I click logout&quot;</span><span class="p">,</span> <span class="nf">(browser,status) -&gt;</span>
+</span><span class='line'>    <span class="nx">browser</span><span class="p">.</span><span class="nx">pressButton</span> <span class="s">&quot;Logout&quot;</span><span class="p">,</span> <span class="nx">@callback</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="p">.</span><span class="nx">then</span> <span class="s">&quot;I should be redirected to the login page&quot;</span><span class="p">,</span> <span class="nf">(err,browser,status) -&gt;</span>
+</span><span class='line'>    <span class="c1">#continues</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>The <code>login_as</code> function is included in a helper file:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+</pre></td><td class='code'><pre><code class='coffeescript'><span class='line'><span class="nv">exports.login_as = </span><span class="nf">(type_of_user) -&gt;</span>
+</span><span class='line'>  <span class="nv">label = </span><span class="s">&quot;I login as </span><span class="si">#{</span><span class="nx">type_of_user</span><span class="si">}</span><span class="s">&quot;</span>
+</span><span class='line'>  <span class="nv">fixture = </span><span class="p">()</span> <span class="nf">-&gt;</span>
+</span><span class='line'>    <span class="nv">cb = </span><span class="nx">@callback</span>
+</span><span class='line'>    <span class="vi">@user = </span><span class="nv">user = </span><span class="nx">Model</span><span class="p">.</span><span class="nx">Factory</span><span class="p">.</span><span class="nx">create</span> <span class="nx">type_of_user</span><span class="p">.</span><span class="nx">match</span><span class="p">(</span><span class="sr">/a[n]? (\w+)/</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
+</span><span class='line'>    <span class="nx">zombie</span><span class="p">.</span><span class="nx">visit</span> <span class="nx">Server</span><span class="p">.</span><span class="nx">path_for</span><span class="p">(</span><span class="s">&quot;/login&quot;</span><span class="p">),</span> <span class="nf">(err,browser,status) -&gt;</span>
+</span><span class='line'>      <span class="nx">browser</span><span class="p">.</span><span class="nx">fill</span><span class="p">(</span><span class="s">&quot;email&quot;</span><span class="p">,</span> <span class="s">&quot;</span><span class="si">#{</span><span class="nx">user</span><span class="p">.</span><span class="nx">email</span><span class="si">}</span><span class="s">&quot;</span><span class="p">)</span>
+</span><span class='line'>             <span class="p">.</span><span class="nx">fill</span><span class="p">(</span><span class="s">&quot;password&quot;</span><span class="p">,</span> <span class="s">&quot;</span><span class="si">#{</span><span class="nx">user</span><span class="p">.</span><span class="nx">password</span><span class="si">}</span><span class="s">&quot;</span><span class="p">)</span>
+</span><span class='line'>             <span class="p">.</span><span class="nx">pressButton</span> <span class="s">&quot;Login&quot;</span><span class="p">,</span> <span class="nx">cb</span>
+</span><span class='line'>    <span class="k">return</span>
+</span><span class='line'>  <span class="k">return</span> <span class="p">[</span><span class="nx">label</span><span class="p">,</span><span class="nx">fixture</span><span class="p">]</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Note that the function returns an array of arguments to be supplied to the vows-bdd
+method. Also note that the fixture method is using <code>this</code> &mdash; which will point to the
+vows <code>context</code> when the test is evaluated &mdash; and that the fixture returns <code>undefined</code>
+to indicate to vows that the test should be performed asynchronously.</p>
+
+<p>I think this new syntax works really perfectly for integration tests; it goes a long
+way to supporting declarative testing style.</p>
+
+<p>As always, please let me know if you run into any problems with the library or
+have any suggestions!</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Thanksgiving Week Links]]></title>
+    <link href="http://rzrsharp.net/2011/11/21/thanksgiving-week-links.html"/>
+    <updated>2011-11-21T16:17:00-08:00</updated>
+    <id>http://rzrsharp.net/2011/11/21/thanksgiving-week-links</id>
+    <content type="html"><![CDATA[<p>I&rsquo;ve never been a fan of links posts &ndash; they always feel like &ldquo;clips
+episodes&rdquo; from sitcoms to me &ndash; but I&rsquo;ve realized that they can be pretty helpful, if
+they&rsquo;re well curated. I&rsquo;m going to be experimenting with the &ldquo;well curated&rdquo; sort
+of links posts. Please feel free to yell at me on twitter
+if these get boring.</p>
+
+<ul>
+<li><p>A scaffold for your node &ndash; <a href="https://github.com/spiceapps/scaffoldit">scaffoldit</a>
+is a customizable scaffold generator for your nodejs projects. I don&rsquo;t think that there&rsquo;s
+<em>that</em> much boilerplate for express based apps, but this library is still pretty helpful for
+getting my tests and basic app configured quickly.</p></li>
+<li><p>Basic metaprogramming in Ruby &ndash; If you&rsquo;re new to Ruby and are confused by some of
+the metaprogramming enabled by methods like <code>repond_to?</code> and <code>method_missing</code>, check
+out <a href="http://intridea.com/posts/dry-magic-methods">this helpful post</a> from the Intridea
+blog.</p></li>
+<li><p>Build first, talk later &ndash; Spencer Fry, founder of Carbonmade, offers some fine advice
+to <a href="http://spencerfry.com/show-dont-tell">show don&rsquo;t tell</a> &ndash; a prototype is worth
+ten thousand words. I particularly like his observation that &ldquo;The best thinking
+about your product will come from actually building it.&rdquo;</p></li>
+<li><p>Productivity geekery &ndash; <a href="http://brettterpstra.com/app-review-dropzone/">Brett Terpstra reviews</a>
+the mother-of-all-menubar-apps, Dropzone. I haven&rsquo;t bought it yet myself, but I&rsquo;m pretty close to pulling the trigger.</p></li>
+<li><p>Writing your readme &ndash; Awhile back, nodejitsu offered
+<a href="http://blog.nodejitsu.com/package-dependencies-done-right">some solid advice</a>
+on setting up your node project&rsquo;s <code>package.json</code> file.
+Now they&rsquo;re back with some more great advice, but this time it&rsquo;s more universal:
+<a href="http://blog.nodejitsu.com/how-to-write-a-readme">how to write a <em>helpful</em> readme for your next open source project</a>.</p></li>
+<li><p>After reading Umair Haque&rsquo;s excellent <a href="http://www.amazon.com/New-Capitalist-Manifesto-Building-Disruptively/dp/1422158586">New Capitalist Manifesto</a>, I&rsquo;ve been thinking a great deal about the values
+of sustainability in business and how value cycles drastically improve upon value chains.
+I was excited to see <a href="http://www.avc.com/a_vc/2011/11/sustainability.html">Fred Wilson explore the same issues on his blog</a>:</p></li>
+</ul>
+
+
+<blockquote><p>sustainability is all about figuring out how to be in business forever. It is about business models that are win/win and lead to happy long term customer and supplier relationships. It is about avoiding the temptation to overeach. It is about avoiding the temptation to mazimize near term profits at the expense of long term health. It is about adapting the business to changing market dynamics. It is about building a team and a culture that can survive the loss of the leader and keep going. And it is about many more things like this.</p></blockquote>
+
+
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Fix That Commit!]]></title>
+    <link href="http://rzrsharp.net/2011/11/10/fix-that-commit.html"/>
+    <updated>2011-11-10T16:55:00-08:00</updated>
+    <id>http://rzrsharp.net/2011/11/10/fix-that-commit</id>
+    <content type="html"><![CDATA[<p>While it sometimes seems as if everyone has already switched to git (or a similar distributed
+version control system), I still meet people who are only leaving subversion
+behind now. A lot of git&rsquo;s idioms are impenetrable to those who are new to it, but the presence
+of free resources like <a href="http://progit.org/book/">Pro Git</a> and <a href="http://gitready.com/">git ready</a> make the adjustment much easier.</p>
+
+<p>Even though I&rsquo;ve used git for awhile, I still need to look up the best way of performing
+a task every now and then. One trick that comes in handy is editing existing commits.
+<code>git --amend</code> allows for adding new files or changes to a previous commit, but you can
+have even more control than that &mdash; changing <em>any</em> pre-pushed commit in your history.</p>
+
+<p>Just get the hash of the commit you want to change. With a simple <code>git rebase &lt;commit&gt;^ --interactive</code>,
+you can then make any changes you want. For each file, just type <code>git add &lt;file&gt;</code>. When
+you&rsquo;re done, <code>git commit --amend</code> and <code>git rebase --continue</code> will finish up your editing.</p>
+
+<p>It&rsquo;s always useful to review and cleanup your commit history before pushing your changes
+upstream or issuing a pull request. With the ability to revisit any previous commit, you
+can be more comfortable in a &lsquo;commit-all-the-time&rsquo; workflow.</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Cleaning Up Yours Vows]]></title>
+    <link href="http://rzrsharp.net/2011/11/10/cleaning-up-yours-vows.html"/>
+    <updated>2011-11-10T11:07:00-08:00</updated>
+    <id>http://rzrsharp.net/2011/11/10/cleaning-up-yours-vows</id>
+    <content type="html"><![CDATA[<p>Learning a framework as you&rsquo;re TDD-ing a project can be dangerous. But even if you
+know what you&rsquo;re doing, some of the conveniences of node.js can make you a bit sloppy
+with your code. Namely, the ability to pull functions from files as you need them and pass
+them around makes for some interesting problems.</p>
+
+<figure class='code'><figcaption><span>foo.js</span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+</pre></td><td class='code'><pre><code class='javascript'><span class='line'><span class="nx">exports</span><span class="p">.</span><span class="nx">add</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">a</span><span class="p">,</span><span class="nx">b</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>  <span class="k">return</span> <span class="nx">a</span><span class="o">+</span><span class="nx">b</span><span class="p">;</span>
+</span><span class='line'><span class="p">}</span>
+</span><span class='line'><span class="nx">exports</span><span class="p">.</span><span class="nx">subtract</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">a</span><span class="p">,</span><span class="nx">b</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>  <span class="k">return</span> <span class="nx">a</span><span class="o">-</span><span class="nx">b</span><span class="p">;</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<figure class='code'><figcaption><span>bar.js</span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class='javascript'><span class='line'><span class="kd">var</span> <span class="nx">add</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;foo&#39;</span><span class="p">).</span><span class="nx">add</span><span class="p">;</span>
+</span><span class='line'><span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">add</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">));</span> <span class="c1">// 3</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>If your functions are free of side effects, you&rsquo;re not exactly committing
+a serious coding sin. But go beyond the simple example above &mdash; starting to pass
+around whole objects, or breaking the law of demeter &mdash; and soon your code doesn&rsquo;t feel right.</p>
+
+<p>I quickly ran into this problem with my vows tests. As I was about to merge a feature
+branch to master, I reviewed my code and was a bit horrified at what I saw in my tests:</p>
+
+<figure class='code'><figcaption><span>user_spec.coffee</span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+</pre></td><td class='code'><pre><code class='coffeescript'><span class='line'><span class="p">{</span><span class="nx">cleanupDB</span><span class="p">}</span> <span class="o">=</span> <span class="nx">require</span> <span class="s">&quot;../helpers&quot;</span>
+</span><span class='line'><span class="p">{</span><span class="nx">vows</span><span class="p">,</span><span class="nx">server</span><span class="p">}</span> <span class="o">=</span> <span class="nx">require</span> <span class="s">&quot;vows&quot;</span>
+</span><span class='line'><span class="nv">mongoose = </span><span class="nx">require</span> <span class="s">&quot;mongoose&quot;</span>
+</span><span class='line'><span class="nv">User = </span><span class="nx">mongoose</span><span class="p">.</span><span class="nx">model</span> <span class="s">&quot;User&quot;</span>
+</span><span class='line'><span class="nv">assert = </span><span class="nx">require</span> <span class="s">&quot;assert&quot;</span>
+</span><span class='line'><span class="nv">Sinon = </span><span class="nx">require</span> <span class="s">&quot;sinon&quot;</span>
+</span><span class='line'><span class="p">{</span><span class="nx">Factory</span><span class="p">}</span> <span class="o">=</span> <span class="nx">require</span> <span class="s">&quot;../helpers&quot;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>And this was just <em>one</em> of my tests. Yikes. Lots of bad things going on here:</p>
+
+<ul>
+<li>My test has a dependency on my model implementation, and not just the model itself;
+if I switch the model off mongoose in the future, my test itself will need to change.</li>
+<li>My test has a dependency on a particulra spying/mocking framework (Sinon)</li>
+<li>There&rsquo;s a lot of confusing imports; why is <code>server</code> required off of vows?</li>
+<li>Repeating requires &ndash; one for <code>cleanupDB</code> and one for <code>Factory</code>.</li>
+</ul>
+
+
+<p>Bad bad bad.</p>
+
+<p>My tests needed to be refactored to deal with this madness. I realized that there was
+repeated code throughout my vows tests; not only could I clean things up with some proper
+encapsulation, I could DRY my vows as well.</p>
+
+<p>One cool feature of node is that if you include an <code>index</code> file in a directory, that
+file is loaded when you require the directory. So I created a new <code>spec/helpers</code> directory,
+and placed an <code>index</code> file inside.</p>
+
+<figure class='code'><figcaption><span>spec/helpers/index.coffee</span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+</pre></td><td class='code'><pre><code class='coffeescript'><span class='line'><span class="nv">process.env.NODE_ENV = </span><span class="s">&#39;test&#39;</span>
+</span><span class='line'>
+</span><span class='line'><span class="nv">module.exports =</span>
+</span><span class='line'>  <span class="nv">Server: </span> <span class="nx">require</span> <span class="s">&quot;</span><span class="si">#{</span><span class="nx">__dirname</span><span class="si">}</span><span class="s">/server_helpers&quot;</span>
+</span><span class='line'>  <span class="nv">Test: </span> <span class="nx">require</span> <span class="s">&quot;</span><span class="si">#{</span><span class="nx">__dirname</span><span class="si">}</span><span class="s">/test_helpers&quot;</span>
+</span><span class='line'>  <span class="nv">Model: </span> <span class="nx">require</span> <span class="s">&quot;</span><span class="si">#{</span><span class="nx">__dirname</span><span class="si">}</span><span class="s">/model_helpers&quot;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>And each of these helper files now encapsulates logic and functionality that I use
+across my tests:</p>
+
+<figure class='code'><figcaption><span>server_helpers</span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+<span class='line-number'>41</span>
+<span class='line-number'>42</span>
+<span class='line-number'>43</span>
+<span class='line-number'>44</span>
+<span class='line-number'>45</span>
+<span class='line-number'>46</span>
+<span class='line-number'>47</span>
+<span class='line-number'>48</span>
+<span class='line-number'>49</span>
+<span class='line-number'>50</span>
+<span class='line-number'>51</span>
+<span class='line-number'>52</span>
+<span class='line-number'>53</span>
+<span class='line-number'>54</span>
+<span class='line-number'>55</span>
+<span class='line-number'>56</span>
+<span class='line-number'>57</span>
+<span class='line-number'>58</span>
+<span class='line-number'>59</span>
+</pre></td><td class='code'><pre><code class='coffeescript'><span class='line'><span class="nv">http = </span><span class="nx">require</span> <span class="s">&quot;http&quot;</span>
+</span><span class='line'>
+</span><span class='line'><span class="nv">exports.port = port = </span><span class="mi">3003</span>
+</span><span class='line'><span class="nv">server = </span><span class="p">(</span><span class="nx">require</span> <span class="s">&quot;</span><span class="si">#{</span><span class="nx">__dirname</span><span class="si">}</span><span class="s">/../../app&quot;</span><span class="p">)</span>
+</span><span class='line'><span class="nv">server.ready = </span><span class="nf">(callback) -&gt;</span>
+</span><span class='line'>  <span class="k">if</span> <span class="nx">@active</span>
+</span><span class='line'>    <span class="nx">process</span><span class="p">.</span><span class="nx">nextTick</span> <span class="nx">callback</span>
+</span><span class='line'>  <span class="k">else</span>
+</span><span class='line'>    <span class="vi">@active = </span><span class="kc">true</span>
+</span><span class='line'>    <span class="nx">server</span><span class="p">.</span><span class="nx">listen</span> <span class="nx">port</span><span class="p">,</span> <span class="nf">(err,result) -&gt;</span>
+</span><span class='line'>      <span class="nx">process</span><span class="p">.</span><span class="nx">nextTick</span> <span class="nx">callback</span>
+</span><span class='line'>  <span class="k">return</span>
+</span><span class='line'>
+</span><span class='line'><span class="nx">process</span><span class="p">.</span><span class="nx">on</span> <span class="s">&quot;exit&quot;</span><span class="p">,</span> <span class="nf">-&gt;</span>
+</span><span class='line'>  <span class="k">if</span> <span class="nx">@active</span> <span class="k">then</span> <span class="nx">server</span><span class="p">.</span><span class="nx">close</span><span class="p">()</span>
+</span><span class='line'>
+</span><span class='line'><span class="nv">wait = </span><span class="nf">-&gt;</span>
+</span><span class='line'>  <span class="k">if</span> <span class="o">!</span><span class="nx">@active</span>
+</span><span class='line'>    <span class="nx">process</span><span class="p">.</span><span class="nx">nextTick</span> <span class="nx">wait</span>
+</span><span class='line'>  <span class="k">else</span>
+</span><span class='line'>    <span class="k">return</span>
+</span><span class='line'>
+</span><span class='line'><span class="nx">server</span><span class="p">.</span><span class="nx">ready</span> <span class="nx">wait</span>
+</span><span class='line'>
+</span><span class='line'><span class="nv">makeRequest = </span><span class="nf">(url,params,method,callback) -&gt;</span>
+</span><span class='line'>  <span class="nx">params</span> <span class="o">||=</span> <span class="s">&quot;&quot;</span>
+</span><span class='line'>  <span class="nv">encoding = </span><span class="s">&#39;utf-8&#39;</span>
+</span><span class='line'>  <span class="nx">server</span><span class="p">.</span><span class="nx">ready</span> <span class="nf">-&gt;</span>
+</span><span class='line'>    <span class="nv">request = </span><span class="nx">http</span><span class="p">.</span><span class="nx">request</span>
+</span><span class='line'>      <span class="nv">host: </span><span class="s">&quot;127.0.0.1&quot;</span>
+</span><span class='line'>      <span class="nv">port: </span><span class="s">&quot;</span><span class="si">#{</span><span class="nx">port</span><span class="si">}</span><span class="s">&quot;</span>
+</span><span class='line'>      <span class="nv">path: </span><span class="nx">url</span>
+</span><span class='line'>      <span class="nv">method: </span><span class="s">&quot;</span><span class="si">#{</span><span class="nx">method</span><span class="si">}</span><span class="s">&quot;</span>
+</span><span class='line'>      <span class="nv">headers:</span>
+</span><span class='line'>        <span class="s">&#39;content-type&#39;</span><span class="o">:</span> <span class="s">&quot;application/x-www-form-urlencoded&quot;</span>
+</span><span class='line'>        <span class="s">&#39;content-length&#39;</span><span class="o">:</span> <span class="nx">params</span><span class="p">.</span><span class="nx">length</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="nx">request</span><span class="p">.</span><span class="nx">on</span> <span class="s">&#39;response&#39;</span><span class="p">,</span> <span class="nf">(response) -&gt;</span>
+</span><span class='line'>      <span class="nv">response.body = </span><span class="s">&#39;&#39;</span>
+</span><span class='line'>      <span class="nx">response</span><span class="p">.</span><span class="nx">setEncoding</span> <span class="nx">encoding</span>
+</span><span class='line'>      <span class="nx">response</span><span class="p">.</span><span class="nx">on</span> <span class="s">&#39;data&#39;</span><span class="p">,</span> <span class="nf">(chunk) -&gt;</span>
+</span><span class='line'>        <span class="nx">response</span><span class="p">.</span><span class="nx">body</span> <span class="o">+=</span> <span class="nx">chunk</span>
+</span><span class='line'>      <span class="nx">response</span><span class="p">.</span><span class="nx">on</span> <span class="s">&#39;end&#39;</span><span class="p">,</span> <span class="nf">-&gt;</span>
+</span><span class='line'>        <span class="nx">callback</span> <span class="kc">null</span><span class="p">,</span> <span class="nx">response</span>
+</span><span class='line'>    <span class="k">if</span> <span class="nx">params</span>
+</span><span class='line'>      <span class="nx">request</span><span class="p">.</span><span class="nx">write</span> <span class="nx">params</span>
+</span><span class='line'>    <span class="nx">request</span><span class="p">.</span><span class="nx">end</span><span class="p">()</span>
+</span><span class='line'>
+</span><span class='line'>
+</span><span class='line'><span class="nv">exports.server = </span><span class="nx">server</span>
+</span><span class='line'>
+</span><span class='line'><span class="nv">exports.get = </span><span class="nf">(url,params,callback) -&gt;</span>
+</span><span class='line'>  <span class="k">if</span> <span class="nx">arguments</span><span class="p">.</span><span class="nx">length</span> <span class="o">==</span> <span class="mi">2</span>
+</span><span class='line'>    <span class="nv">callback = </span><span class="nx">arguments</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+</span><span class='line'>    <span class="nv">params = </span><span class="kc">null</span>
+</span><span class='line'>  <span class="nx">makeRequest</span> <span class="nx">url</span><span class="p">,</span><span class="nx">params</span><span class="p">,</span><span class="s">&quot;GET&quot;</span><span class="p">,</span><span class="nx">callback</span>
+</span><span class='line'>
+</span><span class='line'><span class="nv">exports.post = </span><span class="nf">(url,params,callback) -&gt;</span>
+</span><span class='line'>  <span class="nx">makeRequest</span> <span class="nx">url</span><span class="p">,</span><span class="nx">params</span><span class="p">,</span><span class="s">&quot;POST&quot;</span><span class="p">,</span><span class="nx">callback</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+
+
+<figure class='code'><figcaption><span>test_helpers.coffee</span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+</pre></td><td class='code'><pre><code class='coffeescript'><span class='line'><span class="nv">Sinon = </span><span class="nx">require</span> <span class="s">&quot;sinon&quot;</span>
+</span><span class='line'><span class="nv">assert = </span><span class="nx">require</span> <span class="s">&quot;assert&quot;</span>
+</span><span class='line'><span class="nv">http = </span><span class="nx">require</span> <span class="s">&quot;http&quot;</span>
+</span><span class='line'><span class="nv">Model = </span><span class="nx">require</span> <span class="s">&quot;./model_helpers&quot;</span>
+</span><span class='line'>
+</span><span class='line'><span class="nv">exports.spy = </span><span class="nf">(object,method) -&gt;</span>
+</span><span class='line'>  <span class="nx">Sinon</span><span class="p">.</span><span class="nx">spy</span> <span class="nx">object</span><span class="p">,</span> <span class="nx">method</span>
+</span><span class='line'>
+</span><span class='line'><span class="nv">exports.stub = </span><span class="nf">(object, method, fn) -&gt;</span>
+</span><span class='line'>  <span class="nx">Sinon</span><span class="p">.</span><span class="nx">stub</span> <span class="nx">object</span><span class="p">,</span> <span class="nx">method</span><span class="p">,</span> <span class="nx">fn</span>
+</span><span class='line'>
+</span><span class='line'><span class="nv">exports.spyRender = </span><span class="nf">-&gt;</span>
+</span><span class='line'>  <span class="vi">@response = </span><span class="nx">http</span><span class="p">.</span><span class="nx">ServerResponse</span><span class="p">.</span><span class="nx">prototype</span>
+</span><span class='line'>  <span class="nx">Sinon</span><span class="p">.</span><span class="nx">spy</span> <span class="nx">@response</span><span class="p">,</span> <span class="s">&quot;render&quot;</span>
+</span><span class='line'>
+</span><span class='line'><span class="nv">exports.spyModel = </span><span class="nf">(klass,method) -&gt;</span>
+</span><span class='line'>  <span class="nx">Sinon</span><span class="p">.</span><span class="nx">spy</span> <span class="p">(</span><span class="nx">Model</span><span class="p">.</span><span class="nx">getType</span> <span class="nx">klass</span><span class="p">),</span> <span class="nx">method</span>
+</span><span class='line'>
+</span><span class='line'><span class="nv">exports.assert = </span><span class="nx">assert</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+
+
+<figure class='code'><figcaption><span>model_helpers.coffee</span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+</pre></td><td class='code'><pre><code class='coffeescript'><span class='line'><span class="nv">mongoose = </span><span class="nx">require</span> <span class="s">&quot;mongoose&quot;</span>
+</span><span class='line'><span class="nv">cleaner = </span><span class="k">new</span> <span class="p">(</span><span class="nx">require</span> <span class="s">&quot;database-cleaner&quot;</span><span class="p">)(</span><span class="s">&quot;mongodb&quot;</span><span class="p">)</span>
+</span><span class='line'>
+</span><span class='line'><span class="nv">exports.cleanupDB = </span><span class="nf">-&gt;</span>
+</span><span class='line'>  <span class="nv">mongo = </span><span class="nx">mongoose</span><span class="p">.</span><span class="nx">connection</span><span class="p">.</span><span class="nx">db</span>
+</span><span class='line'>  <span class="nx">cleaner</span><span class="p">.</span><span class="nx">clean</span> <span class="nx">mongo</span>
+</span><span class='line'>
+</span><span class='line'><span class="nv">exports.Factory = </span><span class="p">(</span><span class="nx">require</span> <span class="s">&quot;</span><span class="si">#{</span><span class="nx">__dirname</span><span class="si">}</span><span class="s">/factories&quot;</span><span class="p">).</span><span class="nx">Factory</span>
+</span><span class='line'>
+</span><span class='line'><span class="nv">exports.getType = </span><span class="nf">(Klass) -&gt;</span>
+</span><span class='line'>  <span class="nx">mongoose</span><span class="p">.</span><span class="nx">model</span> <span class="nx">Klass</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>My test logic dependencies are clean and encapsulated, making for both clearer
+<code>require</code>s blocks and clearer tests themselves.</p>
+
+<figure class='code'><figcaption><span>user_spec.coffee</span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+</pre></td><td class='code'><pre><code class='coffeescript'><span class='line'><span class="p">{</span><span class="nx">Model</span><span class="p">,</span><span class="nx">Test</span><span class="p">,</span><span class="nx">Server</span><span class="p">}</span> <span class="o">=</span> <span class="nx">require</span> <span class="s">&quot;../helpers&quot;</span>
+</span><span class='line'><span class="nv">vows = </span><span class="nx">require</span> <span class="s">&#39;vows&#39;</span>
+</span><span class='line'><span class="nv">User = </span><span class="nx">Model</span><span class="p">.</span><span class="nx">getType</span> <span class="s">&quot;User&quot;</span>
+</span><span class='line'>
+</span><span class='line'><span class="c1">#code removed for brevity</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="p">.</span><span class="nx">addBatch</span>
+</span><span class='line'>    <span class="s">&quot;Hashes password:&quot;</span><span class="o">:</span>
+</span><span class='line'>      <span class="s">&quot;when a new user is created&quot;</span><span class="o">:</span>
+</span><span class='line'>        <span class="nv">topic: </span><span class="nf">-&gt;</span>
+</span><span class='line'>          <span class="vi">@user = </span><span class="nx">Model</span><span class="p">.</span><span class="nx">Factory</span><span class="p">.</span><span class="nx">build</span> <span class="s">&quot;User&quot;</span>
+</span><span class='line'>          <span class="nx">Test</span><span class="p">.</span><span class="nx">spy</span> <span class="nx">User</span><span class="p">,</span> <span class="s">&quot;makeSalt&quot;</span>
+</span><span class='line'>          <span class="nx">Test</span><span class="p">.</span><span class="nx">spy</span> <span class="nx">User</span><span class="p">,</span> <span class="s">&quot;hashPassword&quot;</span>
+</span><span class='line'>          <span class="nx">@user</span><span class="p">.</span><span class="nx">save</span> <span class="nx">@callback</span>
+</span><span class='line'>          <span class="k">return</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="s">&quot;it creates a salt and stores it&quot;</span><span class="o">:</span> <span class="nf">(err,user) -&gt;</span>
+</span><span class='line'>          <span class="nx">Test</span><span class="p">.</span><span class="nx">assert</span><span class="p">.</span><span class="nx">ok</span> <span class="nx">User</span><span class="p">.</span><span class="nx">makeSalt</span><span class="p">.</span><span class="nx">calledOnce</span>
+</span><span class='line'>          <span class="nx">Test</span><span class="p">.</span><span class="nx">assert</span><span class="p">.</span><span class="nx">ok</span> <span class="nx">user</span><span class="p">.</span><span class="nx">salt</span> <span class="o">==</span> <span class="nx">User</span><span class="p">.</span><span class="nx">makeSalt</span><span class="p">.</span><span class="nx">returnValues</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="s">&quot;it encrpyts the password&quot;</span><span class="o">:</span> <span class="nf">(err,user) -&gt;</span>
+</span><span class='line'>          <span class="nx">Test</span><span class="p">.</span><span class="nx">assert</span><span class="p">.</span><span class="nx">ok</span> <span class="nx">User</span><span class="p">.</span><span class="nx">hashPassword</span><span class="p">.</span><span class="nx">calledOnce</span>
+</span><span class='line'>          <span class="nx">Test</span><span class="p">.</span><span class="nx">assert</span><span class="p">.</span><span class="nx">ok</span> <span class="nx">User</span><span class="p">.</span><span class="nx">hashPassword</span><span class="p">.</span><span class="nx">calledWith</span> <span class="nx">@user</span><span class="p">.</span><span class="nx">password</span>
+</span><span class='line'>
+</span><span class='line'>      <span class="nv">teardown: </span><span class="nf">-&gt;</span>
+</span><span class='line'>        <span class="nx">User</span><span class="p">.</span><span class="nx">hashPassword</span><span class="p">.</span><span class="nx">restore</span><span class="p">()</span>
+</span><span class='line'>        <span class="nx">User</span><span class="p">.</span><span class="nx">makeSalt</span><span class="p">.</span><span class="nx">restore</span><span class="p">()</span>
+</span><span class='line'>        <span class="nx">Model</span><span class="p">.</span><span class="nx">cleanupDB</span><span class="p">()</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Indie Productivity]]></title>
+    <link href="http://rzrsharp.net/2011/11/04/indie-productivity.html"/>
+    <updated>2011-11-04T14:25:00-07:00</updated>
+    <id>http://rzrsharp.net/2011/11/04/indie-productivity</id>
+    <content type="html"><![CDATA[<p>Being a contract web developer means working in a large number of enterprise
+environments. While clients and projects vary dramatically, enterprise
+environments almost always share certain characteristics in common: locked down
+networks, limited use of open source libraries (and certainly no
+contribution!), extreme caution regarding new technologies, and reliance on
+libraries and tools which some might consider&hellip; deprecated. Most of these
+characteristics are perfectly logical, given the complexity of enterprise
+projects and the security required by legal considerations. Enterprise software
+is frequently disregarded as sloppy, boring, uncreative, and poor &mdash; and I&rsquo;ve
+certainly worked on these kinds of projects, and dealt with some
+frustrating situations &mdash; but classifying <em>all</em> software in this way is unfair.
+That said, even the best of enterprise projects feel constraining compared to
+independent work.</p>
+
+<p>Recent developments have certainly improvemed the enterprise work
+environment. The proliferation of iOS devices has not only brought Macs into
+the traditionally Windows-only world of the enterprise; it&rsquo;s brought a new
+focus on standards-based webapps, which has forced
+a reconsideration of existing technology stacks. As enterprises have adopted
+dynamic languages and agile approaches &mdash; albeit slowly &mdash; they&rsquo;ve begun
+upgrading their toolsets, as well. <a href="https://github.com/blog/978-introducing-github-enterprise">Github&rsquo;s announcement of an enterprise plan</a> demonstrates that it&rsquo;s starting to feel a little bit more
+human within the confines of corporate intranets.</p>
+
+<p>But even as the enterprise has evolved, the improvements made for individual
+developer productivity have exploded. The ease with which a single developer
+can build and deploy a scalable, cross-device, and revenue generating app is
+beyond remarkable. The maturing of tools, languages, development environments,
+and deployment strategies has created a fantastically productive environment.
+To name a few favorites:</p>
+
+<ul>
+<li><p>Macbooks &ndash; The new Macbook Airs, when fully tricked out, offer incredibly
+powerful development workhorses weighing less than 3 pounds and costing
+less than $2k</p></li>
+<li><p><a href="http://mxcl.github.com/homebrew/">Homebrew</a> &ndash; A package manager for Mac OS,
+making that Macbook purchase perfect</p></li>
+<li><p><a href="http://heroku.com">Heroku</a> &ndash; Have an idea for a new project? Deploy it for
+free. Want to scale it? Flip a switch</p></li>
+<li><p><a href="http://www.opscode.com/chef/">Chef</a> and <a href="http://puppetlabs.com/">Puppet</a> &ndash; Want
+more control than Heroku offers? Fine, manage your own boxes with
+a sane devops solution that you can take with you.</p></li>
+<li><p>Git and <a href="http://github.com">Github</a> &ndash; Who could have ever imagined that
+managing code could be so enjoyable?</p></li>
+<li><p>zsh and <a href="https://github.com/robbyrussell/oh-my-zsh">oh-my-zsh</a> &ndash; Tab completion, customizable plugins, persistent Git HUD</p></li>
+<li><p>The incredible profusion of programming languages, libraries, and frameworks &ndash; <a href="http://scala-lang.org">Scala</a>,
+<a href="http://clojure.org">Clojure</a>,
+<a href="http://nodejs.org">node.js</a>, the <a href="http://www.playframework.org/">Play framework</a>, NoSql solutions,
+nginx, to say nothing of the maturing of Ruby (especially Rails) and Python &ndash; all of
+these technologies make it easier than ever to work in one&rsquo;s preferred
+style without sacrificing power or performance. The communities around each
+of these technologies, empowered by twitter, StackExchange, and Github,
+ease learning curves and offer helpful answers to any questions.</p></li>
+<li><p>The Apple App store, <a href="https://squareup.com/">Square</a>, <a href="http://stripe.com">Stripe</a>, <a href="http://recurly.com/">Recurly</a>,
+and <a href="https://samurai.feefighters.com/">Samurai</a> enable developers to make money on their ideas and apps
+with far less effort than in the past.</p></li>
+</ul>
+
+
+<p>Is there <em>any other industry</em> in which an individual has such a <em>dramatic</em>
+advantage in tools, cost, and agility over large organizations?</p>
+
+<p>It&rsquo;s an exciting time for indie developers. And the future keeps looking better.</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Back from Vacation]]></title>
+    <link href="http://rzrsharp.net/2011/09/13/back-from-vacation.html"/>
+    <updated>2011-09-13T00:00:00-07:00</updated>
+    <id>http://rzrsharp.net/2011/09/13/back-from-vacation</id>
+    <content type="html"><![CDATA[<p>I just returned from a fantastic vacation to London and Copenhagen. I&rsquo;d visited
+London, before but had never been to Copenhagen, or any Scandinavian country.
+As an engineer, I could barely wrap my mind around the brilliant efficiencies
+of the city. The train system is a wonder &ndash; incredibly efficient, clean,and
+comprehensive, with the ability to get anywhere easily, and even allowing sales
+of travel tickets via text message. My heart warmed at the first site of
+a flotilla of bike-commuters sailing by on our walk to our hotel. The Danes
+themselves consistently impressed us with their warmth and hospitality. I look
+forward to returning soon.</p>
+
+<p>My brain is struggling to return to coding productivity after its extended
+vacation, so I&rsquo;ve mostly been reviewing my RSS reader to aid in the transition.
+Assaf Arkin, to whom I owe a massive debt for his creation of <a href="http://zombie.labnotes.org/">Node testingtool Zombie.js</a>,
+wrote a <a href="http://labnotes.org/2011/09/06/what-self-can-teach-us-about-the-future-of-javascript/">great article on Self</a>
+that deserves mentioning. Self, as most JS developers know, played an important
+role in inspiring Brendan Eich&rsquo;s creation of Javascript, but I was unaware of
+the details of the language.</p>
+
+<p>Assaf&rsquo;s whole article is worth reading, but one particular quote stood out:</p>
+
+<blockquote><p>language and environment come together to achieve a common goal: to create an environment that is malleable,
+that allows learning through sharing and exploration,
+that uses minimalism and consistency to foster reuse.</p></blockquote>
+
+<p>Minimalism, consistency, malleability.</p>
+
+<p>These words work not just as signposts of good language design, but of everything from
+API construction to individual units of code. I&rsquo;m certainly planning on using them
+as my mantra as I slowly get back up to speed with work.</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Introducing vows-bdd]]></title>
+    <link href="http://rzrsharp.net/2011/08/16/introducing-vows-bdd.html"/>
+    <updated>2011-08-16T00:00:00-07:00</updated>
+    <id>http://rzrsharp.net/2011/08/16/introducing-vows-bdd</id>
+    <content type="html"><![CDATA[<p>My work with Node.js has recently transformed from the occassional experiment to
+the building of a full-on side project. It&rsquo;s fascinating to be working with a set
+of tools that are so rapidly developing; the energy and excitement in the Node
+ecosystem far outweighs any annoyances with needing to adjust to changing APIs.</p>
+
+<h3>Embracing Vows</h3>
+
+<p>One of the tools which I&rsquo;ve really enjoyed learning is <a href="http://vowsjs.org">Vows.js</a>.
+Vows.js is a fully async Javascript testing library that allows for blazingly fast
+execution. (It&rsquo;s amazing how little changes in test speed can make TDD feel
+much less onerous.)  Vows&#8217; syntax can be a little tough to adjust to, but the speed,
+combined with the ability to construct &ldquo;test batches&rdquo;, make the barrier to entry
+worth the effort.</p>
+
+<p>While Vows is a near pefect tool for unit testing, I began to run into trouble with
+full-stack integration testing. Check out the contrived example below:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+<span class='line-number'>41</span>
+<span class='line-number'>42</span>
+<span class='line-number'>43</span>
+<span class='line-number'>44</span>
+<span class='line-number'>45</span>
+<span class='line-number'>46</span>
+<span class='line-number'>47</span>
+<span class='line-number'>48</span>
+<span class='line-number'>49</span>
+</pre></td><td class='code'><pre><code class='coffeescript'><span class='line'><span class="nx">vows</span><span class="p">.</span><span class="nx">describe</span><span class="p">(</span><span class="s">&quot;Creating a User&quot;</span><span class="p">)</span>
+</span><span class='line'>  <span class="p">.</span><span class="nx">addBatch</span>
+</span><span class='line'>    <span class="s">&quot;To create a user&quot;</span><span class="o">:</span>
+</span><span class='line'>
+</span><span class='line'>      <span class="s">&quot;Given the server has started&quot;</span><span class="o">:</span>
+</span><span class='line'>        <span class="nv">topic:</span>
+</span><span class='line'>          <span class="nx">server</span><span class="p">.</span><span class="nx">ready</span><span class="p">,</span> <span class="nx">@callback</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="s">&quot;and the DB is populated&quot;</span><span class="o">:</span>
+</span><span class='line'>          <span class="nv">topic:</span>
+</span><span class='line'>            <span class="nx">setupFixtures</span> <span class="nx">@callback</span>
+</span><span class='line'>
+</span><span class='line'>          <span class="s">&quot;and another setup function is required&quot;</span><span class="o">:</span>
+</span><span class='line'>            <span class="nv">topic: </span><span class="nf">-&gt;</span>
+</span><span class='line'>              <span class="nx">anotherSetup</span> <span class="nx">@callback</span>
+</span><span class='line'>
+</span><span class='line'>            <span class="s">&quot;When visiting the form at /user/new&quot;</span><span class="o">:</span>
+</span><span class='line'>              <span class="nv">topic: </span><span class="nf">-&gt;</span>
+</span><span class='line'>                <span class="nv">ctx = </span><span class="k">this</span>
+</span><span class='line'>                <span class="nx">server</span><span class="p">.</span><span class="nx">ready</span> <span class="nf">-&gt;</span>
+</span><span class='line'>                  <span class="nx">zombie</span><span class="p">.</span><span class="nx">visit</span> <span class="s">&quot;http://localhost:</span><span class="si">#{</span><span class="nx">port</span><span class="si">}</span><span class="s">/user/new&quot;</span><span class="p">,</span> <span class="nx">ctx</span><span class="p">.</span><span class="nx">callback</span>
+</span><span class='line'>                <span class="k">return</span>
+</span><span class='line'>
+</span><span class='line'>              <span class="s">&quot;then should allow entry of a username&quot;</span><span class="o">:</span> <span class="nf">(err,browser,status) -&gt;</span>
+</span><span class='line'>                <span class="nx">assert</span><span class="p">.</span><span class="nx">ok</span> <span class="nx">browser</span><span class="p">.</span><span class="nx">querySelector</span> <span class="s">&quot;:input[name=username]&quot;</span>
+</span><span class='line'>
+</span><span class='line'>              <span class="s">&quot;should allow entry of first and last name&quot;</span><span class="o">:</span> <span class="nf">(err,b,s) -&gt;</span>
+</span><span class='line'>                <span class="nx">assert</span><span class="p">.</span><span class="nx">ok</span> <span class="nx">b</span><span class="p">.</span><span class="nx">querySelector</span> <span class="s">&quot;:input[name=firstName]&quot;</span>
+</span><span class='line'>                <span class="nx">assert</span><span class="p">.</span><span class="nx">ok</span> <span class="nx">b</span><span class="p">.</span><span class="nx">querySelector</span> <span class="s">&quot;:input[name=lastName]&quot;</span>
+</span><span class='line'>
+</span><span class='line'>              <span class="s">&quot;should allow entry of a password&quot;</span><span class="o">:</span> <span class="nf">(err,b,s) -&gt;</span>
+</span><span class='line'>                <span class="nx">assert</span><span class="p">.</span><span class="nx">ok</span> <span class="nx">b</span><span class="p">.</span><span class="nx">querySelector</span> <span class="s">&quot;:input[name=password]&quot;</span>
+</span><span class='line'>
+</span><span class='line'>              <span class="s">&quot;should allow confirmation of a password&quot;</span><span class="o">:</span> <span class="nf">(err,b,s) -&gt;</span>
+</span><span class='line'>                <span class="nx">assert</span><span class="p">.</span><span class="nx">ok</span> <span class="nx">b</span><span class="p">.</span><span class="nx">querySelector</span> <span class="s">&quot;:input[name=passwordConfirm]&quot;</span>
+</span><span class='line'>
+</span><span class='line'>              <span class="s">&quot;and submitting the form&quot;</span><span class="o">:</span>
+</span><span class='line'>                <span class="nv">topic: </span><span class="nf">(browser,status) -&gt;</span>
+</span><span class='line'>                  <span class="nx">browser</span><span class="p">.</span><span class="nx">fill</span><span class="p">(</span><span class="s">&quot;username&quot;</span><span class="p">,</span> <span class="s">&quot;test&quot;</span><span class="p">)</span>
+</span><span class='line'>                         <span class="p">.</span><span class="nx">fill</span><span class="p">(</span><span class="s">&quot;firstName&quot;</span><span class="p">,</span> <span class="s">&quot;Justin&quot;</span><span class="p">)</span>
+</span><span class='line'>                         <span class="p">.</span><span class="nx">fill</span><span class="p">(</span><span class="s">&quot;lastName&quot;</span><span class="p">,</span> <span class="s">&quot;Reidy&quot;</span><span class="p">)</span>
+</span><span class='line'>                         <span class="p">.</span><span class="nx">fill</span><span class="p">(</span><span class="s">&quot;password&quot;</span><span class="p">,</span> <span class="s">&quot;foobar&quot;</span><span class="p">)</span>
+</span><span class='line'>                         <span class="p">.</span><span class="nx">fill</span><span class="p">(</span><span class="s">&quot;password&quot;</span><span class="p">,</span> <span class="s">&quot;foobar&quot;</span><span class="p">)</span>
+</span><span class='line'>                         <span class="p">.</span><span class="nx">pressButton</span> <span class="s">&quot;Sign Up!&quot;</span><span class="p">,</span> <span class="nx">@callback</span>
+</span><span class='line'>
+</span><span class='line'>                <span class="s">&quot;should create a new User&quot;</span><span class="o">:</span> <span class="nf">(err,browser,status) -&gt;</span>
+</span><span class='line'>                  <span class="nx">assert</span><span class="p">.</span><span class="nx">ok</span> <span class="nx">findNewUser</span><span class="p">()</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="p">.</span><span class="nx">export</span> <span class="nx">module</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Ouch. All that nesting makes for pretty unreadable code &ndash; even in CoffeeScript.</p>
+
+<h3>vows-bdd: an easier way to test</h3>
+
+<p>I&rsquo;ve never been a huge Cucumber fan, but modeling integration tests in a &ldquo;given-when
+-then&rdquo; format makes them much easier for me to construct mentally. While the
+<a href="https://github.com/jadell/prenup">prenup</a> library made long Vows tests easier to read by introducing a
+fluent interface, I thought that I&rsquo;d love to marry this fluent approach with BDD&rsquo;s
+&ldquo;given-when-then&rdquo;.</p>
+
+<p>A couple days later and vows-bdd was born:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+<span class='line-number'>41</span>
+</pre></td><td class='code'><pre><code class='coffeescript'><span class='line'><span class="nx">Feature</span><span class="p">(</span><span class="s">&quot;Creating a User&quot;</span><span class="p">)</span>
+</span><span class='line'>  <span class="p">.</span><span class="nx">scenario</span><span class="p">(</span><span class="s">&quot;Create a User via Form&quot;</span><span class="p">)</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="p">.</span><span class="nx">given</span> <span class="s">&quot;the server is running&quot;</span><span class="p">,</span> <span class="nf">-&gt;</span>
+</span><span class='line'>    <span class="nx">server</span><span class="p">.</span><span class="nx">ready</span> <span class="nx">@callback</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="p">.</span><span class="o">and</span> <span class="s">&quot;the DB is popuplated&quot;</span><span class="p">,</span> <span class="nf">-&gt;</span>
+</span><span class='line'>    <span class="nx">setupFixtures</span> <span class="nx">@callback</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="p">.</span><span class="o">and</span> <span class="s">&quot;another setup function is called&quot;</span><span class="p">,</span> <span class="nf">-&gt;</span>
+</span><span class='line'>    <span class="nx">anotherSetup</span> <span class="nx">@callback</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="p">.</span><span class="nx">when</span> <span class="s">&quot;I visit the form at user/new&quot;</span><span class="p">,</span> <span class="nf">-&gt;</span>
+</span><span class='line'>    <span class="nx">zombie</span><span class="p">.</span><span class="nx">visit</span> <span class="s">&quot;http://localhost:</span><span class="si">#{</span><span class="nx">port</span><span class="si">}</span><span class="s">/user/new&quot;</span><span class="p">,</span> <span class="nx">@callback</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="p">.</span><span class="nx">then</span> <span class="s">&quot;I should see a username field&quot;</span><span class="p">,</span> <span class="nf">(err,browser,status) -&gt;</span>
+</span><span class='line'>    <span class="nx">assert</span><span class="p">.</span><span class="nx">ok</span> <span class="nx">browser</span><span class="p">.</span><span class="nx">querySelector</span> <span class="s">&quot;:input[name=username]&quot;</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="p">.</span><span class="o">and</span> <span class="s">&quot;I should see entries for first and last name&quot;</span><span class="p">,</span> <span class="nf">(err,browser,status) -&gt;</span>
+</span><span class='line'>    <span class="nx">assert</span><span class="p">.</span><span class="nx">ok</span> <span class="nx">browser</span><span class="p">.</span><span class="nx">querySelector</span> <span class="s">&quot;:input[name=firstName]&quot;</span>
+</span><span class='line'>    <span class="nx">assert</span><span class="p">.</span><span class="nx">ok</span> <span class="nx">browser</span><span class="p">.</span><span class="nx">querySelector</span> <span class="s">&quot;:input[name=lastName]&quot;</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="p">.</span><span class="o">and</span> <span class="s">&quot;I should see a password entry&quot;</span><span class="p">,</span> <span class="nf">(err,browser,status) -&gt;</span>
+</span><span class='line'>    <span class="nx">assert</span><span class="p">.</span><span class="nx">ok</span> <span class="nx">browser</span><span class="p">.</span><span class="nx">querySelector</span><span class="p">,</span> <span class="s">&quot;:input[name=password]&quot;</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="p">.</span><span class="o">and</span> <span class="s">&quot;I should see a password confirmation&quot;</span><span class="p">,</span> <span class="nf">(err,browser,status) -&gt;</span>
+</span><span class='line'>    <span class="nx">assert</span><span class="p">.</span><span class="nx">ok</span> <span class="nx">browser</span><span class="p">.</span><span class="nx">querySelector</span><span class="p">,</span> <span class="s">&quot;:input[name=passwordConfirm]&quot;</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="p">.</span><span class="nx">when</span> <span class="s">&quot;I submit the form&quot;</span><span class="p">,</span> <span class="nf">(browser,status) -&gt;</span>
+</span><span class='line'>    <span class="nx">browser</span><span class="p">.</span><span class="nx">fill</span><span class="p">(</span><span class="s">&quot;username&quot;</span><span class="p">,</span> <span class="s">&quot;test&quot;</span><span class="p">)</span>
+</span><span class='line'>           <span class="p">.</span><span class="nx">fill</span><span class="p">(</span><span class="s">&quot;firstName&quot;</span><span class="p">,</span> <span class="s">&quot;Justin&quot;</span><span class="p">)</span>
+</span><span class='line'>           <span class="p">.</span><span class="nx">fill</span><span class="p">(</span><span class="s">&quot;lastName&quot;</span><span class="p">,</span> <span class="s">&quot;Reidy&quot;</span><span class="p">)</span>
+</span><span class='line'>           <span class="p">.</span><span class="nx">fill</span><span class="p">(</span><span class="s">&quot;password&quot;</span><span class="p">,</span> <span class="s">&quot;foobar&quot;</span><span class="p">)</span>
+</span><span class='line'>           <span class="p">.</span><span class="nx">fill</span><span class="p">(</span><span class="s">&quot;password&quot;</span><span class="p">,</span> <span class="s">&quot;foobar&quot;</span><span class="p">)</span>
+</span><span class='line'>           <span class="p">.</span><span class="nx">pressButton</span> <span class="s">&quot;Sign Up!&quot;</span><span class="p">,</span> <span class="nx">@callback</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="p">.</span><span class="nx">then</span> <span class="s">&quot;a new User should be created&quot;</span><span class="p">,</span> <span class="nf">(err,browser,status) -&gt;</span>
+</span><span class='line'>    <span class="nx">assert</span><span class="p">.</span><span class="nx">ok</span> <span class="nx">findNewUser</span><span class="p">()</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="p">.</span><span class="nx">complete</span><span class="p">()</span>
+</span><span class='line'>  <span class="p">.</span><span class="nx">finish</span><span class="p">(</span><span class="nx">module</span><span class="p">)</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Checkout the <a href="https://github.com/jmreidy/vows-bdd">repo on Github</a>
+for more documentation and info.</p>
+
+<h3>Open-Source is scary!</h3>
+
+<p>The vast majority of my career has taken place in enterprise world, where code is
+rarely, if ever, shared with anyone on the outside, and even <em>using</em> open-source
+code is considered dangerous. While I&rsquo;ve contributed to OSS libraries
+before, I&rsquo;ve never posted my own creation. It&rsquo;s fairly nerve-wracking to put your
+work out in the wild, especially when you&rsquo;re building on top of such amazing
+contributions from incredible developers.</p>
+
+<p>In fact, I probably would&rsquo;ve sat on this little library forever, constantly trying
+to perfect it, if not for a
+<a href="http://blog.nodejitsu.com/the-nodejs-philosophy">fantastic blog post</a>
+written by Charlie Robbins(<a href="http://twitter.com/indexzero">@indexzero</a>)
+over at Nodejitsu. I think his post perfectly expresses the spirt and mentality
+of the Node community right now,
+and his emphasis on experimentation via small bits of functionality made me realize:
+this code may not be perfect, and it might not even do that much, but if <em>I</em> find it
+useful, then maybe someone else will too.</p>
+
+<p>So please &ndash; <a href="https://github.com/jmreidy/vows-bdd">checkout vows-bdd</a> and give it a whirl.
+Any suggestions or comments would be very much appreciated!</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA["This" in Anonymous Functions
+]]></title>
+    <link href="http://rzrsharp.net/2011/07/08/this-in-anonymous-functions.html"/>
+    <updated>2011-07-08T00:00:00-07:00</updated>
+    <id>http://rzrsharp.net/2011/07/08/this-in-anonymous-functions</id>
+    <content type="html"><![CDATA[<p>Sometimes it&rsquo;s difficult to find an easy answer to common coding questions. Because
+Google ignores most punctuation, even the most exact queries fail to produce
+relevant results. Questions about the nature and value of <code>this</code> in Javascript present
+a particularly thorny problem, since &ldquo;this&rdquo; is about as common a word as you can find.</p>
+
+<p>A common point of confusion in Javascript is that the value of <code>this</code> depends entirely
+on a function&rsquo;s context, and can even be overridden depending on how a function is
+invoked. Hopefully this post will save time for new Javascript devs trolling through
+Google&rsquo;s depths:</p>
+
+<blockquote><p>In anonymous functions, the value of <code>this</code> refers to the anonymous function itself,
+and not the calling scope. However, the nature of closures allows the anonymous function
+to still refer to the calling object.</p></blockquote>
+
+<p>The above rule is demonstrated with the following nodejs code:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+</pre></td><td class='code'><pre><code class='javascript'><span class='line'><span class="kd">var</span> <span class="nx">that</span> <span class="o">=</span> <span class="k">this</span><span class="p">;</span>
+</span><span class='line'><span class="nx">that</span><span class="p">.</span><span class="nx">foo</span> <span class="o">=</span> <span class="s1">&#39;bar&#39;</span><span class="p">;</span>
+</span><span class='line'><span class="nx">process</span><span class="p">.</span><span class="nx">nextTick</span><span class="p">(</span><span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+</span><span class='line'>  <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;this &quot;</span> <span class="o">+</span> <span class="k">this</span><span class="p">.</span><span class="nx">foo</span> <span class="o">+</span> <span class="s2">&quot; and that &quot;</span> <span class="o">+</span> <span class="nx">that</span><span class="p">.</span><span class="nx">foo</span><span class="p">)</span> <span class="p">});</span>
+</span></code></pre></td></tr></table></div></figure>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[What Does Coffeescript's "do" Do?]]></title>
+    <link href="http://rzrsharp.net/2011/06/27/what-does-coffeescripts-do-do.html"/>
+    <updated>2011-06-27T00:00:00-07:00</updated>
+    <id>http://rzrsharp.net/2011/06/27/what-does-coffeescripts-do-do</id>
+    <content type="html"><![CDATA[<p>When reading over some Node.js source code written in Coffeescript, I came across
+a couple uses of the Coffeescript <code>do</code> operator. While <code>do</code> is a very familiar tool
+for Ruby developers, I wasn&rsquo;t sure how Coffeescript used it, so I took at look at
+its documentation, which states:</p>
+
+<blockquote><p>When using a JavaScript loop to generate functions, it&rsquo;s common to insert a closure
+wrapper in order to ensure that loop variables are closed over, and all the
+generated functions don&rsquo;t just share the final values. CoffeeScript provides the
+do keyword, which immediately invokes a passed function, forwarding any arguments.</p></blockquote>
+
+<p>&ldquo;All the generated functions don&rsquo;t just share the final values.&rdquo; Huh. This statement
+didn&rsquo;t mean a lot to me. A little searching on Google led to a fairly helpful post
+on <a href="http://stackoverflow.com/questions/643542/doesnt-javascript-support-closures-with-local-variables/643664#643664">Stack Overflow</a>. The question there presented the following Javascript:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+</pre></td><td class='code'><pre><code class='javascript'><span class='line'><span class="kd">var</span> <span class="nx">closures</span> <span class="o">=</span> <span class="p">[];</span>
+</span><span class='line'><span class="kd">function</span> <span class="nx">create</span><span class="p">()</span> <span class="p">{</span>
+</span><span class='line'>  <span class="k">for</span> <span class="p">(</span><span class="kd">var</span> <span class="nx">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="nx">i</span> <span class="o">&lt;</span> <span class="mi">5</span><span class="p">;</span> <span class="nx">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>    <span class="nx">closures</span><span class="p">[</span><span class="nx">i</span><span class="p">]</span> <span class="o">=</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+</span><span class='line'>      <span class="nx">alert</span><span class="p">(</span><span class="s2">&quot;i = &quot;</span> <span class="o">+</span> <span class="nx">i</span><span class="p">);</span>
+</span><span class='line'>    <span class="p">};</span>
+</span><span class='line'>  <span class="p">}</span>
+</span><span class='line'><span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="kd">function</span> <span class="nx">run</span><span class="p">()</span> <span class="p">{</span>
+</span><span class='line'>  <span class="k">for</span> <span class="p">(</span><span class="kd">var</span> <span class="nx">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="nx">i</span> <span class="o">&lt;</span> <span class="mi">5</span><span class="p">;</span> <span class="nx">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>    <span class="nx">closures</span><span class="p">[</span><span class="nx">i</span><span class="p">]();</span>
+</span><span class='line'>  <span class="p">}</span>
+</span><span class='line'><span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="nx">create</span><span class="p">();</span>
+</span><span class='line'><span class="nx">run</span><span class="p">();</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>The question stated that the result of running this code was <code>5,5,5,5,5</code> instead
+of the expect <code>0,1,2,3,4</code>. The answer which created the &ldquo;correct&rdquo; result
+provided the code below:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+</pre></td><td class='code'><pre><code class='javascript'><span class='line'><span class="kd">function</span> <span class="nx">create</span><span class="p">()</span> <span class="p">{</span>
+</span><span class='line'>  <span class="k">for</span> <span class="p">(</span><span class="kd">var</span> <span class="nx">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="nx">i</span> <span class="o">&lt;</span> <span class="mi">5</span><span class="p">;</span> <span class="nx">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>    <span class="nx">closures</span><span class="p">[</span><span class="nx">i</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="kd">function</span><span class="p">(</span><span class="nx">tmp</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>      <span class="k">return</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+</span><span class='line'>        <span class="nx">alert</span><span class="p">(</span><span class="s2">&quot;i = &quot;</span> <span class="o">+</span> <span class="nx">tmp</span><span class="p">);</span>
+</span><span class='line'>      <span class="p">};</span>
+</span><span class='line'>    <span class="p">})(</span><span class="nx">i</span><span class="p">);</span>
+</span><span class='line'>  <span class="p">}</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>and also explained:</p>
+
+<blockquote><p>JavaScript&rsquo;s scopes are function-level, not block-level, and creating a closure just means that the enclosing scope gets added to the lexical environment of the enclosed function.</p></blockquote>
+
+<p>OK, this was even less helpful. But after going back and reading the Coffeescript
+docs again, the concept made sense. As always with Javascript, the <em>context</em> in
+which a function is called demands as much attention as the function itself. Reading
+the code in the Stack Overflow post, a developer&rsquo;s brain automatically thinks of the
+returned function at the time of evaluation. But in reality, each of those functions
+created in the <code>create</code> function aren&rsquo;t called until <em>after</em> the for loop has completed.
+Thus, by the time each function is called, it evaluates <code>i</code> when <code>i</code> has already
+finished the loop with a value of <code>5</code>. The closure-wrapping provided in the answer
+is exactly what the <code>do</code> keyword in Coffeescript provides!</p>
+
+<p>Here&rsquo;s an example of the solution&rsquo;s function, in Coffeescript:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class='coffeescript'><span class='line'><span class="nv">closures = </span><span class="p">[]</span>
+</span><span class='line'><span class="nx">create</span> <span class="nf">-&gt;</span>
+</span><span class='line'>  <span class="k">for</span> <span class="nx">i</span> <span class="k">in</span> <span class="p">[</span><span class="mi">0</span><span class="p">..</span><span class="mi">5</span><span class="p">]</span>
+</span><span class='line'>    <span class="nx">closures</span><span class="p">[</span><span class="nx">i</span><span class="p">]</span> <span class="o">=</span> <span class="nx">do</span> <span class="nf">(i) -&gt;</span>
+</span><span class='line'>      <span class="nf">-&gt;</span> <span class="nx">alert</span> <span class="nx">i</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Even with this contrived example, I find the Coffeescript easier to read, although
+of course it&rsquo;s personal preference. If you wanted to go really crazy with Coffeescript
+syntax, you could write:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='coffeescript'><span class='line'>  <span class="nv">closures = </span><span class="p">((</span><span class="nx">do</span> <span class="nf">(i) -&gt;</span> <span class="nf">-&gt;</span> <span class="nx">alert</span> <span class="nx">i</span><span class="p">)</span> <span class="k">for</span> <span class="nx">i</span> <span class="k">in</span> <span class="p">[</span><span class="mi">0</span><span class="p">..</span><span class="mi">5</span><span class="p">])</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Two points for cool implementation, no points for readability!</p>
+]]></content>
+  </entry>
+  
+</feed>

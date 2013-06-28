@@ -1,0 +1,395 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>What Does Coffeescript's "do" Do? - Razor Sharp Design</title>
+  <meta name="author" content="Justin Reidy">
+
+  
+  <meta name="description" content="When reading over some Node.js source code written in Coffeescript, I came across
+a couple uses of the Coffeescript do operator. While do is a very &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://rzrsharp.net/2011/06/27/what-does-coffeescripts-do-do.html">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="Razor Sharp Design" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/lib/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <script type="text/javascript" src="http://use.typekit.com/eqy0aif.js"></script>
+<script type="text/javascript">try{Typekit.load();}catch(e){}</script>
+
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-5761922-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+
+
+</head>
+
+<body   >
+  <header role="banner">
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="http://google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:rzrsharp.net" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">What Does Coffeescript's "Do" Do?</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2011-06-27T00:00:00-07:00" pubdate data-updated="true">Jun 27<span>th</span>, 2011</time>
+        
+         | <a href="#disqus_thread">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>When reading over some Node.js source code written in Coffeescript, I came across
+a couple uses of the Coffeescript <code>do</code> operator. While <code>do</code> is a very familiar tool
+for Ruby developers, I wasn&rsquo;t sure how Coffeescript used it, so I took at look at
+its documentation, which states:</p>
+
+<blockquote><p>When using a JavaScript loop to generate functions, it&rsquo;s common to insert a closure
+wrapper in order to ensure that loop variables are closed over, and all the
+generated functions don&rsquo;t just share the final values. CoffeeScript provides the
+do keyword, which immediately invokes a passed function, forwarding any arguments.</p></blockquote>
+
+<p>&ldquo;All the generated functions don&rsquo;t just share the final values.&rdquo; Huh. This statement
+didn&rsquo;t mean a lot to me. A little searching on Google led to a fairly helpful post
+on <a href="http://stackoverflow.com/questions/643542/doesnt-javascript-support-closures-with-local-variables/643664#643664">Stack Overflow</a>. The question there presented the following Javascript:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+</pre></td><td class='code'><pre><code class='javascript'><span class='line'><span class="kd">var</span> <span class="nx">closures</span> <span class="o">=</span> <span class="p">[];</span>
+</span><span class='line'><span class="kd">function</span> <span class="nx">create</span><span class="p">()</span> <span class="p">{</span>
+</span><span class='line'>  <span class="k">for</span> <span class="p">(</span><span class="kd">var</span> <span class="nx">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="nx">i</span> <span class="o">&lt;</span> <span class="mi">5</span><span class="p">;</span> <span class="nx">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>    <span class="nx">closures</span><span class="p">[</span><span class="nx">i</span><span class="p">]</span> <span class="o">=</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+</span><span class='line'>      <span class="nx">alert</span><span class="p">(</span><span class="s2">&quot;i = &quot;</span> <span class="o">+</span> <span class="nx">i</span><span class="p">);</span>
+</span><span class='line'>    <span class="p">};</span>
+</span><span class='line'>  <span class="p">}</span>
+</span><span class='line'><span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="kd">function</span> <span class="nx">run</span><span class="p">()</span> <span class="p">{</span>
+</span><span class='line'>  <span class="k">for</span> <span class="p">(</span><span class="kd">var</span> <span class="nx">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="nx">i</span> <span class="o">&lt;</span> <span class="mi">5</span><span class="p">;</span> <span class="nx">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>    <span class="nx">closures</span><span class="p">[</span><span class="nx">i</span><span class="p">]();</span>
+</span><span class='line'>  <span class="p">}</span>
+</span><span class='line'><span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="nx">create</span><span class="p">();</span>
+</span><span class='line'><span class="nx">run</span><span class="p">();</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>The question stated that the result of running this code was <code>5,5,5,5,5</code> instead
+of the expect <code>0,1,2,3,4</code>. The answer which created the &ldquo;correct&rdquo; result
+provided the code below:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+</pre></td><td class='code'><pre><code class='javascript'><span class='line'><span class="kd">function</span> <span class="nx">create</span><span class="p">()</span> <span class="p">{</span>
+</span><span class='line'>  <span class="k">for</span> <span class="p">(</span><span class="kd">var</span> <span class="nx">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="nx">i</span> <span class="o">&lt;</span> <span class="mi">5</span><span class="p">;</span> <span class="nx">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>    <span class="nx">closures</span><span class="p">[</span><span class="nx">i</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="kd">function</span><span class="p">(</span><span class="nx">tmp</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>      <span class="k">return</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+</span><span class='line'>        <span class="nx">alert</span><span class="p">(</span><span class="s2">&quot;i = &quot;</span> <span class="o">+</span> <span class="nx">tmp</span><span class="p">);</span>
+</span><span class='line'>      <span class="p">};</span>
+</span><span class='line'>    <span class="p">})(</span><span class="nx">i</span><span class="p">);</span>
+</span><span class='line'>  <span class="p">}</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>and also explained:</p>
+
+<blockquote><p>JavaScript&rsquo;s scopes are function-level, not block-level, and creating a closure just means that the enclosing scope gets added to the lexical environment of the enclosed function.</p></blockquote>
+
+<p>OK, this was even less helpful. But after going back and reading the Coffeescript
+docs again, the concept made sense. As always with Javascript, the <em>context</em> in
+which a function is called demands as much attention as the function itself. Reading
+the code in the Stack Overflow post, a developer&rsquo;s brain automatically thinks of the
+returned function at the time of evaluation. But in reality, each of those functions
+created in the <code>create</code> function aren&rsquo;t called until <em>after</em> the for loop has completed.
+Thus, by the time each function is called, it evaluates <code>i</code> when <code>i</code> has already
+finished the loop with a value of <code>5</code>. The closure-wrapping provided in the answer
+is exactly what the <code>do</code> keyword in Coffeescript provides!</p>
+
+<p>Here&rsquo;s an example of the solution&rsquo;s function, in Coffeescript:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class='coffeescript'><span class='line'><span class="nv">closures = </span><span class="p">[]</span>
+</span><span class='line'><span class="nx">create</span> <span class="nf">-&gt;</span>
+</span><span class='line'>  <span class="k">for</span> <span class="nx">i</span> <span class="k">in</span> <span class="p">[</span><span class="mi">0</span><span class="p">..</span><span class="mi">5</span><span class="p">]</span>
+</span><span class='line'>    <span class="nx">closures</span><span class="p">[</span><span class="nx">i</span><span class="p">]</span> <span class="o">=</span> <span class="nx">do</span> <span class="nf">(i) -&gt;</span>
+</span><span class='line'>      <span class="nf">-&gt;</span> <span class="nx">alert</span> <span class="nx">i</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Even with this contrived example, I find the Coffeescript easier to read, although
+of course it&rsquo;s personal preference. If you wanted to go really crazy with Coffeescript
+syntax, you could write:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='coffeescript'><span class='line'>  <span class="nv">closures = </span><span class="p">((</span><span class="nx">do</span> <span class="nf">(i) -&gt;</span> <span class="nf">-&gt;</span> <span class="nx">alert</span> <span class="nx">i</span><span class="p">)</span> <span class="k">for</span> <span class="nx">i</span> <span class="k">in</span> <span class="p">[</span><span class="mi">0</span><span class="p">..</span><span class="mi">5</span><span class="p">])</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Two points for cool implementation, no points for readability!</p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">Justin Reidy</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2011-06-27T00:00:00-07:00" pubdate data-updated="true">Jun 27<span>th</span>, 2011</time>
+      
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="//twitter.com/share" class="twitter-share-button" data-url="http://rzrsharp.net/2011/06/27/what-does-coffeescripts-do-do.html" data-via="jmreidy" data-counturl="http://rzrsharp.net/2011/06/27/what-does-coffeescripts-do-do.html" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/2011/06/21/classes-in-coffeescript.html" title="Previous Post: Classes in Coffeescript">&laquo; Classes in Coffeescript</a>
+      
+      
+        <a class="basic-alignment right" href="/2011/07/08/this-in-anonymous-functions.html" title="Next Post: "This" in Anonymous Functions
+">"This" in Anonymous Functions
+ &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+  <section>
+    <h1>Comments</h1>
+    <div id="disqus_thread" aria-live="polite"><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+  </section>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>About</h1>
+  <p>I'm Justin Reidy, a web developer living in Portland, OR.
+  I spend the majority of my time hacking on javascript.
+  I'm also an aspiring marathoner, a home cook and food lover, and a bit
+  of a bookworm.
+  Razor Sharp Design is the name of my
+  web development consultancy, and this, as you've guessed, is my blog. Feel free to <a
+  href="mailto:jmreidy@rzrsharp.net">email me</a>.</p>
+</section>
+<section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/2013/04/11/in-theory-not-practice.html">In Theory, Not Practice</a>
+      </li>
+    
+      <li class="post">
+        <a href="/2013/04/02/towards-a-unified-js-stack.html">Towards a Unified JS Stack</a>
+      </li>
+    
+      <li class="post">
+        <a href="/2012/10/01/error-isolation-with-promises.html">Error Isolation With Promises</a>
+      </li>
+    
+      <li class="post">
+        <a href="/2012/08/01/client-side-testing-insanity.html">Client-Side Testing Insanity</a>
+      </li>
+    
+      <li class="post">
+        <a href="/2012/07/06/reflections-on-nodeconf-2012.html">Reflections on NodeConf 2012</a>
+      </li>
+    
+  </ul>
+</section>
+
+<section>
+  <h1>GitHub Repos</h1>
+  <ul id="gh_repos">
+    <li class="loading">Status updating...</li>
+  </ul>
+  
+  <a href="https://github.com/jmreidy">@jmreidy</a> on GitHub
+  
+  <script type="text/javascript">
+    $(document).ready(function(){
+        if (!window.jXHR){
+            var jxhr = document.createElement('script');
+            jxhr.type = 'text/javascript';
+            jxhr.src = '/javascripts/libs/jXHR.js';
+            var s = document.getElementsByTagName('script')[0];
+            s.parentNode.insertBefore(jxhr, s);
+        }
+
+        github.showRepos({
+            user: 'jmreidy',
+            count: 5,
+            skip_forks: false,
+            target: '#gh_repos'
+        });
+    });
+  </script>
+  <script src="/javascripts/github.js" type="text/javascript"> </script>
+</section>
+
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2013 - Justin Reidy -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+<script type="text/javascript">
+      var disqus_shortname = 'razorsharp';
+      
+        
+        // var disqus_developer = 1;
+        var disqus_identifier = 'http://rzrsharp.net/2011/06/27/what-does-coffeescripts-do-do.html';
+        var disqus_url = 'http://rzrsharp.net/2011/06/27/what-does-coffeescripts-do-do.html';
+        var disqus_script = 'embed.js';
+      
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = 'http://' + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = '//platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

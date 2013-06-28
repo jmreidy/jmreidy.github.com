@@ -1,0 +1,386 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: vows | Razor Sharp Design]]></title>
+  <link href="http://rzrsharp.net/blog/categories/vows/atom.xml" rel="self"/>
+  <link href="http://rzrsharp.net/"/>
+  <updated>2013-06-27T20:53:40-07:00</updated>
+  <id>http://rzrsharp.net/</id>
+  <author>
+    <name><![CDATA[Justin Reidy]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[Better Support for Helpers in vows-bdd]]></title>
+    <link href="http://rzrsharp.net/2011/12/05/better-support-for-helpers-in-vows-bdd.html"/>
+    <updated>2011-12-05T15:31:00-08:00</updated>
+    <id>http://rzrsharp.net/2011/12/05/better-support-for-helpers-in-vows-bdd</id>
+    <content type="html"><![CDATA[<p>This last week has been a particularly busy one, so I&rsquo;ve been delayed in blogging,
+but I released v0.2 of vows-bdd to NPM a week ago. There&rsquo;s two changes of note.
+The first is proper documentation for the library: you can see the docco documentation
+<a href="http://rzrsharp.net/vows-bdd">here</a>. If you&rsquo;re new to vows-bdd, or just want to learn
+more about how it&rsquo;s working, the docs should provide all the answers you&rsquo;re looking
+for.</p>
+
+<p>The more important change relates to the testing syntax. In some conversations I had
+online with <a href="http://graemef.com/">Graeme Foster</a>, I realized that the vows-bdd syntax
+left some room for improvement. Specifically, the syntax introduced a potential for
+redundancy when creating labels for integration tests. While named functions could
+be used for test statements that were repeated, there wasn&rsquo;t an easy to way to handle
+repeated labels.</p>
+
+<p>In order to make the use of test helpers even easier with vows-bdd, I have adjusted
+the <code>given/when/then/and</code> syntax to allow for array arguments <em>in addition to</em> the
+previous arguments of <code>label,test_function</code>. It&rsquo;s easiest to demonstrate the change with
+an example. One area of code that frequently is repeated is login code in integration tests.
+Here&rsquo;s how I had my tests setup with vows-bdd before:</p>
+
+<p>``` coffeescript</p>
+
+<h1>a test snippet</h1>
+
+<p>  .given &ldquo;I am an admin user&rdquo;, &ndash;></p>
+
+<pre><code>@user = Model.Factory.create "user", {role: 'admin'}
+@callback()
+return
+</code></pre>
+
+<p>  .when &ldquo;I go to login&rdquo;, &ndash;></p>
+
+<pre><code>zombie.visit Server.path_for("/login"), @callback
+</code></pre>
+
+<p>  .when &ldquo;I click login&rdquo;, (browser,status) &ndash;></p>
+
+<pre><code>browser.fill("email", "#{@user.email}")
+       .fill("password", "#{@user.password}")
+       .pressButton "Login", @callback
+</code></pre>
+
+<p>  .then &ldquo;I should be on the admin index&rdquo;, (err,browser,status) &ndash;></p>
+
+<pre><code>Test.assert.shouldBeOn browser, "/admin"
+</code></pre>
+
+<h1>snippet from another test</h1>
+
+<p>  .given &ldquo;I am an admin user&rdquo;, ></p>
+
+<pre><code>@password = "foo"
+@user = Model.Factory.build( "user", password: @password, passwordConf: @password, role: "admin" )
+@user.save @callback
+</code></pre>
+
+<p>  .when &ldquo;I am logged in&rdquo;, ></p>
+
+<pre><code>user = @user
+cb = @callback
+pw = @password
+zombie.visit Server.path_for("/login"), (e,browser,status) &gt;
+  browser.fill "email", user.email
+  browser.fill "password", pw
+  browser.pressButton "Login", cb
+return
+</code></pre>
+
+<p>```</p>
+
+<p>Even with the previous syntax, this code could be improved by creating a named <code>login</code>
+function that handles the duplicated code. And you could add a property to that function
+that provides a label. But I felt that the vows-bdd syntax should be improved to make
+this code repetition even easier. So the new <code>[label,function]</code> syntax looks like
+this:</p>
+
+<p>``` coffeescript</p>
+
+<h1>first test</h1>
+
+<p>  .scenario(&ldquo;&lsquo;/admin&rsquo; is accessible to logged in admin users&rdquo;)</p>
+
+<p>  .when(I.login_as &ldquo;an admin&rdquo;)</p>
+
+<p>  .then &ldquo;I should be on the admin index&rdquo;, (err,browser,status) &ndash;></p>
+
+<pre><code>Test.assert.shouldBeOn browser, "/admin"
+</code></pre>
+
+<h1>other test</h1>
+
+<p>  .scenario(&ldquo;Logging Out&rdquo;)</p>
+
+<p>  .given(I.login_as &ldquo;an admin&rdquo;)</p>
+
+<p>  .when &ldquo;I click logout&rdquo;, (browser,status) &ndash;></p>
+
+<pre><code>browser.pressButton "Logout", @callback
+</code></pre>
+
+<p>  .then &ldquo;I should be redirected to the login page&rdquo;, (err,browser,status) &ndash;></p>
+
+<pre><code>#continues
+</code></pre>
+
+<p>```</p>
+
+<p>The <code>login_as</code> function is included in a helper file:</p>
+
+<p>``` coffeescript</p>
+
+<p>exports.login_as = (type_of_user) &ndash;>
+  label = &ldquo;I login as #{type_of_user}&rdquo;
+  fixture = () &ndash;></p>
+
+<pre><code>cb = @callback
+@user = user = Model.Factory.create type_of_user.match(/a[n]? (\w+)/)[1]
+zombie.visit Server.path_for("/login"), (err,browser,status) -&gt;
+  browser.fill("email", "#{user.email}")
+         .fill("password", "#{user.password}")
+         .pressButton "Login", cb
+return
+</code></pre>
+
+<p>  return [label,fixture]</p>
+
+<p>```</p>
+
+<p>Note that the function returns an array of arguments to be supplied to the vows-bdd
+method. Also note that the fixture method is using <code>this</code> &mdash; which will point to the
+vows <code>context</code> when the test is evaluated &mdash; and that the fixture returns <code>undefined</code>
+to indicate to vows that the test should be performed asynchronously.</p>
+
+<p>I think this new syntax works really perfectly for integration tests; it goes a long
+way to supporting declarative testing style.</p>
+
+<p>As always, please let me know if you run into any problems with the library or
+have any suggestions!</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Cleaning Up Yours Vows]]></title>
+    <link href="http://rzrsharp.net/2011/11/10/cleaning-up-yours-vows.html"/>
+    <updated>2011-11-10T11:07:00-08:00</updated>
+    <id>http://rzrsharp.net/2011/11/10/cleaning-up-yours-vows</id>
+    <content type="html"><![CDATA[<p>Learning a framework as you&rsquo;re TDD-ing a project can be dangerous. But even if you
+know what you&rsquo;re doing, some of the conveniences of node.js can make you a bit sloppy
+with your code. Namely, the ability to pull functions from files as you need them and pass
+them around makes for some interesting problems.</p>
+
+<p><code>javascript foo.js
+exports.add = function(a,b) {
+  return a+b;
+}
+exports.subtract = function(a,b) {
+  return a-b;
+}
+</code>
+<code>javascript bar.js
+var add = require('foo').add;
+console.log(add(1,2)); // 3
+</code>
+If your functions are free of side effects, you&rsquo;re not exactly committing
+a serious coding sin. But go beyond the simple example above &mdash; starting to pass
+around whole objects, or breaking the law of demeter &mdash; and soon your code doesn&rsquo;t feel right.</p>
+
+<p>I quickly ran into this problem with my vows tests. As I was about to merge a feature
+branch to master, I reviewed my code and was a bit horrified at what I saw in my tests:
+<code>coffeescript user_spec.coffee
+{cleanupDB} = require "../helpers"
+{vows,server} = require "vows"
+mongoose = require "mongoose"
+User = mongoose.model "User"
+assert = require "assert"
+Sinon = require "sinon"
+{Factory} = require "../helpers"
+</code>
+And this was just <em>one</em> of my tests. Yikes. Lots of bad things going on here:</p>
+
+<ul>
+<li>My test has a dependency on my model implementation, and not just the model itself;
+if I switch the model off mongoose in the future, my test itself will need to change.</li>
+<li>My test has a dependency on a particulra spying/mocking framework (Sinon)</li>
+<li>There&rsquo;s a lot of confusing imports; why is <code>server</code> required off of vows?</li>
+<li>Repeating requires &ndash; one for <code>cleanupDB</code> and one for <code>Factory</code>.</li>
+</ul>
+
+
+<p>Bad bad bad.</p>
+
+<p>My tests needed to be refactored to deal with this madness. I realized that there was
+repeated code throughout my vows tests; not only could I clean things up with some proper
+encapsulation, I could DRY my vows as well.</p>
+
+<p>One cool feature of node is that if you include an <code>index</code> file in a directory, that
+file is loaded when you require the directory. So I created a new <code>spec/helpers</code> directory,
+and placed an <code>index</code> file inside.</p>
+
+<p>``` coffeescript spec/helpers/index.coffee
+process.env.NODE_ENV = &lsquo;test&rsquo;</p>
+
+<p>module.exports =
+  Server:  require &ldquo;#{<strong>dirname}/server_helpers&rdquo;
+  Test:  require &ldquo;#{</strong>dirname}/test_helpers&rdquo;
+  Model:  require &ldquo;#{__dirname}/model_helpers&rdquo;
+```</p>
+
+<p>And each of these helper files now encapsulates logic and functionality that I use
+across my tests:
+``` coffeescript server_helpers
+http = require &ldquo;http&rdquo;</p>
+
+<p>exports.port = port = 3003
+server = (require &ldquo;#{__dirname}/../../app&rdquo;)
+server.ready = (callback) &ndash;>
+  if @active</p>
+
+<pre><code>process.nextTick callback
+</code></pre>
+
+<p>  else</p>
+
+<pre><code>@active = true
+server.listen port, (err,result) -&gt;
+  process.nextTick callback
+</code></pre>
+
+<p>  return</p>
+
+<p>process.on &ldquo;exit&rdquo;, &ndash;>
+  if @active then server.close()</p>
+
+<p>wait = &ndash;>
+  if !@active</p>
+
+<pre><code>process.nextTick wait
+</code></pre>
+
+<p>  else</p>
+
+<pre><code>return
+</code></pre>
+
+<p>server.ready wait</p>
+
+<p>makeRequest = (url,params,method,callback) &ndash;>
+  params ||= &ldquo;&rdquo;
+  encoding = &lsquo;utf-8&rsquo;
+  server.ready &ndash;></p>
+
+<pre><code>request = http.request 
+  host: "127.0.0.1"
+  port: "#{port}"
+  path: url
+  method: "#{method}"
+  headers:
+    'content-type': "application/x-www-form-urlencoded"
+    'content-length': params.length
+
+request.on 'response', (response) -&gt;
+  response.body = ''
+  response.setEncoding encoding
+  response.on 'data', (chunk) -&gt; 
+    response.body += chunk
+  response.on 'end', -&gt;
+    callback null, response
+if params 
+  request.write params
+request.end()
+</code></pre>
+
+<p>exports.server = server</p>
+
+<p>exports.get = (url,params,callback) &ndash;>
+  if arguments.length == 2</p>
+
+<pre><code>callback = arguments[1] 
+params = null
+</code></pre>
+
+<p>  makeRequest url,params,&ldquo;GET&rdquo;,callback</p>
+
+<p>exports.post = (url,params,callback) &ndash;>
+  makeRequest url,params,&ldquo;POST&rdquo;,callback
+```</p>
+
+<p>``` coffeescript test_helpers.coffee
+Sinon = require &ldquo;sinon&rdquo;
+assert = require &ldquo;assert&rdquo;
+http = require &ldquo;http&rdquo;
+Model = require &ldquo;./model_helpers&rdquo;</p>
+
+<p>exports.spy = (object,method) &ndash;>
+  Sinon.spy object, method</p>
+
+<p>exports.stub = (object, method, fn) &ndash;>
+  Sinon.stub object, method, fn</p>
+
+<p>exports.spyRender = &ndash;>
+  @response = http.ServerResponse.prototype
+  Sinon.spy @response, &ldquo;render&rdquo;</p>
+
+<p>exports.spyModel = (klass,method) &ndash;>
+  Sinon.spy (Model.getType klass), method</p>
+
+<p>exports.assert = assert</p>
+
+<p>```</p>
+
+<p>```coffeescript model_helpers.coffee
+mongoose = require &ldquo;mongoose&rdquo;
+cleaner = new (require &ldquo;database-cleaner&rdquo;)(&ldquo;mongodb&rdquo;)</p>
+
+<p>exports.cleanupDB = &ndash;>
+  mongo = mongoose.connection.db
+  cleaner.clean mongo</p>
+
+<p>exports.Factory = (require &ldquo;#{__dirname}/factories&rdquo;).Factory</p>
+
+<p>exports.getType = (Klass) &ndash;>
+  mongoose.model Klass</p>
+
+<p>```</p>
+
+<p>My test logic dependencies are clean and encapsulated, making for both clearer
+<code>require</code>s blocks and clearer tests themselves.</p>
+
+<p>```coffeescript user_spec.coffee
+{Model,Test,Server} = require &ldquo;../helpers&rdquo;
+vows = require &lsquo;vows&rsquo;
+User = Model.getType &ldquo;User&rdquo;</p>
+
+<h1>code removed for brevity</h1>
+
+<p>  .addBatch</p>
+
+<pre><code>"Hashes password:":
+  "when a new user is created":
+    topic: -&gt;
+      @user = Model.Factory.build "User" 
+      Test.spy User, "makeSalt"
+      Test.spy User, "hashPassword"
+      @user.save @callback
+      return
+
+    "it creates a salt and stores it": (err,user) -&gt;
+      Test.assert.ok User.makeSalt.calledOnce
+      Test.assert.ok user.salt == User.makeSalt.returnValues[0]
+
+    "it encrpyts the password": (err,user) -&gt;
+      Test.assert.ok User.hashPassword.calledOnce
+      Test.assert.ok User.hashPassword.calledWith @user.password 
+
+  teardown: -&gt;
+    User.hashPassword.restore()
+    User.makeSalt.restore()
+    Model.cleanupDB()
+</code></pre>
+
+<p>```</p>
+]]></content>
+  </entry>
+  
+</feed>

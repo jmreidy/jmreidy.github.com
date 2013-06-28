@@ -1,0 +1,320 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Towards a Unified JS Stack - Razor Sharp Design</title>
+  <meta name="author" content="Justin Reidy">
+
+  
+  <meta name="description" content="It’s been a long time since I’ve written anything for this site. Neither neglect nor procrastination prompted my absence, but rather, lots and lots &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://rzrsharp.net/2013/04/02/towards-a-unified-js-stack.html">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="Razor Sharp Design" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/lib/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <script type="text/javascript" src="http://use.typekit.com/eqy0aif.js"></script>
+<script type="text/javascript">try{Typekit.load();}catch(e){}</script>
+
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-5761922-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+
+
+</head>
+
+<body   >
+  <header role="banner">
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="http://google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:rzrsharp.net" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Towards a Unified JS Stack</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-04-02T19:49:00-07:00" pubdate data-updated="true">Apr 2<span>nd</span>, 2013</time>
+        
+         | <a href="#disqus_thread">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>It’s been a long time since I’ve written anything for this site. Neither neglect nor procrastination prompted my absence, but rather, lots and lots of coding. All that code has left me with a surfeit of topics to cover here, so instead of talking about what I’ve been working on, I’m going to dive straight into the good stuff.</p>
+
+<p>I want to write about the current “Holy Grail” of web application development: a unified application stack. Any dev who’s built a thick-client web app (regardless of library &ndash; Ember, Backbone, this problem is independent of tool choice) has dealt with the frustration of recreating logic in multiple parts of the application stack. It’s incredibly annoying to be writing the same code to handle model accessors, view state, and rendering logic in two different places; it’s even more irksome to be fixing bugs in one or both areas as your application matures. But let’s back up a bit. Why do we need to be writing the same logic in multiple places at all?</p>
+
+<p>Generally speaking, modern web app development requires a choice from one of three architectural thrusts:</p>
+
+<ul>
+<li><p>thick server, thin client: view logic is written on the server, and rendering happens there as well. The client code deals with interactivity and AJAX requests, but is mostly just updating areas of the page with rendered view content returned by the server. This approach is <a href="http://37signals.com/svn/posts/3112-how-basecamp-next-got-to-be-so-damn-fast-without-using-much-client-side-ui">most famously advocated for by 37 Signals</a>. A thick server simplifies view code, but does so at the expense of larger AJAX payloads; why pull fully rendered code when you can just pull JSON data and render it with a client-side template?</p></li>
+<li><p>thick client, thin server: This architecture inverts the first approach; the server provides an API, which is basically just a wrapper around data access and caching. All of the app logic resides in the client. This approach can make for quick interactivity and rendering on the client, but presents a massive problem with “first load” delay, as the client needs to make two connections to the server: the first to load the client application code, and the second to pull the appropriate data to render. You may remember this problem from <a href="http://engineering.twitter.com/2012/05/improving-performance-on-twittercom.html">Old New Twitter</a>.</p></li>
+<li><p>thick client, thick server: Unsurprisingly, this approach combines both of the previous options. Views are rendered on the server, which means the initial load is fast, but the client handles all the rendering from that point forward. The good news is that you have two fairly independent, (hopefully) highly performant application structures; the bad news is that you’re now repeating logic in view templates, view states, model helpers, even route handlers.</p></li>
+</ul>
+
+
+<p>One exciting prospect of Node.js is that it makes Javascript an “isomorphic language”, which is to say that “any given line of code (with notable exceptions) can execute both on the client and the server” (h/t <a href="http://blog.nodejitsu.com/scaling-isomorphic-javascript-code">Nodejitsu</a>). But that said, there haven’t been very compelling demonstrations that solve the code-duplication problem.</p>
+
+<p>In the last few months, I’ve come up with a solution that allows for code reuse on client and server, leading to a unified codebase for handling view rendering, view states, and model interaction. It’s using components and libraries that you already know: Browserify, Backbone, Express, and Handlebars. But I’m going to hold off on describing that solution for now, and instead write about Rendr.</p>
+
+<p>Rendr <a href="http://nerds.airbnb.com/weve-launched-our-first-nodejs-app-to-product">is the result of Airbnb’s first Node app</a>, and it’s also the library that finally prompted me to close Vim and start writing here again. It’s the fulfillment of an idea that I first heard about from <a href="https://github.com/tbranyen">Tim Branyen</a>: what if we used Express to render the same Backbone Views that we render on the client? That question is what prompted me on my own path towards application stack unity, so I’ve been very eager to learn more about Rendr.</p>
+
+<p>Rendr took Tim Branyen’s initial idea and made it a reality. It’s important to note that Airbnb’s experiments here weren’t an excuse for architecture aeronautics; rather, they were expressly concerned with solving the “time to content” problem, which is to say, the rendering delay that Twitter famously faced. And by unifying client and server code, Rendr not only makes developers’ lives easier, it solves that time to content problem.</p>
+
+<p>Rendr has a number of features and design approaches that I very much like:</p>
+
+<ul>
+<li><p>it’s described as “a library, not a framework”</p></li>
+<li><p>it doesn’t create a server side DOM</p></li>
+<li><p>it doesn’t try to collapse backend data access into the client tier, as some other frameworks have done</p></li>
+<li><p>it utilizes existing, familiar code (Express and Backbone)</p></li>
+<li><p>it keeps the rendered DOM on first load and attaches client objects to it, rather than instantiating client views and replacing the DOM with the results of those client views.</p></li>
+</ul>
+
+
+<p>This last item is particularly important: rendering a page on the server, sending it to the client, and then recreating the DOM on the client can lead to odd rendering issues, interactivity problems, and problems with event listeners. But dynamically instantiating client objects and attaching them to an already-rendered DOM is not a trivial problem, and I commend <a href="https://github.com/spikebrehm">Spike Brehm</a> and the rest of the Airbnb team for taking the time to get this right.</p>
+
+<p>You should definitely take the time to <a href="https://github.com/airbnb/rendr">explore Rendr’s codebase</a>. If it existed when I first set out to solve this same set of problems last year, then I probably would’ve abandoned my own quest and just used this library. But the key point of differentiation with the approach I took from Rendr’s design is modularity. Is it possible to achieve application stack unity, while using objects and code that can be implemented with any number of frameworks in any number of ways?</p>
+
+<p>Stay tuned.</p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">Justin Reidy</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-04-02T19:49:00-07:00" pubdate data-updated="true">Apr 2<span>nd</span>, 2013</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/backbone/'>Backbone</a>, <a class='category' href='/blog/categories/javascript/'>JavaScript</a>, <a class='category' href='/blog/categories/node-dot-js/'>Node.js</a>, <a class='category' href='/blog/categories/development/'>development</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="//twitter.com/share" class="twitter-share-button" data-url="http://rzrsharp.net/2013/04/02/towards-a-unified-js-stack.html" data-via="jmreidy" data-counturl="http://rzrsharp.net/2013/04/02/towards-a-unified-js-stack.html" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/2012/10/01/error-isolation-with-promises.html" title="Previous Post: Error Isolation with Promises">&laquo; Error Isolation with Promises</a>
+      
+      
+        <a class="basic-alignment right" href="/2013/04/11/in-theory-not-practice.html" title="Next Post: In Theory, Not Practice">In Theory, Not Practice &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+  <section>
+    <h1>Comments</h1>
+    <div id="disqus_thread" aria-live="polite"><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+  </section>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>About</h1>
+  <p>I'm Justin Reidy, a web developer living in Portland, OR.
+  I spend the majority of my time hacking on javascript.
+  I'm also an aspiring marathoner, a home cook and food lover, and a bit
+  of a bookworm.
+  Razor Sharp Design is the name of my
+  web development consultancy, and this, as you've guessed, is my blog. Feel free to <a
+  href="mailto:jmreidy@rzrsharp.net">email me</a>.</p>
+</section>
+<section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/2013/04/11/in-theory-not-practice.html">In Theory, Not Practice</a>
+      </li>
+    
+      <li class="post">
+        <a href="/2013/04/02/towards-a-unified-js-stack.html">Towards a Unified JS Stack</a>
+      </li>
+    
+      <li class="post">
+        <a href="/2012/10/01/error-isolation-with-promises.html">Error Isolation With Promises</a>
+      </li>
+    
+      <li class="post">
+        <a href="/2012/08/01/client-side-testing-insanity.html">Client-Side Testing Insanity</a>
+      </li>
+    
+      <li class="post">
+        <a href="/2012/07/06/reflections-on-nodeconf-2012.html">Reflections on NodeConf 2012</a>
+      </li>
+    
+  </ul>
+</section>
+
+<section>
+  <h1>GitHub Repos</h1>
+  <ul id="gh_repos">
+    <li class="loading">Status updating...</li>
+  </ul>
+  
+  <a href="https://github.com/jmreidy">@jmreidy</a> on GitHub
+  
+  <script type="text/javascript">
+    $(document).ready(function(){
+        if (!window.jXHR){
+            var jxhr = document.createElement('script');
+            jxhr.type = 'text/javascript';
+            jxhr.src = '/javascripts/libs/jXHR.js';
+            var s = document.getElementsByTagName('script')[0];
+            s.parentNode.insertBefore(jxhr, s);
+        }
+
+        github.showRepos({
+            user: 'jmreidy',
+            count: 5,
+            skip_forks: false,
+            target: '#gh_repos'
+        });
+    });
+  </script>
+  <script src="/javascripts/github.js" type="text/javascript"> </script>
+</section>
+
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2013 - Justin Reidy -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+<script type="text/javascript">
+      var disqus_shortname = 'razorsharp';
+      
+        
+        // var disqus_developer = 1;
+        var disqus_identifier = 'http://rzrsharp.net/2013/04/02/towards-a-unified-js-stack.html';
+        var disqus_url = 'http://rzrsharp.net/2013/04/02/towards-a-unified-js-stack.html';
+        var disqus_script = 'embed.js';
+      
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = 'http://' + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = '//platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

@@ -1,0 +1,187 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: promises | Razor Sharp Design]]></title>
+  <link href="http://rzrsharp.net/blog/categories/promises/atom.xml" rel="self"/>
+  <link href="http://rzrsharp.net/"/>
+  <updated>2013-06-27T20:53:40-07:00</updated>
+  <id>http://rzrsharp.net/</id>
+  <author>
+    <name><![CDATA[Justin Reidy]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[Error Isolation with Promises]]></title>
+    <link href="http://rzrsharp.net/2012/10/01/error-isolation-with-promises.html"/>
+    <updated>2012-10-01T09:39:00-07:00</updated>
+    <id>http://rzrsharp.net/2012/10/01/error-isolation-with-promises</id>
+    <content type="html"><![CDATA[<p>The entirety of the Javascript and Node.js universe is based around a
+continuation-passing coding style &mdash; that is to say, callbacks. This style of
+async coding greatly aggrevates Node critics, who constantly argue that
+continuation-passing invariably results in &ldquo;callback hell&rdquo;
+spaghetti code for any non-trivial problem. Node.js proponents respond that
+continuation-passing presents an easier mental model for async coding
+than alternative approaches, and that properly abstracted code avoids any
+gross &ldquo;chains of doom.&rdquo;</p>
+
+<p>This post has nothing to do with that argument.</p>
+
+<p>If you&rsquo;re coding in Javascript, you&rsquo;re going to be using callbacks, and if you&rsquo;re
+building a library, you&rsquo;re going to be supporting callbacks. It&rsquo;s the reality
+of the ecosystem. But there are certain problems for which some syntactic sugar is helpful.
+<a href="http://wiki.commonjs.org/wiki/Promises">Promises</a> provide a wrapper for callbacks that
+allow for a chainable API around a sequence of continuations. They&rsquo;re not a native part of
+the language, but there&rsquo;s <a href="http://wiki.ecmascript.org/doku.php?id=strawman:concurrency#promises_and_promise_states">a strawman</a>
+for the inclusion of Promises in a future version of JS. In the meantime, you can use
+the excellent <a href="https://github.com/kriskowal/q">Q Library</a> from
+<a href="https://github.com/kriskowal">Kris Kowal</a>.
+jQuery includes its own Promises implementation (<code>$.ajax</code> calls return Promises), but they&rsquo;re slightly
+divergent from the Q spec. You can read <a href="https://github.com/kriskowal/q/wiki/Coming-from-jQuery">this excellent guide</a>
+explaining the differences between jQuery and Q promises, if you&rsquo;re coming from one direction
+or the other.</p>
+
+<p>So much for introductions. I&rsquo;ve been using promises for awhile now in some of my
+Node code, and there&rsquo;s several cases where their inclusion can clean up an API. (One
+area: Mongo integration, where any simple action can require several callbacks.) One benefit
+of Promises is that they can provide exception isolation, just like continuation-passing.
+<a href="https://github.com/kriskowal/q/wiki/On-Exceptions">The Q wiki</a> provides the following
+example:</p>
+
+<p><code>javascript
+var info, processed;
+try {
+  info = JSON.parse(json);
+  processed = process(info);
+} catch (exception) {
+  console.log("Information JSON malformed.");
+}
+</code></p>
+
+<p>In the above snippet, errors generated from the parser and the process function arne&rsquo;t isolated.
+Promises, meanwhile, offer this exception isolation out of the box:</p>
+
+<p><code>javascript
+var processed = Q.call(function (json) {
+  return JSON.parse(json);
+})
+.then(function (info) {
+  return process(info);
+}, function (exception) {
+  console.log("Information JSON malformed.");
+})
+</code></p>
+
+<p>In the second example, the process function is only executed if <code>JSON.parse</code>
+doesn&rsquo;t throw an error. Conversely, this same goal could be achieved
+with continuation-passing:</p>
+
+<p>``` javascript
+var processFn = function(cb) {
+  asyncJSONParser(json, function(err, info) {</p>
+
+<pre><code>if (err) {
+  console.log("Information JSON malformed.");
+  return cb(err);
+}
+cb(null, process(info));
+</code></pre>
+
+<p>  });
+};
+```</p>
+
+<p>One caveat is that when you&rsquo;re chaining your promises together, the behavior is slightly
+different than you might expect:</p>
+
+<p>``` javascript
+var existingUser;
+var promise = User.findOne({username: username})
+  .then(function (user) {</p>
+
+<pre><code>if (!user) {
+  throw new Error("Username is incorrect");
+}
+existingUser = user;
+return User._hashPassword(password, user.get('salt'));
+}, function(error) {
+  console.error('error in findOne');
+  throw error;
+</code></pre>
+
+<p>  })
+  .then(function (hashedPassword) {</p>
+
+<pre><code>if (existingUser.get('hashedPassword') === hashedPassword) {
+  return existingUser;
+} else {
+  throw new Error("Password is incorrect");
+}
+</code></pre>
+
+<p>  }, function(error) {</p>
+
+<pre><code>console.error('error in _hashPassword');
+throw error;
+</code></pre>
+
+<p>  });
+```</p>
+
+<p>In the above example, if there is an error in <code>User.findOne</code>, the error is
+propagated throughout the chain, which means that your console will have both
+<code>error in findOne</code> and <code>error in _hashPassword</code> printed. There&rsquo;s no way
+of &ldquo;breaking&rdquo; from the promise chain early. But here&rsquo;s the thing: you don&rsquo;t have to.
+Unless you&rsquo;re interested in transforming error objects, there&rsquo;s not much
+point in catching promise errors in intermediary steps in the chain. So the
+above code would be abbreviated:</p>
+
+<p>``` javascript
+var promise = User.findOne({username: username})
+  .then(function (user) {</p>
+
+<pre><code>if (!user) {
+  throw new Error("Username is incorrect");
+}
+existingUser = user;
+return User._hashPassword(password, user.get('salt'));
+</code></pre>
+
+<p>  })
+  .then(function (hashedPassword) {</p>
+
+<pre><code>if (existingUser.get('hashedPassword') === hashedPassword) {
+  return existingUser;
+} else {
+  throw new Error("Password is incorrect");
+}
+</code></pre>
+
+<p>  });</p>
+
+<p>//later in chain or in a diffent function
+promise.then(function (eventualResult) {</p>
+
+<pre><code>//do something with result
+</code></pre>
+
+<p>  }, function (error) {</p>
+
+<pre><code>//handle error
+</code></pre>
+
+<p>  });
+}
+```</p>
+
+<p>There&rsquo;s simply no point to having <code>then</code> failure handlers that just throw
+an error, since the library throws and propagates errors for you automatically.
+In promise chains, then, you have the benefit of isolating exceptions (only proceeding
+from step to step if everything is ok) without the extra semantics of <code>if (err) return cb(err)</code>
+from continuation passing.</p>
+]]></content>
+  </entry>
+  
+</feed>

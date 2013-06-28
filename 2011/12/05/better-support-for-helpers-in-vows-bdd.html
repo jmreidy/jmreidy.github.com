@@ -1,0 +1,461 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Better Support for Helpers in vows-bdd - Razor Sharp Design</title>
+  <meta name="author" content="Justin Reidy">
+
+  
+  <meta name="description" content="This last week has been a particularly busy one, so I&rsquo;ve been delayed in blogging,
+but I released v0.2 of vows-bdd to NPM a week ago. There& &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://rzrsharp.net/2011/12/05/better-support-for-helpers-in-vows-bdd.html">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="Razor Sharp Design" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/lib/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <script type="text/javascript" src="http://use.typekit.com/eqy0aif.js"></script>
+<script type="text/javascript">try{Typekit.load();}catch(e){}</script>
+
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-5761922-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+
+
+</head>
+
+<body   >
+  <header role="banner">
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="http://google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:rzrsharp.net" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Better Support for Helpers in Vows-bdd</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2011-12-05T15:31:00-08:00" pubdate data-updated="true">Dec 5<span>th</span>, 2011</time>
+        
+         | <a href="#disqus_thread">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>This last week has been a particularly busy one, so I&rsquo;ve been delayed in blogging,
+but I released v0.2 of vows-bdd to NPM a week ago. There&rsquo;s two changes of note.
+The first is proper documentation for the library: you can see the docco documentation
+<a href="http://rzrsharp.net/vows-bdd">here</a>. If you&rsquo;re new to vows-bdd, or just want to learn
+more about how it&rsquo;s working, the docs should provide all the answers you&rsquo;re looking
+for.</p>
+
+<p>The more important change relates to the testing syntax. In some conversations I had
+online with <a href="http://graemef.com/">Graeme Foster</a>, I realized that the vows-bdd syntax
+left some room for improvement. Specifically, the syntax introduced a potential for
+redundancy when creating labels for integration tests. While named functions could
+be used for test statements that were repeated, there wasn&rsquo;t an easy to way to handle
+repeated labels.</p>
+
+<p>In order to make the use of test helpers even easier with vows-bdd, I have adjusted
+the <code>given/when/then/and</code> syntax to allow for array arguments <em>in addition to</em> the
+previous arguments of <code>label,test_function</code>. It&rsquo;s easiest to demonstrate the change with
+an example. One area of code that frequently is repeated is login code in integration tests.
+Here&rsquo;s how I had my tests setup with vows-bdd before:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+</pre></td><td class='code'><pre><code class='coffeescript'><span class='line'><span class="c1"># a test snippet</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="p">.</span><span class="nx">given</span> <span class="s">&quot;I am an admin user&quot;</span><span class="p">,</span> <span class="nf">-&gt;</span>
+</span><span class='line'>    <span class="vi">@user = </span><span class="nx">Model</span><span class="p">.</span><span class="nx">Factory</span><span class="p">.</span><span class="nx">create</span> <span class="s">&quot;user&quot;</span><span class="p">,</span> <span class="p">{</span><span class="nv">role: </span><span class="s">&#39;admin&#39;</span><span class="p">}</span>
+</span><span class='line'>    <span class="nx">@callback</span><span class="p">()</span>
+</span><span class='line'>    <span class="k">return</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="p">.</span><span class="nx">when</span> <span class="s">&quot;I go to login&quot;</span><span class="p">,</span> <span class="nf">-&gt;</span>
+</span><span class='line'>    <span class="nx">zombie</span><span class="p">.</span><span class="nx">visit</span> <span class="nx">Server</span><span class="p">.</span><span class="nx">path_for</span><span class="p">(</span><span class="s">&quot;/login&quot;</span><span class="p">),</span> <span class="nx">@callback</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="p">.</span><span class="nx">when</span> <span class="s">&quot;I click login&quot;</span><span class="p">,</span> <span class="nf">(browser,status) -&gt;</span>
+</span><span class='line'>    <span class="nx">browser</span><span class="p">.</span><span class="nx">fill</span><span class="p">(</span><span class="s">&quot;email&quot;</span><span class="p">,</span> <span class="s">&quot;</span><span class="si">#{</span><span class="nx">@user</span><span class="p">.</span><span class="nx">email</span><span class="si">}</span><span class="s">&quot;</span><span class="p">)</span>
+</span><span class='line'>           <span class="p">.</span><span class="nx">fill</span><span class="p">(</span><span class="s">&quot;password&quot;</span><span class="p">,</span> <span class="s">&quot;</span><span class="si">#{</span><span class="nx">@user</span><span class="p">.</span><span class="nx">password</span><span class="si">}</span><span class="s">&quot;</span><span class="p">)</span>
+</span><span class='line'>           <span class="p">.</span><span class="nx">pressButton</span> <span class="s">&quot;Login&quot;</span><span class="p">,</span> <span class="nx">@callback</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="p">.</span><span class="nx">then</span> <span class="s">&quot;I should be on the admin index&quot;</span><span class="p">,</span> <span class="nf">(err,browser,status) -&gt;</span>
+</span><span class='line'>    <span class="nx">Test</span><span class="p">.</span><span class="nx">assert</span><span class="p">.</span><span class="nx">shouldBeOn</span> <span class="nx">browser</span><span class="p">,</span> <span class="s">&quot;/admin&quot;</span>
+</span><span class='line'>
+</span><span class='line'><span class="c1"># snippet from another test</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="p">.</span><span class="nx">given</span> <span class="s">&quot;I am an admin user&quot;</span><span class="p">,</span> <span class="o">&gt;</span>
+</span><span class='line'>    <span class="vi">@password = </span><span class="s">&quot;foo&quot;</span>
+</span><span class='line'>    <span class="vi">@user = </span><span class="nx">Model</span><span class="p">.</span><span class="nx">Factory</span><span class="p">.</span><span class="nx">build</span><span class="p">(</span> <span class="s">&quot;user&quot;</span><span class="p">,</span> <span class="nv">password: </span><span class="nx">@password</span><span class="p">,</span> <span class="nv">passwordConf: </span><span class="nx">@password</span><span class="p">,</span> <span class="nv">role: </span><span class="s">&quot;admin&quot;</span> <span class="p">)</span>
+</span><span class='line'>    <span class="nx">@user</span><span class="p">.</span><span class="nx">save</span> <span class="nx">@callback</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="p">.</span><span class="nx">when</span> <span class="s">&quot;I am logged in&quot;</span><span class="p">,</span> <span class="o">&gt;</span>
+</span><span class='line'>    <span class="nv">user = </span><span class="nx">@user</span>
+</span><span class='line'>    <span class="nv">cb = </span><span class="nx">@callback</span>
+</span><span class='line'>    <span class="nv">pw = </span><span class="nx">@password</span>
+</span><span class='line'>    <span class="nx">zombie</span><span class="p">.</span><span class="nx">visit</span> <span class="nx">Server</span><span class="p">.</span><span class="nx">path_for</span><span class="p">(</span><span class="s">&quot;/login&quot;</span><span class="p">),</span> <span class="p">(</span><span class="nx">e</span><span class="p">,</span><span class="nx">browser</span><span class="p">,</span><span class="nx">status</span><span class="p">)</span> <span class="o">&gt;</span>
+</span><span class='line'>      <span class="nx">browser</span><span class="p">.</span><span class="nx">fill</span> <span class="s">&quot;email&quot;</span><span class="p">,</span> <span class="nx">user</span><span class="p">.</span><span class="nx">email</span>
+</span><span class='line'>      <span class="nx">browser</span><span class="p">.</span><span class="nx">fill</span> <span class="s">&quot;password&quot;</span><span class="p">,</span> <span class="nx">pw</span>
+</span><span class='line'>      <span class="nx">browser</span><span class="p">.</span><span class="nx">pressButton</span> <span class="s">&quot;Login&quot;</span><span class="p">,</span> <span class="nx">cb</span>
+</span><span class='line'>    <span class="k">return</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Even with the previous syntax, this code could be improved by creating a named <code>login</code>
+function that handles the duplicated code. And you could add a property to that function
+that provides a label. But I felt that the vows-bdd syntax should be improved to make
+this code repetition even easier. So the new <code>[label,function]</code> syntax looks like
+this:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+</pre></td><td class='code'><pre><code class='coffeescript'><span class='line'><span class="c1"># first test</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="p">.</span><span class="nx">scenario</span><span class="p">(</span><span class="s">&quot;&#39;/admin&#39; is accessible to logged in admin users&quot;</span><span class="p">)</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="p">.</span><span class="nx">when</span><span class="p">(</span><span class="nx">I</span><span class="p">.</span><span class="nx">login_as</span> <span class="s">&quot;an admin&quot;</span><span class="p">)</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="p">.</span><span class="nx">then</span> <span class="s">&quot;I should be on the admin index&quot;</span><span class="p">,</span> <span class="nf">(err,browser,status) -&gt;</span>
+</span><span class='line'>    <span class="nx">Test</span><span class="p">.</span><span class="nx">assert</span><span class="p">.</span><span class="nx">shouldBeOn</span> <span class="nx">browser</span><span class="p">,</span> <span class="s">&quot;/admin&quot;</span>
+</span><span class='line'>
+</span><span class='line'><span class="c1"># other test</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="p">.</span><span class="nx">scenario</span><span class="p">(</span><span class="s">&quot;Logging Out&quot;</span><span class="p">)</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="p">.</span><span class="nx">given</span><span class="p">(</span><span class="nx">I</span><span class="p">.</span><span class="nx">login_as</span> <span class="s">&quot;an admin&quot;</span><span class="p">)</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="p">.</span><span class="nx">when</span> <span class="s">&quot;I click logout&quot;</span><span class="p">,</span> <span class="nf">(browser,status) -&gt;</span>
+</span><span class='line'>    <span class="nx">browser</span><span class="p">.</span><span class="nx">pressButton</span> <span class="s">&quot;Logout&quot;</span><span class="p">,</span> <span class="nx">@callback</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="p">.</span><span class="nx">then</span> <span class="s">&quot;I should be redirected to the login page&quot;</span><span class="p">,</span> <span class="nf">(err,browser,status) -&gt;</span>
+</span><span class='line'>    <span class="c1">#continues</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>The <code>login_as</code> function is included in a helper file:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+</pre></td><td class='code'><pre><code class='coffeescript'><span class='line'><span class="nv">exports.login_as = </span><span class="nf">(type_of_user) -&gt;</span>
+</span><span class='line'>  <span class="nv">label = </span><span class="s">&quot;I login as </span><span class="si">#{</span><span class="nx">type_of_user</span><span class="si">}</span><span class="s">&quot;</span>
+</span><span class='line'>  <span class="nv">fixture = </span><span class="p">()</span> <span class="nf">-&gt;</span>
+</span><span class='line'>    <span class="nv">cb = </span><span class="nx">@callback</span>
+</span><span class='line'>    <span class="vi">@user = </span><span class="nv">user = </span><span class="nx">Model</span><span class="p">.</span><span class="nx">Factory</span><span class="p">.</span><span class="nx">create</span> <span class="nx">type_of_user</span><span class="p">.</span><span class="nx">match</span><span class="p">(</span><span class="sr">/a[n]? (\w+)/</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
+</span><span class='line'>    <span class="nx">zombie</span><span class="p">.</span><span class="nx">visit</span> <span class="nx">Server</span><span class="p">.</span><span class="nx">path_for</span><span class="p">(</span><span class="s">&quot;/login&quot;</span><span class="p">),</span> <span class="nf">(err,browser,status) -&gt;</span>
+</span><span class='line'>      <span class="nx">browser</span><span class="p">.</span><span class="nx">fill</span><span class="p">(</span><span class="s">&quot;email&quot;</span><span class="p">,</span> <span class="s">&quot;</span><span class="si">#{</span><span class="nx">user</span><span class="p">.</span><span class="nx">email</span><span class="si">}</span><span class="s">&quot;</span><span class="p">)</span>
+</span><span class='line'>             <span class="p">.</span><span class="nx">fill</span><span class="p">(</span><span class="s">&quot;password&quot;</span><span class="p">,</span> <span class="s">&quot;</span><span class="si">#{</span><span class="nx">user</span><span class="p">.</span><span class="nx">password</span><span class="si">}</span><span class="s">&quot;</span><span class="p">)</span>
+</span><span class='line'>             <span class="p">.</span><span class="nx">pressButton</span> <span class="s">&quot;Login&quot;</span><span class="p">,</span> <span class="nx">cb</span>
+</span><span class='line'>    <span class="k">return</span>
+</span><span class='line'>  <span class="k">return</span> <span class="p">[</span><span class="nx">label</span><span class="p">,</span><span class="nx">fixture</span><span class="p">]</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Note that the function returns an array of arguments to be supplied to the vows-bdd
+method. Also note that the fixture method is using <code>this</code> &mdash; which will point to the
+vows <code>context</code> when the test is evaluated &mdash; and that the fixture returns <code>undefined</code>
+to indicate to vows that the test should be performed asynchronously.</p>
+
+<p>I think this new syntax works really perfectly for integration tests; it goes a long
+way to supporting declarative testing style.</p>
+
+<p>As always, please let me know if you run into any problems with the library or
+have any suggestions!</p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">Justin Reidy</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2011-12-05T15:31:00-08:00" pubdate data-updated="true">Dec 5<span>th</span>, 2011</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/testing/'>testing</a>, <a class='category' href='/blog/categories/vows/'>vows</a>, <a class='category' href='/blog/categories/vows-bdd/'>vows-bdd</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="//twitter.com/share" class="twitter-share-button" data-url="http://rzrsharp.net/2011/12/05/better-support-for-helpers-in-vows-bdd.html" data-via="jmreidy" data-counturl="http://rzrsharp.net/2011/12/05/better-support-for-helpers-in-vows-bdd.html" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/2011/11/21/thanksgiving-week-links.html" title="Previous Post: Thanksgiving Week Links">&laquo; Thanksgiving Week Links</a>
+      
+      
+        <a class="basic-alignment right" href="/2012/01/12/a-year-in-coffee.html" title="Next Post: A Year in Coffee">A Year in Coffee &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+  <section>
+    <h1>Comments</h1>
+    <div id="disqus_thread" aria-live="polite"><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+  </section>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>About</h1>
+  <p>I'm Justin Reidy, a web developer living in Portland, OR.
+  I spend the majority of my time hacking on javascript.
+  I'm also an aspiring marathoner, a home cook and food lover, and a bit
+  of a bookworm.
+  Razor Sharp Design is the name of my
+  web development consultancy, and this, as you've guessed, is my blog. Feel free to <a
+  href="mailto:jmreidy@rzrsharp.net">email me</a>.</p>
+</section>
+<section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/2013/04/11/in-theory-not-practice.html">In Theory, Not Practice</a>
+      </li>
+    
+      <li class="post">
+        <a href="/2013/04/02/towards-a-unified-js-stack.html">Towards a Unified JS Stack</a>
+      </li>
+    
+      <li class="post">
+        <a href="/2012/10/01/error-isolation-with-promises.html">Error Isolation With Promises</a>
+      </li>
+    
+      <li class="post">
+        <a href="/2012/08/01/client-side-testing-insanity.html">Client-Side Testing Insanity</a>
+      </li>
+    
+      <li class="post">
+        <a href="/2012/07/06/reflections-on-nodeconf-2012.html">Reflections on NodeConf 2012</a>
+      </li>
+    
+  </ul>
+</section>
+
+<section>
+  <h1>GitHub Repos</h1>
+  <ul id="gh_repos">
+    <li class="loading">Status updating...</li>
+  </ul>
+  
+  <a href="https://github.com/jmreidy">@jmreidy</a> on GitHub
+  
+  <script type="text/javascript">
+    $(document).ready(function(){
+        if (!window.jXHR){
+            var jxhr = document.createElement('script');
+            jxhr.type = 'text/javascript';
+            jxhr.src = '/javascripts/libs/jXHR.js';
+            var s = document.getElementsByTagName('script')[0];
+            s.parentNode.insertBefore(jxhr, s);
+        }
+
+        github.showRepos({
+            user: 'jmreidy',
+            count: 5,
+            skip_forks: false,
+            target: '#gh_repos'
+        });
+    });
+  </script>
+  <script src="/javascripts/github.js" type="text/javascript"> </script>
+</section>
+
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2013 - Justin Reidy -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+<script type="text/javascript">
+      var disqus_shortname = 'razorsharp';
+      
+        
+        // var disqus_developer = 1;
+        var disqus_identifier = 'http://rzrsharp.net/2011/12/05/better-support-for-helpers-in-vows-bdd.html';
+        var disqus_url = 'http://rzrsharp.net/2011/12/05/better-support-for-helpers-in-vows-bdd.html';
+        var disqus_script = 'embed.js';
+      
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = 'http://' + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = '//platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

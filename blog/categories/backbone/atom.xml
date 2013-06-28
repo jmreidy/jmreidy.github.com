@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: Backbone | Razor Sharp Design]]></title>
+  <link href="http://rzrsharp.net/blog/categories/backbone/atom.xml" rel="self"/>
+  <link href="http://rzrsharp.net/"/>
+  <updated>2013-06-27T20:53:40-07:00</updated>
+  <id>http://rzrsharp.net/</id>
+  <author>
+    <name><![CDATA[Justin Reidy]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[In Theory, Not Practice]]></title>
+    <link href="http://rzrsharp.net/2013/04/11/in-theory-not-practice.html"/>
+    <updated>2013-04-11T19:49:00-07:00</updated>
+    <id>http://rzrsharp.net/2013/04/11/in-theory-not-practice</id>
+    <content type="html"><![CDATA[<p>In <a href="http://rzrsharp.net/2013/04/02/towards-a-unified-js-stack.html">my previous post</a>, I wrote about the quest towards unifying web application architecture around a single shared codebase. <a href="https://github.com/airbnb/rendr">Airbnb’s Rendr library</a> provides one path forward on that quest. In this post, I’d like to provide a high-level explanation of my own solution for unifying application code.</p>
+
+<p>There’s a few segments of an application’s code that will almost certainly be repeated on both the client and server: views, view state, and data models (excluding data access). To a certain extent, routing could be repeated as well; if you’re not using hashbangs, you’ll need to implement the same named routes on the client and server (although the actions you perform for those routes will be dramatically different).</p>
+
+<p>The solution I’ve put together is still a work in progress, and is more a set of practices and conventions than a library. This flexibility means that while I’ve been implementing the approach using Handlebars, Backbone, and Express, you could theoretically use a completely different set of libraries. In this post, I’ll go over the basic ideas behind my approach; I’ll be putting together a sample implementation on Github that I’ll be able to write about in more detail in the future.</p>
+
+<h2>Unifying View Templates</h2>
+
+<p>Sharing template code is perhaps the easiest step towards achieving web application unity. With a full-JS stack, you’re compiling the same templates for rendering both server-side and client-side. So why not use the same templates for each?</p>
+
+<p>In my experiments, I’ve been using <a href="http://handlebarsjs.com/">Handlebars</a> as my templating system. It’s based on the Mustache syntax, but has a number of powerful features, including partials and custom helpers. Handlebars is also the templating system behind Ember.js.</p>
+
+<p>The key to sharing templates is the realization that what constitutes a “partial” can be relative to where the template is used — that is to say, the same template can be used as a full template on the client, and a partial template on the server. My templates are divided into three groups:</p>
+
+<ul>
+<li>client &ndash; client only templates</li>
+<li>shared &ndash; used on both the client and server</li>
+<li>server &ndash; server only templates</li>
+</ul>
+
+
+<p>For the client, the templates in the client and shared folders are pre-compiled in a Grunt step, so for all intents and purposes there’s a single flat collection of templates. The server, however, references all of the templates in the shared folder as partials. What’s more, view helpers (in this case, special Handlebars tags) are stored in a <code>shared/helpers</code> directory that is referenced by both the client (in a Grunt step) and the server.</p>
+
+<p>If you’re confused now, you won’t be when you see the actual implementation in my next post. What sounds complicated here is quite straightforward in practice.</p>
+
+<h2>Populating View Templates</h2>
+
+<p>If it’s easy to share templates on the client and server, getting the right data into those templates is a bit of a harder proposition. Handlebars renders data by running the template against a “context”, which is just a plain old hash. But how can we make sure that the contents of that hash are synchronized when rendering the same view on both the client and server?</p>
+
+<p>The problem is exacerbated with how Backbone muddles view rendering logic. In Backbone, there’s not a fine line between the View logic (in Backbone.View) and Model logic (in Backbone.Model and Backbone.Collection). Backbone Views end up performing view state management by manipulating model instances, in order to avoid bloating Models with View specific code. But adding stateful logic into a Backbone View causes two problems:</p>
+
+<p>1) it makes for larger, more complex views, as concerns are split between UX event management and controlling model state;</p>
+
+<p>2) it makes it harder to share code with the server, as rendering state gets locked in a Backbone view.</p>
+
+<p>We can get around these problems by reconsidering the role of a Backbone View — separating its concerns into that of Mediator and View Model. The Mediator role is one of event manager and template marshal; the view model is, most basically, a state controller.</p>
+
+<p>By splitting the state controller into an object of its own concern, you can extract the logic into a module that can be shared by both the client (via Browserify) and the server (via require). The Backbone Mediator simply invokes the View Model, declaratively calling functions on it as users interact with the app — transitioning Backbone away from its traditional role of MVC framework into more of <a href="http://addyosmani.com/blog/understanding-mvvm-a-guide-for-javascript-developers/">an MVVM implementation</a>.</p>
+
+<p>A View Model just returns a hash with the current state of data, which is supplied to the template. On the server, a View Model is instantiated with data accessed from the backend; the results of the View Model instance’s <code>toJSON</code> method are passed to the template for rendering. On the client, the same pattern is repeated, but the data is accessed via AJAX instead.</p>
+
+<h2>Sharing Models on Client and Server</h2>
+
+<p>Synchronizing model code on both the client and server is perhaps the hardest step towards achieving web application unity. The challenge primarily derives from a characteristic of Model code that we’ve inherited from the Rails world: specifically, a conflation of Model concerns between “data model object” and “data access object”. A data model object should identify a model object’s properties, its getters and setters, its relationships, and some convenient accessors; a data access object should deal with querying data sources for populating the data model objects.</p>
+
+<p>Unfortunately, Backbone follows in the tradition of Rails’ ActiveRecord, flattening data accessing and data modeling into a single object. This flattening causes problems even beyond unifying a web application stack. How many Backbone applications have you seen that globally override the sync method, and use properties on model classes to determine how sync invocation works? (Not to pick on Backbone; it’s just the web application framework with which I’m most familiar.)</p>
+
+<p>For now, I’ve abandoned trying to get Backbone Models and Collections to work on both the client and server. But there’s alternatives that can fill the gap nicely. The first of which I’m familiar is <a href="https://github.com/dandean/tubbs">Dan Dean’s Tubbs library</a>. Tubbs provides a DSL for defining data model objects, but also provides a pluggable dataStore. A single model module can be defined in a shared folder, and then required on both the client and server, with both supplying their own dataStore.</p>
+
+<p>In order to make the separation between data modeling and data accessing even clearer, and the sharing of model code on the server and client easier, I created by own <a href="https://github.com/jmreidy/voltron-model/tree/0.1.x">voltron-model</a> library. While Voltron isn’t ready for primetime (yet), it should make the unified definition of data models significantly easier.</p>
+
+<p>Whichever modeling library is chosen, the basic approach should be the same: data models are defined in a shared folder. These models are then imported by code on the server (or packaged with Browserify for the client). The server and client should decorate the models appropriately (either by adding to the model’s prototype or adding an accessor component). Thus, a model can be made to access Mongo or Postgres on the backend, or a REST service on the client.</p>
+
+<p>The benefit of using Backbone on the client is that it doesn’t care if you only use limited parts of the library. Arrays of event-emitting models can provide much of the same benefit of Backbone Collections and Models, and Backbone Views and Routers see no difference.</p>
+
+<h2>Wrapping Up</h2>
+
+<p>All this discussion may be a bit confusing without a concrete implementation to reference; hopefully, I’ll be able to put together a sample application in the next few weeks. But the basic takeaway of the post is that unification of JS web applications can be made significantly easier with two factors:</p>
+
+<ul>
+<li><p>structuring your code so that it can be required by the server or packaged for the client in the same ways, whether by ingesting templates as partials or packaging code with Browserify;</p></li>
+<li><p>following the Node.js approach of writing small, single-purpose modules means that there’s less boilerplate to prevent you from using code in multiple environments</p></li>
+</ul>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Towards a Unified JS Stack]]></title>
+    <link href="http://rzrsharp.net/2013/04/02/towards-a-unified-js-stack.html"/>
+    <updated>2013-04-02T19:49:00-07:00</updated>
+    <id>http://rzrsharp.net/2013/04/02/towards-a-unified-js-stack</id>
+    <content type="html"><![CDATA[<p>It’s been a long time since I’ve written anything for this site. Neither neglect nor procrastination prompted my absence, but rather, lots and lots of coding. All that code has left me with a surfeit of topics to cover here, so instead of talking about what I’ve been working on, I’m going to dive straight into the good stuff.</p>
+
+<p>I want to write about the current “Holy Grail” of web application development: a unified application stack. Any dev who’s built a thick-client web app (regardless of library &ndash; Ember, Backbone, this problem is independent of tool choice) has dealt with the frustration of recreating logic in multiple parts of the application stack. It’s incredibly annoying to be writing the same code to handle model accessors, view state, and rendering logic in two different places; it’s even more irksome to be fixing bugs in one or both areas as your application matures. But let’s back up a bit. Why do we need to be writing the same logic in multiple places at all?</p>
+
+<p>Generally speaking, modern web app development requires a choice from one of three architectural thrusts:</p>
+
+<ul>
+<li><p>thick server, thin client: view logic is written on the server, and rendering happens there as well. The client code deals with interactivity and AJAX requests, but is mostly just updating areas of the page with rendered view content returned by the server. This approach is <a href="http://37signals.com/svn/posts/3112-how-basecamp-next-got-to-be-so-damn-fast-without-using-much-client-side-ui">most famously advocated for by 37 Signals</a>. A thick server simplifies view code, but does so at the expense of larger AJAX payloads; why pull fully rendered code when you can just pull JSON data and render it with a client-side template?</p></li>
+<li><p>thick client, thin server: This architecture inverts the first approach; the server provides an API, which is basically just a wrapper around data access and caching. All of the app logic resides in the client. This approach can make for quick interactivity and rendering on the client, but presents a massive problem with “first load” delay, as the client needs to make two connections to the server: the first to load the client application code, and the second to pull the appropriate data to render. You may remember this problem from <a href="http://engineering.twitter.com/2012/05/improving-performance-on-twittercom.html">Old New Twitter</a>.</p></li>
+<li><p>thick client, thick server: Unsurprisingly, this approach combines both of the previous options. Views are rendered on the server, which means the initial load is fast, but the client handles all the rendering from that point forward. The good news is that you have two fairly independent, (hopefully) highly performant application structures; the bad news is that you’re now repeating logic in view templates, view states, model helpers, even route handlers.</p></li>
+</ul>
+
+
+<p>One exciting prospect of Node.js is that it makes Javascript an “isomorphic language”, which is to say that “any given line of code (with notable exceptions) can execute both on the client and the server” (h/t <a href="http://blog.nodejitsu.com/scaling-isomorphic-javascript-code">Nodejitsu</a>). But that said, there haven’t been very compelling demonstrations that solve the code-duplication problem.</p>
+
+<p>In the last few months, I’ve come up with a solution that allows for code reuse on client and server, leading to a unified codebase for handling view rendering, view states, and model interaction. It’s using components and libraries that you already know: Browserify, Backbone, Express, and Handlebars. But I’m going to hold off on describing that solution for now, and instead write about Rendr.</p>
+
+<p>Rendr <a href="http://nerds.airbnb.com/weve-launched-our-first-nodejs-app-to-product">is the result of Airbnb’s first Node app</a>, and it’s also the library that finally prompted me to close Vim and start writing here again. It’s the fulfillment of an idea that I first heard about from <a href="https://github.com/tbranyen">Tim Branyen</a>: what if we used Express to render the same Backbone Views that we render on the client? That question is what prompted me on my own path towards application stack unity, so I’ve been very eager to learn more about Rendr.</p>
+
+<p>Rendr took Tim Branyen’s initial idea and made it a reality. It’s important to note that Airbnb’s experiments here weren’t an excuse for architecture aeronautics; rather, they were expressly concerned with solving the “time to content” problem, which is to say, the rendering delay that Twitter famously faced. And by unifying client and server code, Rendr not only makes developers’ lives easier, it solves that time to content problem.</p>
+
+<p>Rendr has a number of features and design approaches that I very much like:</p>
+
+<ul>
+<li><p>it’s described as “a library, not a framework”</p></li>
+<li><p>it doesn’t create a server side DOM</p></li>
+<li><p>it doesn’t try to collapse backend data access into the client tier, as some other frameworks have done</p></li>
+<li><p>it utilizes existing, familiar code (Express and Backbone)</p></li>
+<li><p>it keeps the rendered DOM on first load and attaches client objects to it, rather than instantiating client views and replacing the DOM with the results of those client views.</p></li>
+</ul>
+
+
+<p>This last item is particularly important: rendering a page on the server, sending it to the client, and then recreating the DOM on the client can lead to odd rendering issues, interactivity problems, and problems with event listeners. But dynamically instantiating client objects and attaching them to an already-rendered DOM is not a trivial problem, and I commend <a href="https://github.com/spikebrehm">Spike Brehm</a> and the rest of the Airbnb team for taking the time to get this right.</p>
+
+<p>You should definitely take the time to <a href="https://github.com/airbnb/rendr">explore Rendr’s codebase</a>. If it existed when I first set out to solve this same set of problems last year, then I probably would’ve abandoned my own quest and just used this library. But the key point of differentiation with the approach I took from Rendr’s design is modularity. Is it possible to achieve application stack unity, while using objects and code that can be implemented with any number of frameworks in any number of ways?</p>
+
+<p>Stay tuned.</p>
+]]></content>
+  </entry>
+  
+</feed>

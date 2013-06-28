@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: links | Razor Sharp Design]]></title>
+  <link href="http://rzrsharp.net/blog/categories/links/atom.xml" rel="self"/>
+  <link href="http://rzrsharp.net/"/>
+  <updated>2013-06-27T20:53:40-07:00</updated>
+  <id>http://rzrsharp.net/</id>
+  <author>
+    <name><![CDATA[Justin Reidy]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[Welcome to 2012]]></title>
+    <link href="http://rzrsharp.net/2012/01/30/welcome-to-2012.html"/>
+    <updated>2012-01-30T16:31:00-08:00</updated>
+    <id>http://rzrsharp.net/2012/01/30/welcome-to-2012</id>
+    <content type="html"><![CDATA[<p>January&rsquo;s been a long month; not in a <em>bad</em> sense, just sort of interminable. Looking through my links collection in notational velocity today, I found a good twenty plus from the last six weeks. I&rsquo;ve culled them down a bit to the true standouts:</p>
+
+<ul>
+<li><p>An Object is not (Always) a Hash &mdash; Great post from Guillermo Rauch about <a href="http://www.devthought.com/2012/01/18/an-object-is-not-a-hash/">the perils of using Javascript Objects as Hashes</a>. Definitely some tricky gotchas here that you may not have thought about.</p></li>
+<li><p>Hot Node Reloading &mdash; Also from Guillermo, a solution to the annoying problem of continuously restarting your node app during development: <a href="http://www.devthought.com/2012/01/29/staying-up-with-node-js/">Staying Up with Node.JS</a></p></li>
+<li><p>Shedding Light on SPDY &mdash; If you haven&rsquo;t been hearing a great deal about SPDY lately, you will be soon. SPDY, if you couldn&rsquo;t tell from the name, serves as a next-generation protocol to speed up web communication. Nodejitsu posts <a href="http://blog.nodejitsu.com/what-is-node-spdy">a helpful introduction to SPDY</a>.</p></li>
+<li><p>Improving your Git Logs &mdash; Git log, out of the box, is so wordy that it proves fairly worthless. Check out Oli Studholme&rsquo;s <a href="http://oli.jp/2012/git-powerup/">aliases for taming the git log beast</a>.</p></li>
+<li><p>Hack Learning &mdash; One of the key lessons I&rsquo;ve learned as a developer is that getting good at something requires hours, and hours, and hours, and <strong>hours</strong> of work, and many of these hours will be exhausting displays of ignorance which you&rsquo;ll want to quickly forget. The good news is that you can pick up nearly any skill with enough effort and time. Jack Kinsella provides a hack for cutting back on how many hours separate &ldquo;terrible newb&rdquo; from &ldquo;fairly competent practitioner&rdquo;. His <a href="http://www.jackkinsella.ie/2011/12/05/janki-method.html">Janki Method</a> may <em>sound</em> like a get rich quick scheme, but it&rsquo;s really just a simple approach to improving your effiency at learning. Maybe you can cut those 10,000 hours of practice to a more managable&hellip; 6,000.</p></li>
+</ul>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Thanksgiving Week Links]]></title>
+    <link href="http://rzrsharp.net/2011/11/21/thanksgiving-week-links.html"/>
+    <updated>2011-11-21T16:17:00-08:00</updated>
+    <id>http://rzrsharp.net/2011/11/21/thanksgiving-week-links</id>
+    <content type="html"><![CDATA[<p>I&rsquo;ve never been a fan of links posts &ndash; they always feel like &ldquo;clips
+episodes&rdquo; from sitcoms to me &ndash; but I&rsquo;ve realized that they can be pretty helpful, if
+they&rsquo;re well curated. I&rsquo;m going to be experimenting with the &ldquo;well curated&rdquo; sort
+of links posts. Please feel free to yell at me on twitter
+if these get boring.</p>
+
+<ul>
+<li><p>A scaffold for your node &ndash; <a href="https://github.com/spiceapps/scaffoldit">scaffoldit</a>
+is a customizable scaffold generator for your nodejs projects. I don&rsquo;t think that there&rsquo;s
+<em>that</em> much boilerplate for express based apps, but this library is still pretty helpful for
+getting my tests and basic app configured quickly.</p></li>
+<li><p>Basic metaprogramming in Ruby &ndash; If you&rsquo;re new to Ruby and are confused by some of
+the metaprogramming enabled by methods like <code>repond_to?</code> and <code>method_missing</code>, check
+out <a href="http://intridea.com/posts/dry-magic-methods">this helpful post</a> from the Intridea
+blog.</p></li>
+<li><p>Build first, talk later &ndash; Spencer Fry, founder of Carbonmade, offers some fine advice
+to <a href="http://spencerfry.com/show-dont-tell">show don&rsquo;t tell</a> &ndash; a prototype is worth
+ten thousand words. I particularly like his observation that &ldquo;The best thinking
+about your product will come from actually building it.&rdquo;</p></li>
+<li><p>Productivity geekery &ndash; <a href="http://brettterpstra.com/app-review-dropzone/">Brett Terpstra reviews</a>
+the mother-of-all-menubar-apps, Dropzone. I haven&rsquo;t bought it yet myself, but I&rsquo;m pretty close to pulling the trigger.</p></li>
+<li><p>Writing your readme &ndash; Awhile back, nodejitsu offered
+<a href="http://blog.nodejitsu.com/package-dependencies-done-right">some solid advice</a>
+on setting up your node project&rsquo;s <code>package.json</code> file.
+Now they&rsquo;re back with some more great advice, but this time it&rsquo;s more universal:
+<a href="http://blog.nodejitsu.com/how-to-write-a-readme">how to write a <em>helpful</em> readme for your next open source project</a>.</p></li>
+<li><p>After reading Umair Haque&rsquo;s excellent <a href="http://www.amazon.com/New-Capitalist-Manifesto-Building-Disruptively/dp/1422158586">New Capitalist Manifesto</a>, I&rsquo;ve been thinking a great deal about the values
+of sustainability in business and how value cycles drastically improve upon value chains.
+I was excited to see <a href="http://www.avc.com/a_vc/2011/11/sustainability.html">Fred Wilson explore the same issues on his blog</a>:
+<blockquote><p>sustainability is all about figuring out how to be in business forever. It is about business models that are win/win and lead to happy long term customer and supplier relationships. It is about avoiding the temptation to overeach. It is about avoiding the temptation to mazimize near term profits at the expense of long term health. It is about adapting the business to changing market dynamics. It is about building a team and a culture that can survive the loss of the leader and keep going. And it is about many more things like this.</p></blockquote></p></li>
+</ul>
+
+]]></content>
+  </entry>
+  
+</feed>

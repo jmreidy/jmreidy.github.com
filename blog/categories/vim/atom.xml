@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: Vim | Razor Sharp Design]]></title>
+  <link href="http://rzrsharp.net/blog/categories/vim/atom.xml" rel="self"/>
+  <link href="http://rzrsharp.net/"/>
+  <updated>2013-06-27T20:53:40-07:00</updated>
+  <id>http://rzrsharp.net/</id>
+  <author>
+    <name><![CDATA[Justin Reidy]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[Mastering Your Toolset]]></title>
+    <link href="http://rzrsharp.net/2012/06/25/mastering-your-toolset.html"/>
+    <updated>2012-06-25T15:29:00-07:00</updated>
+    <id>http://rzrsharp.net/2012/06/25/mastering-your-toolset</id>
+    <content type="html"><![CDATA[<p>When I originally started thinking about writing this post, I was going to
+phrase it in terms of spring cleaning. When I moved to Portland, I took the
+opportunity to reasses my development environment and to cleanup the libraries
+and source repositories I had scattered across my system. Since then, I&rsquo;ve
+become the proud owner of a new retina MBP, so I&rsquo;ve ended up building a new
+environment from scratch. Provisioning a new laptop is incredibly fast
+now; if you have your projects stored in version control, and you keep your
+dotfiles controlled as well, setting up a new laptop is as easy as:</p>
+
+<ul>
+<li>installing <a href="http://mxcl.github.com/homebrew/">Homebrew</a></li>
+<li>installing <a href="http://www.iterm2.com/#/section/home">iTerm2</a></li>
+<li>brew install git, macvim, tmux, tmuxinator, whatever langs and dbs you need</li>
+<li>pulling down your <a href="https://github.com/jmreidy/dotfiles">.dotfiles</a></li>
+<li>installing and syncing your <a href="http://www.dropbox.com">Dropbox</a></li>
+</ul>
+
+
+<p>I was developing on my new machine the day it arrived.</p>
+
+<p>That experience of provisioning a machine so easily, and getting productive
+with it in no time at all, left me reconsidiering my original post on my
+toolset, which primarily boils down to zsh, tmux, and Vim.  There&rsquo;s plenty of
+material online to learn about these tools; a few of note are:</p>
+
+<ul>
+<li><a href="http://www.drbunsen.org/text-triumvirate.html">The Text Triumvirate</a></li>
+<li><a href="http://blog.sanctum.geek.nz/series/unix-as-ide/">Unix as IDE</a></li>
+<li><a href="http://stevelosh.com/blog/2010/09/coming-home-to-vim/">Coming Home to Vim</a></li>
+<li><a href="http://robots.thoughtbot.com/post/2641409235/a-tmux-crash-course">A Tmux Crash Course</a></li>
+<li><a href="http://wynnnetherland.com/journal/dotfiles-discovery">Dotfile Discovery</a></li>
+<li><a href="http://www.mahdiyusuf.com/post/24784023641/beautiful-tools">Beautiful Tools</a></li>
+</ul>
+
+
+<p>So why should you adopt tools with such a steep learning curve? Most discussions of IDEs
+and development environments quickly devolve into pointless arguments over the
+superiority of one tool over another, when in most cases the tool isn&rsquo;t the most
+important factor; differences in productivity will more frequently boil down to
+experience and mastery of a toolset, rather than the toolset itself. I&rsquo;ve seen
+masters of Vim, Eclipse, IntelliJ, and Textmate; in every case, the interface
+breaks down and gets out of the way of the user, who always &ldquo;does&rdquo; without any
+thought as to &ldquo;how to do&rdquo;.</p>
+
+<p>So if mastery is more important than toolset, does your choice really matter?</p>
+
+<p>Yes.</p>
+
+<p>There&rsquo;s two huge benefits of the Vim/tmux/shell toolset: ubiquity, and
+permanence.</p>
+
+<p>Mastery of a tool takes many, many, many hours: <blockquote
+class="twitter-tweet"><p>&ldquo;Malcolm Gladwell&rsquo;s observation that it takes 10,000
+hours to become truly expert at something.&rdquo; A little more than 3 years
+typically</p>&mdash; Jeff Atwood (@codinghorror) <a
+href="https://twitter.com/codinghorror/status/1066301753"
+data-datetime="2008-12-19T02:48:10+00:00">December 19, 2008</a></blockquote></p>
+
+<script src="http://rzrsharp.net//platform.twitter.com/widgets.js" charset="utf-8"></script>
+
+
+<p>So whatever tool you choose, you want to be able to use it as much of the time
+as possible, in as many environments as possible.</p>
+
+<p>A mastery of Eclipse, for example, doesn&rsquo;t help you when you need to ssh into a
+unix environment (but vi/m would).  Knowing Visual Studio inside and out can&rsquo;t
+help you if you need to work on a Max or Linux box (but gvim and cygwin will
+still work on Windows). There&rsquo;s not a lot that can compete with Vim in the ubiquity
+category; Emacs is the only other tool that comes to mind.</p>
+
+<p>Permanence is a whole other matter. Technology changes constantly; some tools
+are improved, others are abandoned, still others fall out of use entirely. Are
+you a Flex developer who spent spent huge amounts of time mastering FlexBuilder
+and Eclipse?  Out of luck now. Textmate? The tool that influenced countless
+developers to leave the Windows ecosystem eventually became pseudo-abandonware,
+leading to the current growth of tools liks <a href="http://www.sublimetext.com/2">Sublime Text 2</a>.</p>
+
+<p>Vim has been around since 1991. Its progenitor vi was written in 1976. (Again,
+Emacs is the only competitor here, having also been written in 1976.)</p>
+
+<p>All of this is to say: <strong>don&rsquo;t</strong> go and abandon your current toolset for mine!
+Just because what I use works for me, doesn&rsquo;t mean it&rsquo;s the best choice for
+you. If you&rsquo;ve already mastered your toolset and are happy with it, <strong>stay</strong> there:
+you&rsquo;d be wasting many productive hours on a new tool for the potential of
+hating it. And as wonderful as Vim/tmux/shell are for most, it&rsquo;s not the right
+toolset for everyone or everything. If you&rsquo;re doing mostly front-end web UX
+work, for example, <a href="http://panic.com/coda/">Coda 2</a> would probably be perfect
+for your needs; iOS means you&rsquo;re going to be stuck with Xcode, for better or worse.</p>
+
+<p>But if you&rsquo;re feeling constrained by your current toolset, or are making the jump
+from one technology to another, and haven&rsquo;t given &ldquo;the text triumvirate&rdquo; a try,
+I&rsquo;d very strongly recommend doing so. It&rsquo;s worth the effort.</p>
+]]></content>
+  </entry>
+  
+</feed>

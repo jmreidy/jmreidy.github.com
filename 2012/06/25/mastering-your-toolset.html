@@ -1,0 +1,376 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Mastering Your Toolset - Razor Sharp Design</title>
+  <meta name="author" content="Justin Reidy">
+
+  
+  <meta name="description" content="When I originally started thinking about writing this post, I was going to
+phrase it in terms of spring cleaning. When I moved to Portland, I took &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://rzrsharp.net/2012/06/25/mastering-your-toolset.html">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="Razor Sharp Design" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/lib/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <script type="text/javascript" src="http://use.typekit.com/eqy0aif.js"></script>
+<script type="text/javascript">try{Typekit.load();}catch(e){}</script>
+
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-5761922-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+
+
+</head>
+
+<body   >
+  <header role="banner">
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="http://google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:rzrsharp.net" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Mastering Your Toolset</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2012-06-25T15:29:00-07:00" pubdate data-updated="true">Jun 25<span>th</span>, 2012</time>
+        
+         | <a href="#disqus_thread">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>When I originally started thinking about writing this post, I was going to
+phrase it in terms of spring cleaning. When I moved to Portland, I took the
+opportunity to reasses my development environment and to cleanup the libraries
+and source repositories I had scattered across my system. Since then, I&rsquo;ve
+become the proud owner of a new retina MBP, so I&rsquo;ve ended up building a new
+environment from scratch. Provisioning a new laptop is incredibly fast
+now; if you have your projects stored in version control, and you keep your
+dotfiles controlled as well, setting up a new laptop is as easy as:</p>
+
+<ul>
+<li>installing <a href="http://mxcl.github.com/homebrew/">Homebrew</a></li>
+<li>installing <a href="http://www.iterm2.com/#/section/home">iTerm2</a></li>
+<li>brew install git, macvim, tmux, tmuxinator, whatever langs and dbs you need</li>
+<li>pulling down your <a href="https://github.com/jmreidy/dotfiles">.dotfiles</a></li>
+<li>installing and syncing your <a href="http://www.dropbox.com">Dropbox</a></li>
+</ul>
+
+
+<p>I was developing on my new machine the day it arrived.</p>
+
+<p>That experience of provisioning a machine so easily, and getting productive
+with it in no time at all, left me reconsidiering my original post on my
+toolset, which primarily boils down to zsh, tmux, and Vim.  There&rsquo;s plenty of
+material online to learn about these tools; a few of note are:</p>
+
+<ul>
+<li><a href="http://www.drbunsen.org/text-triumvirate.html">The Text Triumvirate</a></li>
+<li><a href="http://blog.sanctum.geek.nz/series/unix-as-ide/">Unix as IDE</a></li>
+<li><a href="http://stevelosh.com/blog/2010/09/coming-home-to-vim/">Coming Home to Vim</a></li>
+<li><a href="http://robots.thoughtbot.com/post/2641409235/a-tmux-crash-course">A Tmux Crash Course</a></li>
+<li><a href="http://wynnnetherland.com/journal/dotfiles-discovery">Dotfile Discovery</a></li>
+<li><a href="http://www.mahdiyusuf.com/post/24784023641/beautiful-tools">Beautiful Tools</a></li>
+</ul>
+
+
+<p>So why should you adopt tools with such a steep learning curve? Most discussions of IDEs
+and development environments quickly devolve into pointless arguments over the
+superiority of one tool over another, when in most cases the tool isn&rsquo;t the most
+important factor; differences in productivity will more frequently boil down to
+experience and mastery of a toolset, rather than the toolset itself. I&rsquo;ve seen
+masters of Vim, Eclipse, IntelliJ, and Textmate; in every case, the interface
+breaks down and gets out of the way of the user, who always &ldquo;does&rdquo; without any
+thought as to &ldquo;how to do&rdquo;.</p>
+
+<p>So if mastery is more important than toolset, does your choice really matter?</p>
+
+<p>Yes.</p>
+
+<p>There&rsquo;s two huge benefits of the Vim/tmux/shell toolset: ubiquity, and
+permanence.</p>
+
+<p>Mastery of a tool takes many, many, many hours: <blockquote
+class="twitter-tweet"><p>&ldquo;Malcolm Gladwell&rsquo;s observation that it takes 10,000
+hours to become truly expert at something.&rdquo; A little more than 3 years
+typically</p>&mdash; Jeff Atwood (@codinghorror) <a
+href="https://twitter.com/codinghorror/status/1066301753"
+data-datetime="2008-12-19T02:48:10+00:00">December 19, 2008</a></blockquote></p>
+
+<script src="//platform.twitter.com/widgets.js" charset="utf-8"></script>
+
+
+<p>So whatever tool you choose, you want to be able to use it as much of the time
+as possible, in as many environments as possible.</p>
+
+<p>A mastery of Eclipse, for example, doesn&rsquo;t help you when you need to ssh into a
+unix environment (but vi/m would).  Knowing Visual Studio inside and out can&rsquo;t
+help you if you need to work on a Max or Linux box (but gvim and cygwin will
+still work on Windows). There&rsquo;s not a lot that can compete with Vim in the ubiquity
+category; Emacs is the only other tool that comes to mind.</p>
+
+<p>Permanence is a whole other matter. Technology changes constantly; some tools
+are improved, others are abandoned, still others fall out of use entirely. Are
+you a Flex developer who spent spent huge amounts of time mastering FlexBuilder
+and Eclipse?  Out of luck now. Textmate? The tool that influenced countless
+developers to leave the Windows ecosystem eventually became pseudo-abandonware,
+leading to the current growth of tools liks <a href="http://www.sublimetext.com/2">Sublime Text 2</a>.</p>
+
+<p>Vim has been around since 1991. Its progenitor vi was written in 1976. (Again,
+Emacs is the only competitor here, having also been written in 1976.)</p>
+
+<p>All of this is to say: <strong>don&rsquo;t</strong> go and abandon your current toolset for mine!
+Just because what I use works for me, doesn&rsquo;t mean it&rsquo;s the best choice for
+you. If you&rsquo;ve already mastered your toolset and are happy with it, <strong>stay</strong> there:
+you&rsquo;d be wasting many productive hours on a new tool for the potential of
+hating it. And as wonderful as Vim/tmux/shell are for most, it&rsquo;s not the right
+toolset for everyone or everything. If you&rsquo;re doing mostly front-end web UX
+work, for example, <a href="http://panic.com/coda/">Coda 2</a> would probably be perfect
+for your needs; iOS means you&rsquo;re going to be stuck with Xcode, for better or worse.</p>
+
+<p>But if you&rsquo;re feeling constrained by your current toolset, or are making the jump
+from one technology to another, and haven&rsquo;t given &ldquo;the text triumvirate&rdquo; a try,
+I&rsquo;d very strongly recommend doing so. It&rsquo;s worth the effort.</p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">Justin Reidy</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2012-06-25T15:29:00-07:00" pubdate data-updated="true">Jun 25<span>th</span>, 2012</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/vim/'>Vim</a>, <a class='category' href='/blog/categories/development/'>development</a>, <a class='category' href='/blog/categories/tmux/'>tmux</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="//twitter.com/share" class="twitter-share-button" data-url="http://rzrsharp.net/2012/06/25/mastering-your-toolset.html" data-via="jmreidy" data-counturl="http://rzrsharp.net/2012/06/25/mastering-your-toolset.html" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/2012/06/11/blog-bankruptcy.html" title="Previous Post: Blog Bankruptcy">&laquo; Blog Bankruptcy</a>
+      
+      
+        <a class="basic-alignment right" href="/2012/07/06/reflections-on-nodeconf-2012.html" title="Next Post: Reflections on NodeConf 2012">Reflections on NodeConf 2012 &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+  <section>
+    <h1>Comments</h1>
+    <div id="disqus_thread" aria-live="polite"><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+  </section>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>About</h1>
+  <p>I'm Justin Reidy, a web developer living in Portland, OR.
+  I spend the majority of my time hacking on javascript.
+  I'm also an aspiring marathoner, a home cook and food lover, and a bit
+  of a bookworm.
+  Razor Sharp Design is the name of my
+  web development consultancy, and this, as you've guessed, is my blog. Feel free to <a
+  href="mailto:jmreidy@rzrsharp.net">email me</a>.</p>
+</section>
+<section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/2013/04/11/in-theory-not-practice.html">In Theory, Not Practice</a>
+      </li>
+    
+      <li class="post">
+        <a href="/2013/04/02/towards-a-unified-js-stack.html">Towards a Unified JS Stack</a>
+      </li>
+    
+      <li class="post">
+        <a href="/2012/10/01/error-isolation-with-promises.html">Error Isolation With Promises</a>
+      </li>
+    
+      <li class="post">
+        <a href="/2012/08/01/client-side-testing-insanity.html">Client-Side Testing Insanity</a>
+      </li>
+    
+      <li class="post">
+        <a href="/2012/07/06/reflections-on-nodeconf-2012.html">Reflections on NodeConf 2012</a>
+      </li>
+    
+  </ul>
+</section>
+
+<section>
+  <h1>GitHub Repos</h1>
+  <ul id="gh_repos">
+    <li class="loading">Status updating...</li>
+  </ul>
+  
+  <a href="https://github.com/jmreidy">@jmreidy</a> on GitHub
+  
+  <script type="text/javascript">
+    $(document).ready(function(){
+        if (!window.jXHR){
+            var jxhr = document.createElement('script');
+            jxhr.type = 'text/javascript';
+            jxhr.src = '/javascripts/libs/jXHR.js';
+            var s = document.getElementsByTagName('script')[0];
+            s.parentNode.insertBefore(jxhr, s);
+        }
+
+        github.showRepos({
+            user: 'jmreidy',
+            count: 5,
+            skip_forks: false,
+            target: '#gh_repos'
+        });
+    });
+  </script>
+  <script src="/javascripts/github.js" type="text/javascript"> </script>
+</section>
+
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2013 - Justin Reidy -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+<script type="text/javascript">
+      var disqus_shortname = 'razorsharp';
+      
+        
+        // var disqus_developer = 1;
+        var disqus_identifier = 'http://rzrsharp.net/2012/06/25/mastering-your-toolset.html';
+        var disqus_url = 'http://rzrsharp.net/2012/06/25/mastering-your-toolset.html';
+        var disqus_script = 'embed.js';
+      
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = 'http://' + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = '//platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

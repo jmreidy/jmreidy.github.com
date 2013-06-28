@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: git | Razor Sharp Design]]></title>
+  <link href="http://rzrsharp.net/blog/categories/git/atom.xml" rel="self"/>
+  <link href="http://rzrsharp.net/"/>
+  <updated>2013-06-27T20:53:40-07:00</updated>
+  <id>http://rzrsharp.net/</id>
+  <author>
+    <name><![CDATA[Justin Reidy]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[Fix That Commit!]]></title>
+    <link href="http://rzrsharp.net/2011/11/10/fix-that-commit.html"/>
+    <updated>2011-11-10T16:55:00-08:00</updated>
+    <id>http://rzrsharp.net/2011/11/10/fix-that-commit</id>
+    <content type="html"><![CDATA[<p>While it sometimes seems as if everyone has already switched to git (or a similar distributed
+version control system), I still meet people who are only leaving subversion
+behind now. A lot of git&rsquo;s idioms are impenetrable to those who are new to it, but the presence
+of free resources like <a href="http://progit.org/book/">Pro Git</a> and <a href="http://gitready.com/">git ready</a> make the adjustment much easier.</p>
+
+<p>Even though I&rsquo;ve used git for awhile, I still need to look up the best way of performing
+a task every now and then. One trick that comes in handy is editing existing commits.
+<code>git --amend</code> allows for adding new files or changes to a previous commit, but you can
+have even more control than that &mdash; changing <em>any</em> pre-pushed commit in your history.</p>
+
+<p>Just get the hash of the commit you want to change. With a simple <code>git rebase &lt;commit&gt;^ --interactive</code>,
+you can then make any changes you want. For each file, just type <code>git add &lt;file&gt;</code>. When
+you&rsquo;re done, <code>git commit --amend</code> and <code>git rebase --continue</code> will finish up your editing.</p>
+
+<p>It&rsquo;s always useful to review and cleanup your commit history before pushing your changes
+upstream or issuing a pull request. With the ability to revisit any previous commit, you
+can be more comfortable in a &lsquo;commit-all-the-time&rsquo; workflow.</p>
+]]></content>
+  </entry>
+  
+</feed>

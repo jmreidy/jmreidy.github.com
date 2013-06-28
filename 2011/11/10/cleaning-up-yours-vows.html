@@ -1,0 +1,628 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Cleaning Up Yours Vows - Razor Sharp Design</title>
+  <meta name="author" content="Justin Reidy">
+
+  
+  <meta name="description" content="Learning a framework as you&rsquo;re TDD-ing a project can be dangerous. But even if you
+know what you&rsquo;re doing, some of the conveniences of &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://rzrsharp.net/2011/11/10/cleaning-up-yours-vows.html">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="Razor Sharp Design" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/lib/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <script type="text/javascript" src="http://use.typekit.com/eqy0aif.js"></script>
+<script type="text/javascript">try{Typekit.load();}catch(e){}</script>
+
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-5761922-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+
+
+</head>
+
+<body   >
+  <header role="banner">
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="http://google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:rzrsharp.net" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Cleaning Up Yours Vows</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2011-11-10T11:07:00-08:00" pubdate data-updated="true">Nov 10<span>th</span>, 2011</time>
+        
+         | <a href="#disqus_thread">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>Learning a framework as you&rsquo;re TDD-ing a project can be dangerous. But even if you
+know what you&rsquo;re doing, some of the conveniences of node.js can make you a bit sloppy
+with your code. Namely, the ability to pull functions from files as you need them and pass
+them around makes for some interesting problems.</p>
+
+<figure class='code'><figcaption><span>foo.js</span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+</pre></td><td class='code'><pre><code class='javascript'><span class='line'><span class="nx">exports</span><span class="p">.</span><span class="nx">add</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">a</span><span class="p">,</span><span class="nx">b</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>  <span class="k">return</span> <span class="nx">a</span><span class="o">+</span><span class="nx">b</span><span class="p">;</span>
+</span><span class='line'><span class="p">}</span>
+</span><span class='line'><span class="nx">exports</span><span class="p">.</span><span class="nx">subtract</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">a</span><span class="p">,</span><span class="nx">b</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>  <span class="k">return</span> <span class="nx">a</span><span class="o">-</span><span class="nx">b</span><span class="p">;</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<figure class='code'><figcaption><span>bar.js</span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class='javascript'><span class='line'><span class="kd">var</span> <span class="nx">add</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;foo&#39;</span><span class="p">).</span><span class="nx">add</span><span class="p">;</span>
+</span><span class='line'><span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">add</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">));</span> <span class="c1">// 3</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>If your functions are free of side effects, you&rsquo;re not exactly committing
+a serious coding sin. But go beyond the simple example above &mdash; starting to pass
+around whole objects, or breaking the law of demeter &mdash; and soon your code doesn&rsquo;t feel right.</p>
+
+<p>I quickly ran into this problem with my vows tests. As I was about to merge a feature
+branch to master, I reviewed my code and was a bit horrified at what I saw in my tests:</p>
+
+<figure class='code'><figcaption><span>user_spec.coffee</span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+</pre></td><td class='code'><pre><code class='coffeescript'><span class='line'><span class="p">{</span><span class="nx">cleanupDB</span><span class="p">}</span> <span class="o">=</span> <span class="nx">require</span> <span class="s">&quot;../helpers&quot;</span>
+</span><span class='line'><span class="p">{</span><span class="nx">vows</span><span class="p">,</span><span class="nx">server</span><span class="p">}</span> <span class="o">=</span> <span class="nx">require</span> <span class="s">&quot;vows&quot;</span>
+</span><span class='line'><span class="nv">mongoose = </span><span class="nx">require</span> <span class="s">&quot;mongoose&quot;</span>
+</span><span class='line'><span class="nv">User = </span><span class="nx">mongoose</span><span class="p">.</span><span class="nx">model</span> <span class="s">&quot;User&quot;</span>
+</span><span class='line'><span class="nv">assert = </span><span class="nx">require</span> <span class="s">&quot;assert&quot;</span>
+</span><span class='line'><span class="nv">Sinon = </span><span class="nx">require</span> <span class="s">&quot;sinon&quot;</span>
+</span><span class='line'><span class="p">{</span><span class="nx">Factory</span><span class="p">}</span> <span class="o">=</span> <span class="nx">require</span> <span class="s">&quot;../helpers&quot;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>And this was just <em>one</em> of my tests. Yikes. Lots of bad things going on here:</p>
+
+<ul>
+<li>My test has a dependency on my model implementation, and not just the model itself;
+if I switch the model off mongoose in the future, my test itself will need to change.</li>
+<li>My test has a dependency on a particulra spying/mocking framework (Sinon)</li>
+<li>There&rsquo;s a lot of confusing imports; why is <code>server</code> required off of vows?</li>
+<li>Repeating requires &ndash; one for <code>cleanupDB</code> and one for <code>Factory</code>.</li>
+</ul>
+
+
+<p>Bad bad bad.</p>
+
+<p>My tests needed to be refactored to deal with this madness. I realized that there was
+repeated code throughout my vows tests; not only could I clean things up with some proper
+encapsulation, I could DRY my vows as well.</p>
+
+<p>One cool feature of node is that if you include an <code>index</code> file in a directory, that
+file is loaded when you require the directory. So I created a new <code>spec/helpers</code> directory,
+and placed an <code>index</code> file inside.</p>
+
+<figure class='code'><figcaption><span>spec/helpers/index.coffee</span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+</pre></td><td class='code'><pre><code class='coffeescript'><span class='line'><span class="nv">process.env.NODE_ENV = </span><span class="s">&#39;test&#39;</span>
+</span><span class='line'>
+</span><span class='line'><span class="nv">module.exports =</span>
+</span><span class='line'>  <span class="nv">Server: </span> <span class="nx">require</span> <span class="s">&quot;</span><span class="si">#{</span><span class="nx">__dirname</span><span class="si">}</span><span class="s">/server_helpers&quot;</span>
+</span><span class='line'>  <span class="nv">Test: </span> <span class="nx">require</span> <span class="s">&quot;</span><span class="si">#{</span><span class="nx">__dirname</span><span class="si">}</span><span class="s">/test_helpers&quot;</span>
+</span><span class='line'>  <span class="nv">Model: </span> <span class="nx">require</span> <span class="s">&quot;</span><span class="si">#{</span><span class="nx">__dirname</span><span class="si">}</span><span class="s">/model_helpers&quot;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>And each of these helper files now encapsulates logic and functionality that I use
+across my tests:</p>
+
+<figure class='code'><figcaption><span>server_helpers</span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+<span class='line-number'>41</span>
+<span class='line-number'>42</span>
+<span class='line-number'>43</span>
+<span class='line-number'>44</span>
+<span class='line-number'>45</span>
+<span class='line-number'>46</span>
+<span class='line-number'>47</span>
+<span class='line-number'>48</span>
+<span class='line-number'>49</span>
+<span class='line-number'>50</span>
+<span class='line-number'>51</span>
+<span class='line-number'>52</span>
+<span class='line-number'>53</span>
+<span class='line-number'>54</span>
+<span class='line-number'>55</span>
+<span class='line-number'>56</span>
+<span class='line-number'>57</span>
+<span class='line-number'>58</span>
+<span class='line-number'>59</span>
+</pre></td><td class='code'><pre><code class='coffeescript'><span class='line'><span class="nv">http = </span><span class="nx">require</span> <span class="s">&quot;http&quot;</span>
+</span><span class='line'>
+</span><span class='line'><span class="nv">exports.port = port = </span><span class="mi">3003</span>
+</span><span class='line'><span class="nv">server = </span><span class="p">(</span><span class="nx">require</span> <span class="s">&quot;</span><span class="si">#{</span><span class="nx">__dirname</span><span class="si">}</span><span class="s">/../../app&quot;</span><span class="p">)</span>
+</span><span class='line'><span class="nv">server.ready = </span><span class="nf">(callback) -&gt;</span>
+</span><span class='line'>  <span class="k">if</span> <span class="nx">@active</span>
+</span><span class='line'>    <span class="nx">process</span><span class="p">.</span><span class="nx">nextTick</span> <span class="nx">callback</span>
+</span><span class='line'>  <span class="k">else</span>
+</span><span class='line'>    <span class="vi">@active = </span><span class="kc">true</span>
+</span><span class='line'>    <span class="nx">server</span><span class="p">.</span><span class="nx">listen</span> <span class="nx">port</span><span class="p">,</span> <span class="nf">(err,result) -&gt;</span>
+</span><span class='line'>      <span class="nx">process</span><span class="p">.</span><span class="nx">nextTick</span> <span class="nx">callback</span>
+</span><span class='line'>  <span class="k">return</span>
+</span><span class='line'>
+</span><span class='line'><span class="nx">process</span><span class="p">.</span><span class="nx">on</span> <span class="s">&quot;exit&quot;</span><span class="p">,</span> <span class="nf">-&gt;</span>
+</span><span class='line'>  <span class="k">if</span> <span class="nx">@active</span> <span class="k">then</span> <span class="nx">server</span><span class="p">.</span><span class="nx">close</span><span class="p">()</span>
+</span><span class='line'>
+</span><span class='line'><span class="nv">wait = </span><span class="nf">-&gt;</span>
+</span><span class='line'>  <span class="k">if</span> <span class="o">!</span><span class="nx">@active</span>
+</span><span class='line'>    <span class="nx">process</span><span class="p">.</span><span class="nx">nextTick</span> <span class="nx">wait</span>
+</span><span class='line'>  <span class="k">else</span>
+</span><span class='line'>    <span class="k">return</span>
+</span><span class='line'>
+</span><span class='line'><span class="nx">server</span><span class="p">.</span><span class="nx">ready</span> <span class="nx">wait</span>
+</span><span class='line'>
+</span><span class='line'><span class="nv">makeRequest = </span><span class="nf">(url,params,method,callback) -&gt;</span>
+</span><span class='line'>  <span class="nx">params</span> <span class="o">||=</span> <span class="s">&quot;&quot;</span>
+</span><span class='line'>  <span class="nv">encoding = </span><span class="s">&#39;utf-8&#39;</span>
+</span><span class='line'>  <span class="nx">server</span><span class="p">.</span><span class="nx">ready</span> <span class="nf">-&gt;</span>
+</span><span class='line'>    <span class="nv">request = </span><span class="nx">http</span><span class="p">.</span><span class="nx">request</span>
+</span><span class='line'>      <span class="nv">host: </span><span class="s">&quot;127.0.0.1&quot;</span>
+</span><span class='line'>      <span class="nv">port: </span><span class="s">&quot;</span><span class="si">#{</span><span class="nx">port</span><span class="si">}</span><span class="s">&quot;</span>
+</span><span class='line'>      <span class="nv">path: </span><span class="nx">url</span>
+</span><span class='line'>      <span class="nv">method: </span><span class="s">&quot;</span><span class="si">#{</span><span class="nx">method</span><span class="si">}</span><span class="s">&quot;</span>
+</span><span class='line'>      <span class="nv">headers:</span>
+</span><span class='line'>        <span class="s">&#39;content-type&#39;</span><span class="o">:</span> <span class="s">&quot;application/x-www-form-urlencoded&quot;</span>
+</span><span class='line'>        <span class="s">&#39;content-length&#39;</span><span class="o">:</span> <span class="nx">params</span><span class="p">.</span><span class="nx">length</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="nx">request</span><span class="p">.</span><span class="nx">on</span> <span class="s">&#39;response&#39;</span><span class="p">,</span> <span class="nf">(response) -&gt;</span>
+</span><span class='line'>      <span class="nv">response.body = </span><span class="s">&#39;&#39;</span>
+</span><span class='line'>      <span class="nx">response</span><span class="p">.</span><span class="nx">setEncoding</span> <span class="nx">encoding</span>
+</span><span class='line'>      <span class="nx">response</span><span class="p">.</span><span class="nx">on</span> <span class="s">&#39;data&#39;</span><span class="p">,</span> <span class="nf">(chunk) -&gt;</span>
+</span><span class='line'>        <span class="nx">response</span><span class="p">.</span><span class="nx">body</span> <span class="o">+=</span> <span class="nx">chunk</span>
+</span><span class='line'>      <span class="nx">response</span><span class="p">.</span><span class="nx">on</span> <span class="s">&#39;end&#39;</span><span class="p">,</span> <span class="nf">-&gt;</span>
+</span><span class='line'>        <span class="nx">callback</span> <span class="kc">null</span><span class="p">,</span> <span class="nx">response</span>
+</span><span class='line'>    <span class="k">if</span> <span class="nx">params</span>
+</span><span class='line'>      <span class="nx">request</span><span class="p">.</span><span class="nx">write</span> <span class="nx">params</span>
+</span><span class='line'>    <span class="nx">request</span><span class="p">.</span><span class="nx">end</span><span class="p">()</span>
+</span><span class='line'>
+</span><span class='line'>
+</span><span class='line'><span class="nv">exports.server = </span><span class="nx">server</span>
+</span><span class='line'>
+</span><span class='line'><span class="nv">exports.get = </span><span class="nf">(url,params,callback) -&gt;</span>
+</span><span class='line'>  <span class="k">if</span> <span class="nx">arguments</span><span class="p">.</span><span class="nx">length</span> <span class="o">==</span> <span class="mi">2</span>
+</span><span class='line'>    <span class="nv">callback = </span><span class="nx">arguments</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+</span><span class='line'>    <span class="nv">params = </span><span class="kc">null</span>
+</span><span class='line'>  <span class="nx">makeRequest</span> <span class="nx">url</span><span class="p">,</span><span class="nx">params</span><span class="p">,</span><span class="s">&quot;GET&quot;</span><span class="p">,</span><span class="nx">callback</span>
+</span><span class='line'>
+</span><span class='line'><span class="nv">exports.post = </span><span class="nf">(url,params,callback) -&gt;</span>
+</span><span class='line'>  <span class="nx">makeRequest</span> <span class="nx">url</span><span class="p">,</span><span class="nx">params</span><span class="p">,</span><span class="s">&quot;POST&quot;</span><span class="p">,</span><span class="nx">callback</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+
+
+<figure class='code'><figcaption><span>test_helpers.coffee</span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+</pre></td><td class='code'><pre><code class='coffeescript'><span class='line'><span class="nv">Sinon = </span><span class="nx">require</span> <span class="s">&quot;sinon&quot;</span>
+</span><span class='line'><span class="nv">assert = </span><span class="nx">require</span> <span class="s">&quot;assert&quot;</span>
+</span><span class='line'><span class="nv">http = </span><span class="nx">require</span> <span class="s">&quot;http&quot;</span>
+</span><span class='line'><span class="nv">Model = </span><span class="nx">require</span> <span class="s">&quot;./model_helpers&quot;</span>
+</span><span class='line'>
+</span><span class='line'><span class="nv">exports.spy = </span><span class="nf">(object,method) -&gt;</span>
+</span><span class='line'>  <span class="nx">Sinon</span><span class="p">.</span><span class="nx">spy</span> <span class="nx">object</span><span class="p">,</span> <span class="nx">method</span>
+</span><span class='line'>
+</span><span class='line'><span class="nv">exports.stub = </span><span class="nf">(object, method, fn) -&gt;</span>
+</span><span class='line'>  <span class="nx">Sinon</span><span class="p">.</span><span class="nx">stub</span> <span class="nx">object</span><span class="p">,</span> <span class="nx">method</span><span class="p">,</span> <span class="nx">fn</span>
+</span><span class='line'>
+</span><span class='line'><span class="nv">exports.spyRender = </span><span class="nf">-&gt;</span>
+</span><span class='line'>  <span class="vi">@response = </span><span class="nx">http</span><span class="p">.</span><span class="nx">ServerResponse</span><span class="p">.</span><span class="nx">prototype</span>
+</span><span class='line'>  <span class="nx">Sinon</span><span class="p">.</span><span class="nx">spy</span> <span class="nx">@response</span><span class="p">,</span> <span class="s">&quot;render&quot;</span>
+</span><span class='line'>
+</span><span class='line'><span class="nv">exports.spyModel = </span><span class="nf">(klass,method) -&gt;</span>
+</span><span class='line'>  <span class="nx">Sinon</span><span class="p">.</span><span class="nx">spy</span> <span class="p">(</span><span class="nx">Model</span><span class="p">.</span><span class="nx">getType</span> <span class="nx">klass</span><span class="p">),</span> <span class="nx">method</span>
+</span><span class='line'>
+</span><span class='line'><span class="nv">exports.assert = </span><span class="nx">assert</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+
+
+<figure class='code'><figcaption><span>model_helpers.coffee</span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+</pre></td><td class='code'><pre><code class='coffeescript'><span class='line'><span class="nv">mongoose = </span><span class="nx">require</span> <span class="s">&quot;mongoose&quot;</span>
+</span><span class='line'><span class="nv">cleaner = </span><span class="k">new</span> <span class="p">(</span><span class="nx">require</span> <span class="s">&quot;database-cleaner&quot;</span><span class="p">)(</span><span class="s">&quot;mongodb&quot;</span><span class="p">)</span>
+</span><span class='line'>
+</span><span class='line'><span class="nv">exports.cleanupDB = </span><span class="nf">-&gt;</span>
+</span><span class='line'>  <span class="nv">mongo = </span><span class="nx">mongoose</span><span class="p">.</span><span class="nx">connection</span><span class="p">.</span><span class="nx">db</span>
+</span><span class='line'>  <span class="nx">cleaner</span><span class="p">.</span><span class="nx">clean</span> <span class="nx">mongo</span>
+</span><span class='line'>
+</span><span class='line'><span class="nv">exports.Factory = </span><span class="p">(</span><span class="nx">require</span> <span class="s">&quot;</span><span class="si">#{</span><span class="nx">__dirname</span><span class="si">}</span><span class="s">/factories&quot;</span><span class="p">).</span><span class="nx">Factory</span>
+</span><span class='line'>
+</span><span class='line'><span class="nv">exports.getType = </span><span class="nf">(Klass) -&gt;</span>
+</span><span class='line'>  <span class="nx">mongoose</span><span class="p">.</span><span class="nx">model</span> <span class="nx">Klass</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>My test logic dependencies are clean and encapsulated, making for both clearer
+<code>require</code>s blocks and clearer tests themselves.</p>
+
+<figure class='code'><figcaption><span>user_spec.coffee</span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+</pre></td><td class='code'><pre><code class='coffeescript'><span class='line'><span class="p">{</span><span class="nx">Model</span><span class="p">,</span><span class="nx">Test</span><span class="p">,</span><span class="nx">Server</span><span class="p">}</span> <span class="o">=</span> <span class="nx">require</span> <span class="s">&quot;../helpers&quot;</span>
+</span><span class='line'><span class="nv">vows = </span><span class="nx">require</span> <span class="s">&#39;vows&#39;</span>
+</span><span class='line'><span class="nv">User = </span><span class="nx">Model</span><span class="p">.</span><span class="nx">getType</span> <span class="s">&quot;User&quot;</span>
+</span><span class='line'>
+</span><span class='line'><span class="c1">#code removed for brevity</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="p">.</span><span class="nx">addBatch</span>
+</span><span class='line'>    <span class="s">&quot;Hashes password:&quot;</span><span class="o">:</span>
+</span><span class='line'>      <span class="s">&quot;when a new user is created&quot;</span><span class="o">:</span>
+</span><span class='line'>        <span class="nv">topic: </span><span class="nf">-&gt;</span>
+</span><span class='line'>          <span class="vi">@user = </span><span class="nx">Model</span><span class="p">.</span><span class="nx">Factory</span><span class="p">.</span><span class="nx">build</span> <span class="s">&quot;User&quot;</span>
+</span><span class='line'>          <span class="nx">Test</span><span class="p">.</span><span class="nx">spy</span> <span class="nx">User</span><span class="p">,</span> <span class="s">&quot;makeSalt&quot;</span>
+</span><span class='line'>          <span class="nx">Test</span><span class="p">.</span><span class="nx">spy</span> <span class="nx">User</span><span class="p">,</span> <span class="s">&quot;hashPassword&quot;</span>
+</span><span class='line'>          <span class="nx">@user</span><span class="p">.</span><span class="nx">save</span> <span class="nx">@callback</span>
+</span><span class='line'>          <span class="k">return</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="s">&quot;it creates a salt and stores it&quot;</span><span class="o">:</span> <span class="nf">(err,user) -&gt;</span>
+</span><span class='line'>          <span class="nx">Test</span><span class="p">.</span><span class="nx">assert</span><span class="p">.</span><span class="nx">ok</span> <span class="nx">User</span><span class="p">.</span><span class="nx">makeSalt</span><span class="p">.</span><span class="nx">calledOnce</span>
+</span><span class='line'>          <span class="nx">Test</span><span class="p">.</span><span class="nx">assert</span><span class="p">.</span><span class="nx">ok</span> <span class="nx">user</span><span class="p">.</span><span class="nx">salt</span> <span class="o">==</span> <span class="nx">User</span><span class="p">.</span><span class="nx">makeSalt</span><span class="p">.</span><span class="nx">returnValues</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="s">&quot;it encrpyts the password&quot;</span><span class="o">:</span> <span class="nf">(err,user) -&gt;</span>
+</span><span class='line'>          <span class="nx">Test</span><span class="p">.</span><span class="nx">assert</span><span class="p">.</span><span class="nx">ok</span> <span class="nx">User</span><span class="p">.</span><span class="nx">hashPassword</span><span class="p">.</span><span class="nx">calledOnce</span>
+</span><span class='line'>          <span class="nx">Test</span><span class="p">.</span><span class="nx">assert</span><span class="p">.</span><span class="nx">ok</span> <span class="nx">User</span><span class="p">.</span><span class="nx">hashPassword</span><span class="p">.</span><span class="nx">calledWith</span> <span class="nx">@user</span><span class="p">.</span><span class="nx">password</span>
+</span><span class='line'>
+</span><span class='line'>      <span class="nv">teardown: </span><span class="nf">-&gt;</span>
+</span><span class='line'>        <span class="nx">User</span><span class="p">.</span><span class="nx">hashPassword</span><span class="p">.</span><span class="nx">restore</span><span class="p">()</span>
+</span><span class='line'>        <span class="nx">User</span><span class="p">.</span><span class="nx">makeSalt</span><span class="p">.</span><span class="nx">restore</span><span class="p">()</span>
+</span><span class='line'>        <span class="nx">Model</span><span class="p">.</span><span class="nx">cleanupDB</span><span class="p">()</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">Justin Reidy</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2011-11-10T11:07:00-08:00" pubdate data-updated="true">Nov 10<span>th</span>, 2011</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/javascript/'>javascript</a>, <a class='category' href='/blog/categories/node-dot-js/'>node.js</a>, <a class='category' href='/blog/categories/vows/'>vows</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="//twitter.com/share" class="twitter-share-button" data-url="http://rzrsharp.net/2011/11/10/cleaning-up-yours-vows.html" data-via="jmreidy" data-counturl="http://rzrsharp.net/2011/11/10/cleaning-up-yours-vows.html" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/2011/11/04/indie-productivity.html" title="Previous Post: Indie Productivity">&laquo; Indie Productivity</a>
+      
+      
+        <a class="basic-alignment right" href="/2011/11/10/fix-that-commit.html" title="Next Post: Fix That Commit!">Fix That Commit! &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+  <section>
+    <h1>Comments</h1>
+    <div id="disqus_thread" aria-live="polite"><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+  </section>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>About</h1>
+  <p>I'm Justin Reidy, a web developer living in Portland, OR.
+  I spend the majority of my time hacking on javascript.
+  I'm also an aspiring marathoner, a home cook and food lover, and a bit
+  of a bookworm.
+  Razor Sharp Design is the name of my
+  web development consultancy, and this, as you've guessed, is my blog. Feel free to <a
+  href="mailto:jmreidy@rzrsharp.net">email me</a>.</p>
+</section>
+<section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/2013/04/11/in-theory-not-practice.html">In Theory, Not Practice</a>
+      </li>
+    
+      <li class="post">
+        <a href="/2013/04/02/towards-a-unified-js-stack.html">Towards a Unified JS Stack</a>
+      </li>
+    
+      <li class="post">
+        <a href="/2012/10/01/error-isolation-with-promises.html">Error Isolation With Promises</a>
+      </li>
+    
+      <li class="post">
+        <a href="/2012/08/01/client-side-testing-insanity.html">Client-Side Testing Insanity</a>
+      </li>
+    
+      <li class="post">
+        <a href="/2012/07/06/reflections-on-nodeconf-2012.html">Reflections on NodeConf 2012</a>
+      </li>
+    
+  </ul>
+</section>
+
+<section>
+  <h1>GitHub Repos</h1>
+  <ul id="gh_repos">
+    <li class="loading">Status updating...</li>
+  </ul>
+  
+  <a href="https://github.com/jmreidy">@jmreidy</a> on GitHub
+  
+  <script type="text/javascript">
+    $(document).ready(function(){
+        if (!window.jXHR){
+            var jxhr = document.createElement('script');
+            jxhr.type = 'text/javascript';
+            jxhr.src = '/javascripts/libs/jXHR.js';
+            var s = document.getElementsByTagName('script')[0];
+            s.parentNode.insertBefore(jxhr, s);
+        }
+
+        github.showRepos({
+            user: 'jmreidy',
+            count: 5,
+            skip_forks: false,
+            target: '#gh_repos'
+        });
+    });
+  </script>
+  <script src="/javascripts/github.js" type="text/javascript"> </script>
+</section>
+
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2013 - Justin Reidy -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+<script type="text/javascript">
+      var disqus_shortname = 'razorsharp';
+      
+        
+        // var disqus_developer = 1;
+        var disqus_identifier = 'http://rzrsharp.net/2011/11/10/cleaning-up-yours-vows.html';
+        var disqus_url = 'http://rzrsharp.net/2011/11/10/cleaning-up-yours-vows.html';
+        var disqus_script = 'embed.js';
+      
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = 'http://' + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = '//platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

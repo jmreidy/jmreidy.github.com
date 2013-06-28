@@ -1,0 +1,591 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: JavaScript | Razor Sharp Design]]></title>
+  <link href="http://rzrsharp.net/blog/categories/javascript/atom.xml" rel="self"/>
+  <link href="http://rzrsharp.net/"/>
+  <updated>2013-06-27T20:53:40-07:00</updated>
+  <id>http://rzrsharp.net/</id>
+  <author>
+    <name><![CDATA[Justin Reidy]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[In Theory, Not Practice]]></title>
+    <link href="http://rzrsharp.net/2013/04/11/in-theory-not-practice.html"/>
+    <updated>2013-04-11T19:49:00-07:00</updated>
+    <id>http://rzrsharp.net/2013/04/11/in-theory-not-practice</id>
+    <content type="html"><![CDATA[<p>In <a href="http://rzrsharp.net/2013/04/02/towards-a-unified-js-stack.html">my previous post</a>, I wrote about the quest towards unifying web application architecture around a single shared codebase. <a href="https://github.com/airbnb/rendr">Airbnb’s Rendr library</a> provides one path forward on that quest. In this post, I’d like to provide a high-level explanation of my own solution for unifying application code.</p>
+
+<p>There’s a few segments of an application’s code that will almost certainly be repeated on both the client and server: views, view state, and data models (excluding data access). To a certain extent, routing could be repeated as well; if you’re not using hashbangs, you’ll need to implement the same named routes on the client and server (although the actions you perform for those routes will be dramatically different).</p>
+
+<p>The solution I’ve put together is still a work in progress, and is more a set of practices and conventions than a library. This flexibility means that while I’ve been implementing the approach using Handlebars, Backbone, and Express, you could theoretically use a completely different set of libraries. In this post, I’ll go over the basic ideas behind my approach; I’ll be putting together a sample implementation on Github that I’ll be able to write about in more detail in the future.</p>
+
+<h2>Unifying View Templates</h2>
+
+<p>Sharing template code is perhaps the easiest step towards achieving web application unity. With a full-JS stack, you’re compiling the same templates for rendering both server-side and client-side. So why not use the same templates for each?</p>
+
+<p>In my experiments, I’ve been using <a href="http://handlebarsjs.com/">Handlebars</a> as my templating system. It’s based on the Mustache syntax, but has a number of powerful features, including partials and custom helpers. Handlebars is also the templating system behind Ember.js.</p>
+
+<p>The key to sharing templates is the realization that what constitutes a “partial” can be relative to where the template is used — that is to say, the same template can be used as a full template on the client, and a partial template on the server. My templates are divided into three groups:</p>
+
+<ul>
+<li>client &ndash; client only templates</li>
+<li>shared &ndash; used on both the client and server</li>
+<li>server &ndash; server only templates</li>
+</ul>
+
+
+<p>For the client, the templates in the client and shared folders are pre-compiled in a Grunt step, so for all intents and purposes there’s a single flat collection of templates. The server, however, references all of the templates in the shared folder as partials. What’s more, view helpers (in this case, special Handlebars tags) are stored in a <code>shared/helpers</code> directory that is referenced by both the client (in a Grunt step) and the server.</p>
+
+<p>If you’re confused now, you won’t be when you see the actual implementation in my next post. What sounds complicated here is quite straightforward in practice.</p>
+
+<h2>Populating View Templates</h2>
+
+<p>If it’s easy to share templates on the client and server, getting the right data into those templates is a bit of a harder proposition. Handlebars renders data by running the template against a “context”, which is just a plain old hash. But how can we make sure that the contents of that hash are synchronized when rendering the same view on both the client and server?</p>
+
+<p>The problem is exacerbated with how Backbone muddles view rendering logic. In Backbone, there’s not a fine line between the View logic (in Backbone.View) and Model logic (in Backbone.Model and Backbone.Collection). Backbone Views end up performing view state management by manipulating model instances, in order to avoid bloating Models with View specific code. But adding stateful logic into a Backbone View causes two problems:</p>
+
+<p>1) it makes for larger, more complex views, as concerns are split between UX event management and controlling model state;</p>
+
+<p>2) it makes it harder to share code with the server, as rendering state gets locked in a Backbone view.</p>
+
+<p>We can get around these problems by reconsidering the role of a Backbone View — separating its concerns into that of Mediator and View Model. The Mediator role is one of event manager and template marshal; the view model is, most basically, a state controller.</p>
+
+<p>By splitting the state controller into an object of its own concern, you can extract the logic into a module that can be shared by both the client (via Browserify) and the server (via require). The Backbone Mediator simply invokes the View Model, declaratively calling functions on it as users interact with the app — transitioning Backbone away from its traditional role of MVC framework into more of <a href="http://addyosmani.com/blog/understanding-mvvm-a-guide-for-javascript-developers/">an MVVM implementation</a>.</p>
+
+<p>A View Model just returns a hash with the current state of data, which is supplied to the template. On the server, a View Model is instantiated with data accessed from the backend; the results of the View Model instance’s <code>toJSON</code> method are passed to the template for rendering. On the client, the same pattern is repeated, but the data is accessed via AJAX instead.</p>
+
+<h2>Sharing Models on Client and Server</h2>
+
+<p>Synchronizing model code on both the client and server is perhaps the hardest step towards achieving web application unity. The challenge primarily derives from a characteristic of Model code that we’ve inherited from the Rails world: specifically, a conflation of Model concerns between “data model object” and “data access object”. A data model object should identify a model object’s properties, its getters and setters, its relationships, and some convenient accessors; a data access object should deal with querying data sources for populating the data model objects.</p>
+
+<p>Unfortunately, Backbone follows in the tradition of Rails’ ActiveRecord, flattening data accessing and data modeling into a single object. This flattening causes problems even beyond unifying a web application stack. How many Backbone applications have you seen that globally override the sync method, and use properties on model classes to determine how sync invocation works? (Not to pick on Backbone; it’s just the web application framework with which I’m most familiar.)</p>
+
+<p>For now, I’ve abandoned trying to get Backbone Models and Collections to work on both the client and server. But there’s alternatives that can fill the gap nicely. The first of which I’m familiar is <a href="https://github.com/dandean/tubbs">Dan Dean’s Tubbs library</a>. Tubbs provides a DSL for defining data model objects, but also provides a pluggable dataStore. A single model module can be defined in a shared folder, and then required on both the client and server, with both supplying their own dataStore.</p>
+
+<p>In order to make the separation between data modeling and data accessing even clearer, and the sharing of model code on the server and client easier, I created by own <a href="https://github.com/jmreidy/voltron-model/tree/0.1.x">voltron-model</a> library. While Voltron isn’t ready for primetime (yet), it should make the unified definition of data models significantly easier.</p>
+
+<p>Whichever modeling library is chosen, the basic approach should be the same: data models are defined in a shared folder. These models are then imported by code on the server (or packaged with Browserify for the client). The server and client should decorate the models appropriately (either by adding to the model’s prototype or adding an accessor component). Thus, a model can be made to access Mongo or Postgres on the backend, or a REST service on the client.</p>
+
+<p>The benefit of using Backbone on the client is that it doesn’t care if you only use limited parts of the library. Arrays of event-emitting models can provide much of the same benefit of Backbone Collections and Models, and Backbone Views and Routers see no difference.</p>
+
+<h2>Wrapping Up</h2>
+
+<p>All this discussion may be a bit confusing without a concrete implementation to reference; hopefully, I’ll be able to put together a sample application in the next few weeks. But the basic takeaway of the post is that unification of JS web applications can be made significantly easier with two factors:</p>
+
+<ul>
+<li><p>structuring your code so that it can be required by the server or packaged for the client in the same ways, whether by ingesting templates as partials or packaging code with Browserify;</p></li>
+<li><p>following the Node.js approach of writing small, single-purpose modules means that there’s less boilerplate to prevent you from using code in multiple environments</p></li>
+</ul>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Towards a Unified JS Stack]]></title>
+    <link href="http://rzrsharp.net/2013/04/02/towards-a-unified-js-stack.html"/>
+    <updated>2013-04-02T19:49:00-07:00</updated>
+    <id>http://rzrsharp.net/2013/04/02/towards-a-unified-js-stack</id>
+    <content type="html"><![CDATA[<p>It’s been a long time since I’ve written anything for this site. Neither neglect nor procrastination prompted my absence, but rather, lots and lots of coding. All that code has left me with a surfeit of topics to cover here, so instead of talking about what I’ve been working on, I’m going to dive straight into the good stuff.</p>
+
+<p>I want to write about the current “Holy Grail” of web application development: a unified application stack. Any dev who’s built a thick-client web app (regardless of library &ndash; Ember, Backbone, this problem is independent of tool choice) has dealt with the frustration of recreating logic in multiple parts of the application stack. It’s incredibly annoying to be writing the same code to handle model accessors, view state, and rendering logic in two different places; it’s even more irksome to be fixing bugs in one or both areas as your application matures. But let’s back up a bit. Why do we need to be writing the same logic in multiple places at all?</p>
+
+<p>Generally speaking, modern web app development requires a choice from one of three architectural thrusts:</p>
+
+<ul>
+<li><p>thick server, thin client: view logic is written on the server, and rendering happens there as well. The client code deals with interactivity and AJAX requests, but is mostly just updating areas of the page with rendered view content returned by the server. This approach is <a href="http://37signals.com/svn/posts/3112-how-basecamp-next-got-to-be-so-damn-fast-without-using-much-client-side-ui">most famously advocated for by 37 Signals</a>. A thick server simplifies view code, but does so at the expense of larger AJAX payloads; why pull fully rendered code when you can just pull JSON data and render it with a client-side template?</p></li>
+<li><p>thick client, thin server: This architecture inverts the first approach; the server provides an API, which is basically just a wrapper around data access and caching. All of the app logic resides in the client. This approach can make for quick interactivity and rendering on the client, but presents a massive problem with “first load” delay, as the client needs to make two connections to the server: the first to load the client application code, and the second to pull the appropriate data to render. You may remember this problem from <a href="http://engineering.twitter.com/2012/05/improving-performance-on-twittercom.html">Old New Twitter</a>.</p></li>
+<li><p>thick client, thick server: Unsurprisingly, this approach combines both of the previous options. Views are rendered on the server, which means the initial load is fast, but the client handles all the rendering from that point forward. The good news is that you have two fairly independent, (hopefully) highly performant application structures; the bad news is that you’re now repeating logic in view templates, view states, model helpers, even route handlers.</p></li>
+</ul>
+
+
+<p>One exciting prospect of Node.js is that it makes Javascript an “isomorphic language”, which is to say that “any given line of code (with notable exceptions) can execute both on the client and the server” (h/t <a href="http://blog.nodejitsu.com/scaling-isomorphic-javascript-code">Nodejitsu</a>). But that said, there haven’t been very compelling demonstrations that solve the code-duplication problem.</p>
+
+<p>In the last few months, I’ve come up with a solution that allows for code reuse on client and server, leading to a unified codebase for handling view rendering, view states, and model interaction. It’s using components and libraries that you already know: Browserify, Backbone, Express, and Handlebars. But I’m going to hold off on describing that solution for now, and instead write about Rendr.</p>
+
+<p>Rendr <a href="http://nerds.airbnb.com/weve-launched-our-first-nodejs-app-to-product">is the result of Airbnb’s first Node app</a>, and it’s also the library that finally prompted me to close Vim and start writing here again. It’s the fulfillment of an idea that I first heard about from <a href="https://github.com/tbranyen">Tim Branyen</a>: what if we used Express to render the same Backbone Views that we render on the client? That question is what prompted me on my own path towards application stack unity, so I’ve been very eager to learn more about Rendr.</p>
+
+<p>Rendr took Tim Branyen’s initial idea and made it a reality. It’s important to note that Airbnb’s experiments here weren’t an excuse for architecture aeronautics; rather, they were expressly concerned with solving the “time to content” problem, which is to say, the rendering delay that Twitter famously faced. And by unifying client and server code, Rendr not only makes developers’ lives easier, it solves that time to content problem.</p>
+
+<p>Rendr has a number of features and design approaches that I very much like:</p>
+
+<ul>
+<li><p>it’s described as “a library, not a framework”</p></li>
+<li><p>it doesn’t create a server side DOM</p></li>
+<li><p>it doesn’t try to collapse backend data access into the client tier, as some other frameworks have done</p></li>
+<li><p>it utilizes existing, familiar code (Express and Backbone)</p></li>
+<li><p>it keeps the rendered DOM on first load and attaches client objects to it, rather than instantiating client views and replacing the DOM with the results of those client views.</p></li>
+</ul>
+
+
+<p>This last item is particularly important: rendering a page on the server, sending it to the client, and then recreating the DOM on the client can lead to odd rendering issues, interactivity problems, and problems with event listeners. But dynamically instantiating client objects and attaching them to an already-rendered DOM is not a trivial problem, and I commend <a href="https://github.com/spikebrehm">Spike Brehm</a> and the rest of the Airbnb team for taking the time to get this right.</p>
+
+<p>You should definitely take the time to <a href="https://github.com/airbnb/rendr">explore Rendr’s codebase</a>. If it existed when I first set out to solve this same set of problems last year, then I probably would’ve abandoned my own quest and just used this library. But the key point of differentiation with the approach I took from Rendr’s design is modularity. Is it possible to achieve application stack unity, while using objects and code that can be implemented with any number of frameworks in any number of ways?</p>
+
+<p>Stay tuned.</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Error Isolation with Promises]]></title>
+    <link href="http://rzrsharp.net/2012/10/01/error-isolation-with-promises.html"/>
+    <updated>2012-10-01T09:39:00-07:00</updated>
+    <id>http://rzrsharp.net/2012/10/01/error-isolation-with-promises</id>
+    <content type="html"><![CDATA[<p>The entirety of the Javascript and Node.js universe is based around a
+continuation-passing coding style &mdash; that is to say, callbacks. This style of
+async coding greatly aggrevates Node critics, who constantly argue that
+continuation-passing invariably results in &ldquo;callback hell&rdquo;
+spaghetti code for any non-trivial problem. Node.js proponents respond that
+continuation-passing presents an easier mental model for async coding
+than alternative approaches, and that properly abstracted code avoids any
+gross &ldquo;chains of doom.&rdquo;</p>
+
+<p>This post has nothing to do with that argument.</p>
+
+<p>If you&rsquo;re coding in Javascript, you&rsquo;re going to be using callbacks, and if you&rsquo;re
+building a library, you&rsquo;re going to be supporting callbacks. It&rsquo;s the reality
+of the ecosystem. But there are certain problems for which some syntactic sugar is helpful.
+<a href="http://wiki.commonjs.org/wiki/Promises">Promises</a> provide a wrapper for callbacks that
+allow for a chainable API around a sequence of continuations. They&rsquo;re not a native part of
+the language, but there&rsquo;s <a href="http://wiki.ecmascript.org/doku.php?id=strawman:concurrency#promises_and_promise_states">a strawman</a>
+for the inclusion of Promises in a future version of JS. In the meantime, you can use
+the excellent <a href="https://github.com/kriskowal/q">Q Library</a> from
+<a href="https://github.com/kriskowal">Kris Kowal</a>.
+jQuery includes its own Promises implementation (<code>$.ajax</code> calls return Promises), but they&rsquo;re slightly
+divergent from the Q spec. You can read <a href="https://github.com/kriskowal/q/wiki/Coming-from-jQuery">this excellent guide</a>
+explaining the differences between jQuery and Q promises, if you&rsquo;re coming from one direction
+or the other.</p>
+
+<p>So much for introductions. I&rsquo;ve been using promises for awhile now in some of my
+Node code, and there&rsquo;s several cases where their inclusion can clean up an API. (One
+area: Mongo integration, where any simple action can require several callbacks.) One benefit
+of Promises is that they can provide exception isolation, just like continuation-passing.
+<a href="https://github.com/kriskowal/q/wiki/On-Exceptions">The Q wiki</a> provides the following
+example:</p>
+
+<p><code>javascript
+var info, processed;
+try {
+  info = JSON.parse(json);
+  processed = process(info);
+} catch (exception) {
+  console.log("Information JSON malformed.");
+}
+</code></p>
+
+<p>In the above snippet, errors generated from the parser and the process function arne&rsquo;t isolated.
+Promises, meanwhile, offer this exception isolation out of the box:</p>
+
+<p><code>javascript
+var processed = Q.call(function (json) {
+  return JSON.parse(json);
+})
+.then(function (info) {
+  return process(info);
+}, function (exception) {
+  console.log("Information JSON malformed.");
+})
+</code></p>
+
+<p>In the second example, the process function is only executed if <code>JSON.parse</code>
+doesn&rsquo;t throw an error. Conversely, this same goal could be achieved
+with continuation-passing:</p>
+
+<p>``` javascript
+var processFn = function(cb) {
+  asyncJSONParser(json, function(err, info) {</p>
+
+<pre><code>if (err) {
+  console.log("Information JSON malformed.");
+  return cb(err);
+}
+cb(null, process(info));
+</code></pre>
+
+<p>  });
+};
+```</p>
+
+<p>One caveat is that when you&rsquo;re chaining your promises together, the behavior is slightly
+different than you might expect:</p>
+
+<p>``` javascript
+var existingUser;
+var promise = User.findOne({username: username})
+  .then(function (user) {</p>
+
+<pre><code>if (!user) {
+  throw new Error("Username is incorrect");
+}
+existingUser = user;
+return User._hashPassword(password, user.get('salt'));
+}, function(error) {
+  console.error('error in findOne');
+  throw error;
+</code></pre>
+
+<p>  })
+  .then(function (hashedPassword) {</p>
+
+<pre><code>if (existingUser.get('hashedPassword') === hashedPassword) {
+  return existingUser;
+} else {
+  throw new Error("Password is incorrect");
+}
+</code></pre>
+
+<p>  }, function(error) {</p>
+
+<pre><code>console.error('error in _hashPassword');
+throw error;
+</code></pre>
+
+<p>  });
+```</p>
+
+<p>In the above example, if there is an error in <code>User.findOne</code>, the error is
+propagated throughout the chain, which means that your console will have both
+<code>error in findOne</code> and <code>error in _hashPassword</code> printed. There&rsquo;s no way
+of &ldquo;breaking&rdquo; from the promise chain early. But here&rsquo;s the thing: you don&rsquo;t have to.
+Unless you&rsquo;re interested in transforming error objects, there&rsquo;s not much
+point in catching promise errors in intermediary steps in the chain. So the
+above code would be abbreviated:</p>
+
+<p>``` javascript
+var promise = User.findOne({username: username})
+  .then(function (user) {</p>
+
+<pre><code>if (!user) {
+  throw new Error("Username is incorrect");
+}
+existingUser = user;
+return User._hashPassword(password, user.get('salt'));
+</code></pre>
+
+<p>  })
+  .then(function (hashedPassword) {</p>
+
+<pre><code>if (existingUser.get('hashedPassword') === hashedPassword) {
+  return existingUser;
+} else {
+  throw new Error("Password is incorrect");
+}
+</code></pre>
+
+<p>  });</p>
+
+<p>//later in chain or in a diffent function
+promise.then(function (eventualResult) {</p>
+
+<pre><code>//do something with result
+</code></pre>
+
+<p>  }, function (error) {</p>
+
+<pre><code>//handle error
+</code></pre>
+
+<p>  });
+}
+```</p>
+
+<p>There&rsquo;s simply no point to having <code>then</code> failure handlers that just throw
+an error, since the library throws and propagates errors for you automatically.
+In promise chains, then, you have the benefit of isolating exceptions (only proceeding
+from step to step if everything is ok) without the extra semantics of <code>if (err) return cb(err)</code>
+from continuation passing.</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Client-Side Testing Insanity]]></title>
+    <link href="http://rzrsharp.net/2012/08/01/client-side-testing-insanity.html"/>
+    <updated>2012-08-01T10:31:00-07:00</updated>
+    <id>http://rzrsharp.net/2012/08/01/client-side-testing-insanity</id>
+    <content type="html"><![CDATA[<p>Client-side unit testing is crazy.</p>
+
+<p>Before you skip below to yell at me in the comments section, I don&rsquo;t mean that
+the <em>idea</em> of client-side unit testing is crazy. On the contrary: we need
+client-side tests more than ever! With ever-increasing complexity in our
+frontend code, not to mention the reliance on frameworks, building a web
+application without client-side tests is completely inadvisible.</p>
+
+<p>But the process. Ohhhh, the <em>process</em> of client-side testing is bonkers.</p>
+
+<p>Let&rsquo;s take the example of a modern Node.js web app setup.
+I’ve got the app’s configuration wired with <a href="http://gruntjs.com">grunt.js</a>.
+(If you’re not using grunt, you should be!) During development, server
+files are watched for changes and automatically kickoff <a href="http://visionmedia.github.com/mocha/">mocha</a> tests, which
+display their results in the grunt console. Great!</p>
+
+<p>Client-side changes kickoff their own unit tests, which of course are also
+using mocha for consitency in testing vocabulary. But because of the nature of
+client-side testing, we can’t just call <code>require</code> on the unit under test.
+Instead, we need something like the following setup:</p>
+
+<ul>
+<li><p><a href="http://requirejs.org/">requirejs</a> for managing dependencies</p></li>
+<li><p><a href="http://phantomjs.org/">PhantomJS</a> for running a headless browser</p></li>
+<li><p><a href="https://github.com/kmiyashiro/grunt-mocha">grunt-mocha</a>, which manages the
+PhantomJS process and reports test results to the grunt console</p></li>
+<li><p>an HTML fixture for loading the requirejs config, the browser environment, and test files</p></li>
+</ul>
+
+
+<p>This setup worked. It also felt downright medieval compared to the simple
+server-side mocha testing configuration.</p>
+
+<p>I’m not the only person who’s frustrated with this process. Chris Dickinson at
+<a href="http://urbanairship.com/">Urban Airship</a> recently released <a href="https://github.com/urbanairship/drive.js">Drive.js</a>,
+a unit testing framework and test driver that eases some of the above
+configuration. But in any of the setups I&rsquo;ve seen, your client-side “unit” tests feel
+much more like integration tests. If you need to load your entire client-side
+framework, load a headless browser, or even fire up an instance of your server
+to test a single function of your client-side code&hellip; why not just ignore
+client-side unit testing and skip straight to integration tests? The lack of
+true isolation of the system under test could lead to some frustrating false
+results anyway.</p>
+
+<p>There needs to be a better way. I’m not looking for a lot in my testing setup:</p>
+
+<ul>
+<li><p>I want to run my client-side tests with the same mocha vocabulary and
+configuration as my server tests</p></li>
+<li><p>I want to isolate my tests to requiring a single file and its immediate
+dependencies, and testing it</p></li>
+</ul>
+
+
+<p>That’s really it. And I think I’ve found a solution.</p>
+
+<p>First, I’ve needed to refactor my client-side code to follow the
+<a href="http://wiki.commonjs.org/wiki/Modules/1.1">CommonJS requires model</a>. I’ve also switched to
+<a href="https://github.com/substack/node-browserify">browserify</a> from requirejs, although this switch
+is no longer a necessity — requirejs has introduced a
+<a href="https://github.com/jrburke/r.js/blob/master/build/example.build.js#L412">new configuration option</a>,
+<code>cjsTranslate</code>, which will wrap CommonJS defined modules. Using the CommonJS
+approach means that my mocha tests can require my client-side files. Great.</p>
+
+<p>But the much larger problem with client-side testing is those pesky browser
+globals: the <code>window</code>object, the DOM itself, not to mention global code like
+jQuery, Backbone, etc.  How can we test code that relies on the presence of
+those globals, <em>without</em> resorting to running PhantomJS?</p>
+
+<p>The answer comes in two parts: <a href="https://github.com/tmpvar/jsdom/">jsdom</a>, and
+<a href="http://nodejs.org/api/vm.html">the Node.js vm module</a>.</p>
+
+<p>jsdom provides a server-side implementation of the DOM, while the vm module
+provides the “global” object that we can use to provide a fake browser
+environment to our client-side files. While I’m still fleshing out the
+implementation, the results so far have drastically improved my ease with
+client-side testing.</p>
+
+<p>Here&rsquo;s how it works. In a mocha test file, instead of a strict require call, I’m using a helper
+(passing <code>this</code>, the mocha test context):</p>
+
+<p>``` javascript</p>
+
+<p>setupClientScript.call(this, &ldquo;admin/postEdit&rdquo;, done);</p>
+
+<p>```</p>
+
+<p><code>setupClientScript</code> loads a jsdom window, injects global javascripts (like jQuery),
+and wires the client-side file being tested. Here it looks in a slightly simplified form:</p>
+
+<p>``` javascript</p>
+
+<p>var setupClientScript = function(path, done) {
+  var relPath = context.clientRoot + path;
+  var self = this;
+  jsdom.env({</p>
+
+<pre><code>html: '&lt;html&gt;&lt;head&gt;&lt;/head&gt;&lt;body&gt;&lt;/body&gt;&lt;/html&gt;',
+src: context.globalScripts,
+done: function(errors, window) {
+self.clientRequires = requireClientScript(relPath, window, {});
+self.clientRequires[path] = self.clientRequires[relPath];
+  done();
+}
+</code></pre>
+
+<p>  });
+};</p>
+
+<p>```</p>
+
+<p>Remember, the client-side <code>require</code> can’t <em>just</em> inject the DOM into the
+file under test, it also needs to make sure the file’s dependencies have access to
+the DOM:</p>
+
+<p>``` javascript</p>
+
+<p>var requireClientScript = function(path, window, r) {
+  var script = fs.readFileSync(require.resolve(path)).toString();
+  var module = { exports: {} };
+  var context = vm.createContext(global);</p>
+
+<p>  context.window = window;
+  context.exports = module.exports;
+  context.module = module;
+  context.require = function(path) {</p>
+
+<pre><code>r[path] = requireClientScript(path, window);
+return r[path];
+</code></pre>
+
+<p>  };
+  vm.runInNewContext(script, context);</p>
+
+<p>  if &reg; {</p>
+
+<pre><code>r[path] = module.exports;
+r.window = window;
+return r;
+</code></pre>
+
+<p>  } else {</p>
+
+<pre><code>return module.exports;
+</code></pre>
+
+<p>  }
+};</p>
+
+<p>```</p>
+
+<p>And that’s it. Now, any test function can call <code>this.clientRequires</code> to have
+access to the client-side file under test. No test server being spun up. No
+complex configuration or requirejs rewiring. No full-on headless browsers like
+PhantomJS. Just a single <code>before</code> setup call, and you can test with
+mocha as you normally would.</p>
+
+<p>As I wrote above, I’m still fleshing out the implementation, working out the
+interface and fixing deficiencies. I’ll be publishing the code when things are more
+mature, but in the meantime I&rsquo;d love to hear some feedback.</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Reflections on NodeConf 2012]]></title>
+    <link href="http://rzrsharp.net/2012/07/06/reflections-on-nodeconf-2012.html"/>
+    <updated>2012-07-06T20:16:00-07:00</updated>
+    <id>http://rzrsharp.net/2012/07/06/reflections-on-nodeconf-2012</id>
+    <content type="html"><![CDATA[<p>NodeConf 2012 was my first real &ldquo;developer&rdquo; conference. I had attended
+conferences in the past, but because of the heavy sponsorship of industry, most
+had felt like trade shows or job fairs. NodeConf was advertised as a conference
+for developers, by developers; Mikeal Rogers, the event&rsquo;s main organizer,
+boasted that NodeConf 2012 would feature more core committers as presenters
+than any other Node.js conference.</p>
+
+<p>As the event grew closer, my curiosity about what NodeConf would entail
+heightened. Mikeal didn&rsquo;t divulge a clue as to the event&rsquo;s schedule, and even
+perusing the twitter feeds of probable speakers and
+<a href="http://lanyrd.com/2012/nodeconf/">NodeConf&rsquo;s site on lanyard</a> didn&rsquo;t reveal any helpful
+intelligence. At the opening party on Sunday, a general sense of cautious
+curiosity permeated the crowd. No one had ever attended a conference where the
+schedule would be revealed in realtime (appropriately for Node); my own
+conference inexperience left me more curious than most.</p>
+
+<p>Mikeal <em>had</em> revealed two details:  the major themes of each day of the
+conference.  Day 1 was structured around the world of Node; Day 2 around the
+power of Node. NodeConf began with Node creator Ryan Dahl reconstructing the
+origins of the framework from livejournal entries and blurry photos of late
+night coding session in Germany.  But as the day continued, I couldn&rsquo;t see how
+the talks related to each other, or what I should be taking away from them.
+Each of the presentations, while excellent and often inspiring, didn&rsquo;t leave me
+with a consistent narrative. I had expected &ldquo;the world of Node&rdquo; to consist
+mostly of talks like Isaac Schlueter&rsquo;s &ldquo;State of Node&rdquo; presentation: perhaps a
+roundup of the big open source projects and frameworks that dominate the Node
+ecosystem, and a discussion of where they were headed.  Instead, talks covered
+everything from realtime solutions with <a href="http://socket.io/">socket.io</a>, to
+<a href="https://github.com/indutny/candor">the creation of a whole new language</a>. I had
+started the first day of NodeConf curious, but ended it confused.</p>
+
+<p>Day Two changed all that.</p>
+
+<p>As one talk on the &ldquo;power of Node&rdquo; led into the next, the topics and structure
+of the first day of NodeConf started to make sense to me. Each speaker
+demonstrated amazing new contributions to the Node ecosystem, from the
+Node-inspired <a href="http://luvit.io/">Luvit framework</a> built with
+<a href="http://www.lua.org/">Lua</a>, to bleeding edge debugging tooling with dtrace, to
+ridiculous hardware demonstrations featuring human-detecting arduinos,
+three-dimensional saws, and
+<a href="https://dl.dropbox.com/u/3531958/nodeconf/index.html#/">radar laser robots</a> controlled by
+Javascript. These talks didn&rsquo;t just demonstrate powerful and frequently
+unexpected uses of Node: they helped me make sense of the previous day&rsquo;s
+selection of talks.</p>
+
+<p>Node is not <em>just</em> the Node framework: it&rsquo;s a philosophy, an approach to
+solving problems. The first inkling of &ldquo;Node as philosophy&rdquo; came in
+<a href="http://substack.net/posts/b96642/the-node-js-aesthetic">substack&rsquo;s post on Node&rsquo;s aesthetic</a>,
+discussing the &ldquo;limited surface area&rdquo; approach to Node&rsquo;s modular problem-solving. But
+NodeConf demonstrated that the node philosophy goes much further than that:</p>
+
+<ol>
+<li><p>async all of the things: Ryan&rsquo;s initial work with libuv focused on the
+challenges of creating an async IO layer that worked across platforms, but that
+work has been extended with new languages like
+<a href="https://twitter.com/indutny/">Fedor Indutny&rsquo;s</a> Candor and
+<a href="https://github.com/creationix/">Tim Caswell&rsquo;s</a> Luvit framework. But it&rsquo;s not just
+file IO &ndash; <a href="https://twitter.com/maxogden">Max Ogden</a> showed that the importance
+of a beautiful async API
+<a href="https://github.com/maxogden/domnode">could be extended to browsers</a> (utilizing ideas put forth by
+substack in day one), while <a href="https://twitter.com/rwaldron">Rick Waldron</a>
+brilliantly demonstrated how JavaScript&rsquo;s async nature could be used to solve
+problems which had always been approached synchronously. (Like robots. With
+lasers.)</p></li>
+<li><p>embrace the hard problems: JavaScript may frequently be maligned for its odd
+&ldquo;bad parts&rdquo;, and JS developers have been looked down on in the past because of
+the history of DOM based spaghetti code, but NodeConf 2012 demonstrated a
+community that was unabashed in its tackling of serious computing issues. From
+<a href="https://twitter.com/felixge/">Felix Geisendorfer&rsquo;s&rsquo;s</a> writing of a binary MySQL parser that
+surpassed a c library in performance, to the community&rsquo;s embracing of the
+concept of IO streams, to the use of dtrace in debugging: Node developers on
+the bleeding edge are not shying away from the toughest technical problems, but
+instead are taking them on at full speed and with high expectations.</p></li>
+<li><p>a virtuous cycle of framework and community: Node&rsquo;s &ldquo;limited surface area&rdquo;
+design of the core framework, along with the ease of use of NPM for publishing
+open source code and small useful modules, have led to an explosion of code. At
+NodeConf 2011, around 1800 packages had been published to NPM; now there are
+over 12000! Modules range from
+<a href="https://github.com/substack/earl-grey">steaming cups of earl grey</a>, to
+<a href="http://voiceboxpdx.com/">karaoke bar APIs</a>, to websocket adapters and arduino libraries.
+The design of the framework drove its community adoption, but the community
+adoption has further developed the framework.</p></li>
+</ol>
+
+
+<p>In the last talk of day two, <a href="https://twitter.com/tmpvar">Elijah Insua</a>
+discussed the hardware hacking he&rsquo;d done with Node. At one point, he mentioned
+that he came up with an idea that needed a midi driver, and he said something
+along the lines of: he never expected needing a midi driver, but as soon as he
+needed one, he came across one on NPM. The word that came to mind was
+serendipity: the contributions to Node, and the explorations of its philosophy,
+are feeding on themselves and driving completely unexpected innovation.</p>
+
+<p>As I thought of the serendipitous nature of the Node ecosystem, Mikeal&rsquo;s
+construction of NodeConf finally clicked for me. The two days of talks had been
+divided into groups of four presentations around a single theme; neither the
+themes nor the talks were made public, but each talk and theme bled into the
+next, with later speakers surprisingly stating how happy they were that a
+previous speaker had touched on a similar topic. The talks seemed to develop
+naturally, if unexpectedly; the overall direction was unclear to everyone
+except Mikeal, and gave the impression of the community simply exploring new
+ideas and pushing boundaries organically. The serendipity of Node&rsquo;s
+development, then, found itself reflected in Mikeal&rsquo;s construction of the
+conference. Does this sound ridiculously meta? Yes, but it completely worked.</p>
+
+<p>As Node grows up and attracts adoption, it will be increasingly difficult to
+maintain the philosophically-driven, community-minded hacker ethos of the Node
+ecosystem, but I hope that Mikeal and the other stewards of the Node community
+can continue to foster talks and events that focus on the behind-the-scenes
+developers who are laying the building blocks for the future of this
+fascinating set of technologies.</p>
+]]></content>
+  </entry>
+  
+</feed>

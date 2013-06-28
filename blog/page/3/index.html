@@ -1,0 +1,609 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Razor Sharp Design</title>
+  <meta name="author" content="Justin Reidy">
+
+  
+  <meta name="description" content="Javascript is a prototypal language, a concept which is quite challenging for
+programmers coming from almost any other language.
+The most well-known &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://rzrsharp.net/blog/page/3/index.html">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="Razor Sharp Design" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/lib/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <script type="text/javascript" src="http://use.typekit.com/eqy0aif.js"></script>
+<script type="text/javascript">try{Typekit.load();}catch(e){}</script>
+
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-5761922-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+
+
+</head>
+
+<body   >
+  <header role="banner">
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="http://google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:rzrsharp.net" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div class="blog-index">
+  
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/2011/06/21/classes-in-coffeescript.html">Classes in Coffeescript</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2011-06-21T00:00:00-07:00" pubdate data-updated="true">Jun 21<span>st</span>, 2011</time>
+        
+         | <a href="/2011/06/21/classes-in-coffeescript.html#disqus_thread">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Javascript is a prototypal language, a concept which is quite challenging for
+programmers coming from almost any other language.
+The most well-known explanation of Javascript&rsquo;s prototypal nature is
+<a href="http://javascript.crockford.com/inheritance.html">written by Douglas Crockford</a>,
+the famous author of <a href="http://www.amazon.com/JavaScript-Good-Parts-Douglas-Crockford/dp/0596517742">the book Javascript: The Good Parts</a>.
+Many Javascript libraries attempt to plaster class structures into the language,
+but they all depend on varying amounts of magic which can make me slightly
+uncomfortable.</p>
+
+<p>To a certain extent, Javascript&rsquo;s prototypal nature should be embraced; as a
+developer begins to understand how prototypes work, they <a href="http://blog.izs.me/post/4731036392/evolution-of-a-prototypal-language-user">recognize their power over traditional class-based code</a>.
+That said, classical inheritance wouldn&rsquo;t be as popular as it is if it weren&rsquo;t a
+fantastic means of modeling real world objects, so it&rsquo;d be nice to &ldquo;map&rdquo;
+Javascript code cleanly to a classical style, without manipulating the language unnecessarily.</p>
+
+<p>Enter Coffeescript&rsquo;s <code>class</code> directive.</p>
+
+<p>Coffeescript doesn&rsquo;t add classes to Javascript. However,
+Coffeescript <em>does</em> combine some syntactic sugar with code generation to allow
+classical-style coding.</p>
+
+<p>Observe the following Coffeescript:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+</pre></td><td class='code'><pre><code class='coffeescript'><span class='line'><span class="k">class</span> <span class="nx">Ninja</span>
+</span><span class='line'>  <span class="nv">constructor: </span><span class="nf">(@numOfShurikens) -&gt;</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="nv">throwShuriken: </span><span class="nf">-&gt;</span>
+</span><span class='line'>    <span class="nx">@numOfShurikens</span><span class="o">--</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">class</span> <span class="nx">Ronin</span> <span class="k">extends</span> <span class="nx">Ninja</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="nv">constructor: </span><span class="nf">(numOfShurikens) -&gt;</span>
+</span><span class='line'>    <span class="k">super</span> <span class="nx">numOfShurikens</span><span class="o">+</span><span class="mi">1</span> <span class="c1">#ronins know to carry a spare</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>I find Coffeescript code to be quite readable, but if you&rsquo;re completely unfamiliar
+with the syntax, be sure to check out its <a href="http://www.coffeescript.org">fantastic documentation</a>.
+So with the Coffeescript above, we&rsquo;ve created two &ldquo;classes&rdquo;: a superclass, and a subclass
+which modifies its parent&rsquo;s constructor while inheriting a function. What I find
+exciting about this example is that Coffeescript isn&rsquo;t actually creating any &ldquo;pseudoclass&rdquo;
+objects behind the scenes; it&rsquo;s simply mapping existing Javascript concepts into
+a more developer-friendly DSL.</p>
+
+<p>Here, take a look at the generated JS:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+</pre></td><td class='code'><pre><code class='javascript'><span class='line'><span class="kd">var</span> <span class="nx">Ninja</span><span class="p">,</span> <span class="nx">Ronin</span><span class="p">;</span>
+</span><span class='line'><span class="kd">var</span> <span class="nx">__hasProp</span> <span class="o">=</span> <span class="nb">Object</span><span class="p">.</span><span class="nx">prototype</span><span class="p">.</span><span class="nx">hasOwnProperty</span><span class="p">,</span> <span class="nx">__extends</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">child</span><span class="p">,</span> <span class="nx">parent</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>  <span class="k">for</span> <span class="p">(</span><span class="kd">var</span> <span class="nx">key</span> <span class="k">in</span> <span class="nx">parent</span><span class="p">)</span> <span class="p">{</span> <span class="k">if</span> <span class="p">(</span><span class="nx">__hasProp</span><span class="p">.</span><span class="nx">call</span><span class="p">(</span><span class="nx">parent</span><span class="p">,</span> <span class="nx">key</span><span class="p">))</span> <span class="nx">child</span><span class="p">[</span><span class="nx">key</span><span class="p">]</span> <span class="o">=</span> <span class="nx">parent</span><span class="p">[</span><span class="nx">key</span><span class="p">];</span> <span class="p">}</span>
+</span><span class='line'>  <span class="kd">function</span> <span class="nx">ctor</span><span class="p">()</span> <span class="p">{</span> <span class="k">this</span><span class="p">.</span><span class="nx">constructor</span> <span class="o">=</span> <span class="nx">child</span><span class="p">;</span> <span class="p">}</span>
+</span><span class='line'>  <span class="nx">ctor</span><span class="p">.</span><span class="nx">prototype</span> <span class="o">=</span> <span class="nx">parent</span><span class="p">.</span><span class="nx">prototype</span><span class="p">;</span>
+</span><span class='line'>  <span class="nx">child</span><span class="p">.</span><span class="nx">prototype</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">ctor</span><span class="p">;</span>
+</span><span class='line'>  <span class="nx">child</span><span class="p">.</span><span class="nx">__super__</span> <span class="o">=</span> <span class="nx">parent</span><span class="p">.</span><span class="nx">prototype</span><span class="p">;</span>
+</span><span class='line'>  <span class="k">return</span> <span class="nx">child</span><span class="p">;</span>
+</span><span class='line'><span class="p">};</span>
+</span><span class='line'><span class="nx">Ninja</span> <span class="o">=</span> <span class="p">(</span><span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+</span><span class='line'>  <span class="kd">function</span> <span class="nx">Ninja</span><span class="p">(</span><span class="nx">numOfShurikens</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>    <span class="k">this</span><span class="p">.</span><span class="nx">numOfShurikens</span> <span class="o">=</span> <span class="nx">numOfShurikens</span><span class="p">;</span>
+</span><span class='line'>  <span class="p">}</span>
+</span><span class='line'>  <span class="nx">Ninja</span><span class="p">.</span><span class="nx">prototype</span><span class="p">.</span><span class="nx">throwShuriken</span> <span class="o">=</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+</span><span class='line'>    <span class="k">return</span> <span class="k">this</span><span class="p">.</span><span class="nx">numOfShurikens</span><span class="o">--</span><span class="p">;</span>
+</span><span class='line'>  <span class="p">};</span>
+</span><span class='line'>  <span class="k">return</span> <span class="nx">Ninja</span><span class="p">;</span>
+</span><span class='line'><span class="p">})();</span>
+</span><span class='line'><span class="nx">Ronin</span> <span class="o">=</span> <span class="p">(</span><span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+</span><span class='line'>  <span class="nx">__extends</span><span class="p">(</span><span class="nx">Ronin</span><span class="p">,</span> <span class="nx">Ninja</span><span class="p">);</span>
+</span><span class='line'>  <span class="kd">function</span> <span class="nx">Ronin</span><span class="p">(</span><span class="nx">numOfShurikens</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>    <span class="nx">Ronin</span><span class="p">.</span><span class="nx">__super__</span><span class="p">.</span><span class="nx">constructor</span><span class="p">.</span><span class="nx">call</span><span class="p">(</span><span class="k">this</span><span class="p">,</span> <span class="nx">numOfShurikens</span> <span class="o">+</span> <span class="mi">1</span><span class="p">);</span>
+</span><span class='line'>  <span class="p">}</span>
+</span><span class='line'>  <span class="k">return</span> <span class="nx">Ronin</span><span class="p">;</span>
+</span><span class='line'><span class="p">})();</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>See? No weird manipulation of Object prototypes, creation of fake classes, anything
+like that. Just proper Javascript. Still, I found some of the idioms here a little
+confusing when I first started looking at generated Coffeescript code.</p>
+
+<p>First, why are the &ldquo;classes&rdquo; implemented as self-executing functions? Coffeescript
+is simply protecting the code against potential namespace violations. Everything that
+happens within the Coffeescript &ldquo;class&rdquo; is actually executable Javascript code &ndash;
+similar to how Ruby&rsquo;s classes work, actually. The &ldquo;class&rdquo; that&rsquo;s returned, then,
+is really just your constructor function, its modified prototype, and any properties
+attached to the function object. Pretty straightforward. The major downside with this
+approach is that you can&rsquo;t create any private variables! (Normally in JS you can hide a
+pseudo-private variable within a constructor function&rsquo;s closure, but Coffeescript&rsquo;s
+class implementation prevents this.) Coffeescript&rsquo;s solution is to simply refer to
+&ldquo;private&rdquo; variables with an underscore and hope developers act like adults, but I&rsquo;m
+guessing this open-mindedness will be tightened up a bit as Ecmascript 5 becomes
+the standard.</p>
+
+<p>But&hellip; what is that <em>mess</em> of generated code at the top? The first part is pretty
+clear &ndash; just copy object properties from one &ldquo;class&rdquo; to another, so that (for example)
+Ninja.belt will be inherited by Ronin.belt. And assigning a <code>__super</code> pointer to
+the parent class is straightforward. But what is that &ldquo;constructor&rdquo; code?
+Why not just point the &ldquo;subclass&rdquo; prototype to the parent prototype?</p>
+
+<p>It turns out this approach is the cleanest means of maintaining the prototype chain
+across functions. Since there&rsquo;s only one prototype object for any function, simply
+assigning <code>Ronin.prototype=Ninja.prototype</code> will share a single object instance, so
+adding properties to Ronin&rsquo;s prototype would actually also add properties to Ninja&rsquo;s
+prototype &mdash; they&rsquo;d be the same object instance. By creating an intermediary
+object, the prototype chain is kept intact while breaking any chance for incorrectly
+shared state. Finally, all Javascript objects have a constructor property which
+point to the &ldquo;creator&rdquo; function, whose initial value is determined by the object&rsquo;s
+prototype. The intermediary object (which serves as the
+child&rsquo;s prototype) thus gets a pointer back to the appropriate function.</p>
+
+<p>Taken in full, Coffeescript&rsquo;s &ldquo;class&rdquo; DSL demonstrates what I love most about the
+language: distilling Javascript idioms into clean, readable, maintainable code, and
+eliminating boilerplate, but avoiding any non-Javascript abstractions or manipulations.
+It just can take awhile to fully understand what&rsquo;s going on under the hood.</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/2011/06/06/a-note-on-npm.html">A Note on Npm</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2011-06-06T00:00:00-07:00" pubdate data-updated="true">Jun 6<span>th</span>, 2011</time>
+        
+         | <a href="/2011/06/06/a-note-on-npm.html#disqus_thread">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>In the last week, I&rsquo;ve been experimenting a greal deal with node.js and
+CoffeeScript. I&rsquo;ve been thoroughly enjoying the node programming approach and
+the general &ldquo;feel&rdquo; of the CoffeeScript language (or really, dialect would be a
+better term, since CoffeeScript is really just Javascript). I&rsquo;ll be writing
+much more about my experiments soon.</p>
+
+<p>In the meantime, a quick note about getting up and running yourself. I&rsquo;m using
+<a href="http://npmjs.org/">npm</a> to manage dependencies for my node projects.
+If you have an old version of npm sitting around,
+you should note that it handles the installation of depencies differently now
+than it did pre-1.0. <code>npm install &ldquo;module&rdquo;</code> defaults to installing
+the dependency in the local directory &ndash; which is fine for a particular project,
+but doesn&rsquo;t help you when you want to invoke a module from the command line or
+use a version acorss multiple projects. Globally installing a module requires
+you to supply a &ldquo;-g&rdquo; argument: <code>npm install -g &ldquo;module&rdquo;</code>. You can
+learn more about the rationale for the change
+on <a href="http://blog.nodejs.org/2011/03/23/npm-1-0-global-vs-local-installation/">the node.js blog</a>.</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/2011/06/01/attr_accessor-shortcut-in-ruby.html">Attr_accessor Shortcut in Ruby</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2011-06-01T00:00:00-07:00" pubdate data-updated="true">Jun 1<span>st</span>, 2011</time>
+        
+         | <a href="/2011/06/01/attr_accessor-shortcut-in-ruby.html#disqus_thread">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Pivotal Labs&#8217; blog provides one of the most consistent sources of quality code writing
+in my RSS reader. Whether in their Daily Standup posts, or their longer-form articles,
+I&rsquo;m constantly finding tidbits of quality Ruby and JS code. A couple weeks ago, <a href="http://pivotallabs.com/users/jdean/blog/articles/1706-form-backing-objects-for-fun-and-profit">Jeff
+Dean wrote a solid piece on breaking out your form logic</a> in Rails models and controllers. If you&rsquo;re a
+Ruby developer, you should read the post in entirety. What most stuck out to me, though,
+was a little syntactic sugar that I hadn&rsquo;t enountered before for stating your public
+attributes:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="no">ATTRIBUTES</span> <span class="o">=</span> <span class="o">[</span><span class="ss">:name</span><span class="p">,</span> <span class="ss">:email</span><span class="p">,</span> <span class="ss">:terms_of_service</span><span class="p">,</span> <span class="ss">:anti_bot_question_id</span><span class="p">,</span> <span class="ss">:anti_bot_answer</span><span class="p">,</span> <span class="ss">:ip_address</span><span class="o">]</span>
+</span><span class='line'>
+</span><span class='line'><span class="kp">attr_accessor</span> <span class="o">*</span><span class="no">ATTRIBUTES</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>I&rsquo;ll definitely be adding that to my shortcut list.</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/2011/05/26/mark-zuckerberg-eats-what-he-kills.html">Mark Zuckerberg Eats What He Kills</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2011-05-26T00:00:00-07:00" pubdate data-updated="true">May 26<span>th</span>, 2011</time>
+        
+         | <a href="/2011/05/26/mark-zuckerberg-eats-what-he-kills.html#disqus_thread">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><blockquote> I don&#8217;t have an issue with anything people choose to eat, but I do think they should take responsibility and be thankful for what they eat rather than trying to ignore where it came from.<p><cite>&#8211;Mark Zuckerberg, on his new food philosophy.</cite></p></blockquote>
+<p>Interesting article from <a href="http://postcards.blogs.fortune.cnn.com/2011/05/26/mark-zuckerbergs-new-challenge-eating-only-what-he-kills/">Fortune</a> (of all places) on Mark Zuckerberg&#8217;s approach to eating, which he adopted as a sort of New Year&#8217;s resolution. Zuckerberg is apparently only eating meat from animals he has slaughtered himself. (How this sort of thing registers as financial news, I have no idea.</p>
+<p>According to the article, Mark adopts a challenge for himself every year, in order to improve himself and better his understanding of the world, and this year&#8217;s challenge was to come to terms with the food he eats. &#8220;[M]y personal challenge is around being thankful for the food I have to eat. I think many people forget that a living being has to die for you to eat meat, so my goal revolves around not letting myself forget that and being thankful for what I have,&#8221; Zuckerberg wrote to Fortune.</p>
+<p>Software engineers have a (partially undeserved) reputation of being ignorant pigs when it comes to food - with snack rooms at many offices stuffed with Funyuns and Twinkies - so it&#8217;s great to see one of the world&#8217;s most prominent engineers (and a celebrity in his own right) so consciously investigate the source of his food.</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/2011/05/26/hello-world.html">Hello World</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2011-05-26T00:00:00-07:00" pubdate data-updated="true">May 26<span>th</span>, 2011</time>
+        
+         | <a href="/2011/05/26/hello-world.html#disqus_thread">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>So here I am, back to actually writing. I somehow managed to write consistently
+for awhile <a href="http://razorsharp.tumblr.com">over on tumblr</a>, but I&rsquo;ve only posted there
+once in the last six months. There have been a lot of &ldquo;I&rsquo;ve been meaning tos&rdquo; and &ldquo;I
+plan ons&rdquo; and &ldquo;I&rsquo;m looking to starts&rdquo; over that same period of time, so before the
+holiday weekend I decided to adopt an agile attitude toward my blog: I shutup and
+put the least implemented solution on the web. I had just a few requirements: working
+links, readable text, and a functional RSS feed. I&rsquo;ve hit all those, so look to see
+an actual design implemented in the future, along with service hooks and all that
+good stuff. But in the meantime: content! And no excuses for me not to provide content.</p>
+
+<p>This IS the first time I&rsquo;ve actually been comfortable with my blogging setup. I decided
+to abandon a CMS entirely and start using <a href="http://jekyllrb.com/">Jekyll</a>, which is
+basically just a static site generator written in Ruby. There&rsquo;s some great benefits
+to this approach:</p>
+
+<ul>
+<li>hosting of the site becomes a complete commodity: I&rsquo;m on Github pages now, but could
+switch to Heroku or my own host with practically zero work;</li>
+<li>I own my content, and I don&rsquo;t need to worry about it ever being lost or taken down;</li>
+<li>all of my content is stored in Git, so I know it&rsquo;s safe and version controlled;</li>
+<li>styling is as easy as editing HTML and CSS, so there&rsquo;s no constraints of a CMS
+templating system;</li>
+<li>I&rsquo;m writing my posts in Vim, which may seem torturtous to some, but I&rsquo;ve come to appreciate
+its power and lack of visual distraction.</li>
+</ul>
+
+
+<p>Beyond these benefits, I also think that I did not truthfully represent myself on
+my Tumblr blog. I posted content in an attempt to earn re-blogs, and thus &ldquo;go viral&rdquo;.
+Beyond that, I self-edited in an attempt to prevent any post from accidentally being
+reblogged and triggering a flame war. Here, I have no illusions of an audience; I recognize
+that barely anyone will ever read this, and I&rsquo;m completely fine with that. Instead, I
+hope that the people who DO end up reading this site come away with helpful technical information,
+solutions to vexing bugs, or the occassional good recipe. (Although I will be adding
+Disqus comments at some point).</p>
+
+<p>So welcome to version 3 of this blog. I look forward to my attempts at providing
+some stimulating writing!</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  <div class="pagination">
+    
+    <a href="/blog/archives">Blog Archives</a>
+    
+    <a class="next" href="/blog/page/2/">Newer &rarr;</a>
+    
+  </div>
+</div>
+<aside class="sidebar">
+  
+    <section>
+  <h1>About</h1>
+  <p>I&#8217;m Justin Reidy, a web developer living in Portland, OR.
+  I spend the majority of my time hacking on javascript.
+  I&#8217;m also an aspiring marathoner, a home cook and food lover, and a bit
+  of a bookworm.
+  Razor Sharp Design is the name of my
+  web development consultancy, and this, as you&#8217;ve guessed, is my blog. Feel free to <a
+  href="mailto:jmreidy@rzrsharp.net">email me</a>.</p>
+</section>
+<section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/2013/04/11/in-theory-not-practice.html">In Theory, Not Practice</a>
+      </li>
+    
+      <li class="post">
+        <a href="/2013/04/02/towards-a-unified-js-stack.html">Towards a Unified JS Stack</a>
+      </li>
+    
+      <li class="post">
+        <a href="/2012/10/01/error-isolation-with-promises.html">Error Isolation With Promises</a>
+      </li>
+    
+      <li class="post">
+        <a href="/2012/08/01/client-side-testing-insanity.html">Client-Side Testing Insanity</a>
+      </li>
+    
+      <li class="post">
+        <a href="/2012/07/06/reflections-on-nodeconf-2012.html">Reflections on NodeConf 2012</a>
+      </li>
+    
+  </ul>
+</section>
+
+<section>
+  <h1>GitHub Repos</h1>
+  <ul id="gh_repos">
+    <li class="loading">Status updating&#8230;</li>
+  </ul>
+  
+  <a href="https://github.com/jmreidy">@jmreidy</a> on GitHub
+  
+  <script type="text/javascript">
+    $(document).ready(function(){
+        if (!window.jXHR){
+            var jxhr = document.createElement('script');
+            jxhr.type = 'text/javascript';
+            jxhr.src = '/javascripts/libs/jXHR.js';
+            var s = document.getElementsByTagName('script')[0];
+            s.parentNode.insertBefore(jxhr, s);
+        }
+
+        github.showRepos({
+            user: 'jmreidy',
+            count: 5,
+            skip_forks: false,
+            target: '#gh_repos'
+        });
+    });
+  </script>
+  <script src="/javascripts/github.js" type="text/javascript"> </script>
+</section>
+
+
+  
+</aside>
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2013 - Justin Reidy -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+<script type="text/javascript">
+      var disqus_shortname = 'razorsharp';
+      
+        
+        var disqus_script = 'count.js';
+      
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = 'http://' + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = '//platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

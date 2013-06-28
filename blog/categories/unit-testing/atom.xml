@@ -1,0 +1,184 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: unit testing | Razor Sharp Design]]></title>
+  <link href="http://rzrsharp.net/blog/categories/unit-testing/atom.xml" rel="self"/>
+  <link href="http://rzrsharp.net/"/>
+  <updated>2013-06-27T20:53:40-07:00</updated>
+  <id>http://rzrsharp.net/</id>
+  <author>
+    <name><![CDATA[Justin Reidy]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[Client-Side Testing Insanity]]></title>
+    <link href="http://rzrsharp.net/2012/08/01/client-side-testing-insanity.html"/>
+    <updated>2012-08-01T10:31:00-07:00</updated>
+    <id>http://rzrsharp.net/2012/08/01/client-side-testing-insanity</id>
+    <content type="html"><![CDATA[<p>Client-side unit testing is crazy.</p>
+
+<p>Before you skip below to yell at me in the comments section, I don&rsquo;t mean that
+the <em>idea</em> of client-side unit testing is crazy. On the contrary: we need
+client-side tests more than ever! With ever-increasing complexity in our
+frontend code, not to mention the reliance on frameworks, building a web
+application without client-side tests is completely inadvisible.</p>
+
+<p>But the process. Ohhhh, the <em>process</em> of client-side testing is bonkers.</p>
+
+<p>Let&rsquo;s take the example of a modern Node.js web app setup.
+I’ve got the app’s configuration wired with <a href="http://gruntjs.com">grunt.js</a>.
+(If you’re not using grunt, you should be!) During development, server
+files are watched for changes and automatically kickoff <a href="http://visionmedia.github.com/mocha/">mocha</a> tests, which
+display their results in the grunt console. Great!</p>
+
+<p>Client-side changes kickoff their own unit tests, which of course are also
+using mocha for consitency in testing vocabulary. But because of the nature of
+client-side testing, we can’t just call <code>require</code> on the unit under test.
+Instead, we need something like the following setup:</p>
+
+<ul>
+<li><p><a href="http://requirejs.org/">requirejs</a> for managing dependencies</p></li>
+<li><p><a href="http://phantomjs.org/">PhantomJS</a> for running a headless browser</p></li>
+<li><p><a href="https://github.com/kmiyashiro/grunt-mocha">grunt-mocha</a>, which manages the
+PhantomJS process and reports test results to the grunt console</p></li>
+<li><p>an HTML fixture for loading the requirejs config, the browser environment, and test files</p></li>
+</ul>
+
+
+<p>This setup worked. It also felt downright medieval compared to the simple
+server-side mocha testing configuration.</p>
+
+<p>I’m not the only person who’s frustrated with this process. Chris Dickinson at
+<a href="http://urbanairship.com/">Urban Airship</a> recently released <a href="https://github.com/urbanairship/drive.js">Drive.js</a>,
+a unit testing framework and test driver that eases some of the above
+configuration. But in any of the setups I&rsquo;ve seen, your client-side “unit” tests feel
+much more like integration tests. If you need to load your entire client-side
+framework, load a headless browser, or even fire up an instance of your server
+to test a single function of your client-side code&hellip; why not just ignore
+client-side unit testing and skip straight to integration tests? The lack of
+true isolation of the system under test could lead to some frustrating false
+results anyway.</p>
+
+<p>There needs to be a better way. I’m not looking for a lot in my testing setup:</p>
+
+<ul>
+<li><p>I want to run my client-side tests with the same mocha vocabulary and
+configuration as my server tests</p></li>
+<li><p>I want to isolate my tests to requiring a single file and its immediate
+dependencies, and testing it</p></li>
+</ul>
+
+
+<p>That’s really it. And I think I’ve found a solution.</p>
+
+<p>First, I’ve needed to refactor my client-side code to follow the
+<a href="http://wiki.commonjs.org/wiki/Modules/1.1">CommonJS requires model</a>. I’ve also switched to
+<a href="https://github.com/substack/node-browserify">browserify</a> from requirejs, although this switch
+is no longer a necessity — requirejs has introduced a
+<a href="https://github.com/jrburke/r.js/blob/master/build/example.build.js#L412">new configuration option</a>,
+<code>cjsTranslate</code>, which will wrap CommonJS defined modules. Using the CommonJS
+approach means that my mocha tests can require my client-side files. Great.</p>
+
+<p>But the much larger problem with client-side testing is those pesky browser
+globals: the <code>window</code>object, the DOM itself, not to mention global code like
+jQuery, Backbone, etc.  How can we test code that relies on the presence of
+those globals, <em>without</em> resorting to running PhantomJS?</p>
+
+<p>The answer comes in two parts: <a href="https://github.com/tmpvar/jsdom/">jsdom</a>, and
+<a href="http://nodejs.org/api/vm.html">the Node.js vm module</a>.</p>
+
+<p>jsdom provides a server-side implementation of the DOM, while the vm module
+provides the “global” object that we can use to provide a fake browser
+environment to our client-side files. While I’m still fleshing out the
+implementation, the results so far have drastically improved my ease with
+client-side testing.</p>
+
+<p>Here&rsquo;s how it works. In a mocha test file, instead of a strict require call, I’m using a helper
+(passing <code>this</code>, the mocha test context):</p>
+
+<p>``` javascript</p>
+
+<p>setupClientScript.call(this, &ldquo;admin/postEdit&rdquo;, done);</p>
+
+<p>```</p>
+
+<p><code>setupClientScript</code> loads a jsdom window, injects global javascripts (like jQuery),
+and wires the client-side file being tested. Here it looks in a slightly simplified form:</p>
+
+<p>``` javascript</p>
+
+<p>var setupClientScript = function(path, done) {
+  var relPath = context.clientRoot + path;
+  var self = this;
+  jsdom.env({</p>
+
+<pre><code>html: '&lt;html&gt;&lt;head&gt;&lt;/head&gt;&lt;body&gt;&lt;/body&gt;&lt;/html&gt;',
+src: context.globalScripts,
+done: function(errors, window) {
+self.clientRequires = requireClientScript(relPath, window, {});
+self.clientRequires[path] = self.clientRequires[relPath];
+  done();
+}
+</code></pre>
+
+<p>  });
+};</p>
+
+<p>```</p>
+
+<p>Remember, the client-side <code>require</code> can’t <em>just</em> inject the DOM into the
+file under test, it also needs to make sure the file’s dependencies have access to
+the DOM:</p>
+
+<p>``` javascript</p>
+
+<p>var requireClientScript = function(path, window, r) {
+  var script = fs.readFileSync(require.resolve(path)).toString();
+  var module = { exports: {} };
+  var context = vm.createContext(global);</p>
+
+<p>  context.window = window;
+  context.exports = module.exports;
+  context.module = module;
+  context.require = function(path) {</p>
+
+<pre><code>r[path] = requireClientScript(path, window);
+return r[path];
+</code></pre>
+
+<p>  };
+  vm.runInNewContext(script, context);</p>
+
+<p>  if &reg; {</p>
+
+<pre><code>r[path] = module.exports;
+r.window = window;
+return r;
+</code></pre>
+
+<p>  } else {</p>
+
+<pre><code>return module.exports;
+</code></pre>
+
+<p>  }
+};</p>
+
+<p>```</p>
+
+<p>And that’s it. Now, any test function can call <code>this.clientRequires</code> to have
+access to the client-side file under test. No test server being spun up. No
+complex configuration or requirejs rewiring. No full-on headless browsers like
+PhantomJS. Just a single <code>before</code> setup call, and you can test with
+mocha as you normally would.</p>
+
+<p>As I wrote above, I’m still fleshing out the implementation, working out the
+interface and fixing deficiencies. I’ll be publishing the code when things are more
+mature, but in the meantime I&rsquo;d love to hear some feedback.</p>
+]]></content>
+  </entry>
+  
+</feed>

@@ -1,1 +1,1403 @@
-My Octopress Page is coming soon &hellip;
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Razor Sharp Design</title>
+  <meta name="author" content="Justin Reidy">
+
+  
+  <meta name="description" content="In my previous post, I wrote about the quest towards unifying web application architecture around a single shared codebase. Airbnb’s Rendr library &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://rzrsharp.net/index.html">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="Razor Sharp Design" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/lib/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <script type="text/javascript" src="http://use.typekit.com/eqy0aif.js"></script>
+<script type="text/javascript">try{Typekit.load();}catch(e){}</script>
+
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-5761922-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+
+
+</head>
+
+<body   >
+  <header role="banner">
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="http://google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:rzrsharp.net" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div class="blog-index">
+  
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/2013/04/11/in-theory-not-practice.html">In Theory, Not Practice</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-04-11T19:49:00-07:00" pubdate data-updated="true">Apr 11<span>th</span>, 2013</time>
+        
+         | <a href="/2013/04/11/in-theory-not-practice.html#disqus_thread">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>In <a href="http://rzrsharp.net/2013/04/02/towards-a-unified-js-stack.html">my previous post</a>, I wrote about the quest towards unifying web application architecture around a single shared codebase. <a href="https://github.com/airbnb/rendr">Airbnb’s Rendr library</a> provides one path forward on that quest. In this post, I’d like to provide a high-level explanation of my own solution for unifying application code.</p>
+
+<p>There’s a few segments of an application’s code that will almost certainly be repeated on both the client and server: views, view state, and data models (excluding data access). To a certain extent, routing could be repeated as well; if you’re not using hashbangs, you’ll need to implement the same named routes on the client and server (although the actions you perform for those routes will be dramatically different).</p>
+
+<p>The solution I’ve put together is still a work in progress, and is more a set of practices and conventions than a library. This flexibility means that while I’ve been implementing the approach using Handlebars, Backbone, and Express, you could theoretically use a completely different set of libraries. In this post, I’ll go over the basic ideas behind my approach; I’ll be putting together a sample implementation on Github that I’ll be able to write about in more detail in the future.</p>
+
+<h2>Unifying View Templates</h2>
+
+<p>Sharing template code is perhaps the easiest step towards achieving web application unity. With a full-JS stack, you’re compiling the same templates for rendering both server-side and client-side. So why not use the same templates for each?</p>
+
+<p>In my experiments, I’ve been using <a href="http://handlebarsjs.com/">Handlebars</a> as my templating system. It’s based on the Mustache syntax, but has a number of powerful features, including partials and custom helpers. Handlebars is also the templating system behind Ember.js.</p>
+
+<p>The key to sharing templates is the realization that what constitutes a “partial” can be relative to where the template is used — that is to say, the same template can be used as a full template on the client, and a partial template on the server. My templates are divided into three groups:</p>
+
+<ul>
+<li>client &ndash; client only templates</li>
+<li>shared &ndash; used on both the client and server</li>
+<li>server &ndash; server only templates</li>
+</ul>
+
+
+<p>For the client, the templates in the client and shared folders are pre-compiled in a Grunt step, so for all intents and purposes there’s a single flat collection of templates. The server, however, references all of the templates in the shared folder as partials. What’s more, view helpers (in this case, special Handlebars tags) are stored in a <code>shared/helpers</code> directory that is referenced by both the client (in a Grunt step) and the server.</p>
+
+<p>If you’re confused now, you won’t be when you see the actual implementation in my next post. What sounds complicated here is quite straightforward in practice.</p>
+
+<h2>Populating View Templates</h2>
+
+<p>If it’s easy to share templates on the client and server, getting the right data into those templates is a bit of a harder proposition. Handlebars renders data by running the template against a “context”, which is just a plain old hash. But how can we make sure that the contents of that hash are synchronized when rendering the same view on both the client and server?</p>
+
+<p>The problem is exacerbated with how Backbone muddles view rendering logic. In Backbone, there’s not a fine line between the View logic (in Backbone.View) and Model logic (in Backbone.Model and Backbone.Collection). Backbone Views end up performing view state management by manipulating model instances, in order to avoid bloating Models with View specific code. But adding stateful logic into a Backbone View causes two problems:</p>
+
+<p>1) it makes for larger, more complex views, as concerns are split between UX event management and controlling model state;</p>
+
+<p>2) it makes it harder to share code with the server, as rendering state gets locked in a Backbone view.</p>
+
+<p>We can get around these problems by reconsidering the role of a Backbone View — separating its concerns into that of Mediator and View Model. The Mediator role is one of event manager and template marshal; the view model is, most basically, a state controller.</p>
+
+<p>By splitting the state controller into an object of its own concern, you can extract the logic into a module that can be shared by both the client (via Browserify) and the server (via require). The Backbone Mediator simply invokes the View Model, declaratively calling functions on it as users interact with the app — transitioning Backbone away from its traditional role of MVC framework into more of <a href="http://addyosmani.com/blog/understanding-mvvm-a-guide-for-javascript-developers/">an MVVM implementation</a>.</p>
+
+<p>A View Model just returns a hash with the current state of data, which is supplied to the template. On the server, a View Model is instantiated with data accessed from the backend; the results of the View Model instance’s <code>toJSON</code> method are passed to the template for rendering. On the client, the same pattern is repeated, but the data is accessed via AJAX instead.</p>
+
+<h2>Sharing Models on Client and Server</h2>
+
+<p>Synchronizing model code on both the client and server is perhaps the hardest step towards achieving web application unity. The challenge primarily derives from a characteristic of Model code that we’ve inherited from the Rails world: specifically, a conflation of Model concerns between “data model object” and “data access object”. A data model object should identify a model object’s properties, its getters and setters, its relationships, and some convenient accessors; a data access object should deal with querying data sources for populating the data model objects.</p>
+
+<p>Unfortunately, Backbone follows in the tradition of Rails’ ActiveRecord, flattening data accessing and data modeling into a single object. This flattening causes problems even beyond unifying a web application stack. How many Backbone applications have you seen that globally override the sync method, and use properties on model classes to determine how sync invocation works? (Not to pick on Backbone; it’s just the web application framework with which I’m most familiar.)</p>
+
+<p>For now, I’ve abandoned trying to get Backbone Models and Collections to work on both the client and server. But there’s alternatives that can fill the gap nicely. The first of which I’m familiar is <a href="https://github.com/dandean/tubbs">Dan Dean’s Tubbs library</a>. Tubbs provides a DSL for defining data model objects, but also provides a pluggable dataStore. A single model module can be defined in a shared folder, and then required on both the client and server, with both supplying their own dataStore.</p>
+
+<p>In order to make the separation between data modeling and data accessing even clearer, and the sharing of model code on the server and client easier, I created by own <a href="https://github.com/jmreidy/voltron-model/tree/0.1.x">voltron-model</a> library. While Voltron isn’t ready for primetime (yet), it should make the unified definition of data models significantly easier.</p>
+
+<p>Whichever modeling library is chosen, the basic approach should be the same: data models are defined in a shared folder. These models are then imported by code on the server (or packaged with Browserify for the client). The server and client should decorate the models appropriately (either by adding to the model’s prototype or adding an accessor component). Thus, a model can be made to access Mongo or Postgres on the backend, or a REST service on the client.</p>
+
+<p>The benefit of using Backbone on the client is that it doesn’t care if you only use limited parts of the library. Arrays of event-emitting models can provide much of the same benefit of Backbone Collections and Models, and Backbone Views and Routers see no difference.</p>
+
+<h2>Wrapping Up</h2>
+
+<p>All this discussion may be a bit confusing without a concrete implementation to reference; hopefully, I’ll be able to put together a sample application in the next few weeks. But the basic takeaway of the post is that unification of JS web applications can be made significantly easier with two factors:</p>
+
+<ul>
+<li><p>structuring your code so that it can be required by the server or packaged for the client in the same ways, whether by ingesting templates as partials or packaging code with Browserify;</p></li>
+<li><p>following the Node.js approach of writing small, single-purpose modules means that there’s less boilerplate to prevent you from using code in multiple environments</p></li>
+</ul>
+
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/2013/04/02/towards-a-unified-js-stack.html">Towards a Unified JS Stack</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-04-02T19:49:00-07:00" pubdate data-updated="true">Apr 2<span>nd</span>, 2013</time>
+        
+         | <a href="/2013/04/02/towards-a-unified-js-stack.html#disqus_thread">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>It’s been a long time since I’ve written anything for this site. Neither neglect nor procrastination prompted my absence, but rather, lots and lots of coding. All that code has left me with a surfeit of topics to cover here, so instead of talking about what I’ve been working on, I’m going to dive straight into the good stuff.</p>
+
+<p>I want to write about the current “Holy Grail” of web application development: a unified application stack. Any dev who’s built a thick-client web app (regardless of library &ndash; Ember, Backbone, this problem is independent of tool choice) has dealt with the frustration of recreating logic in multiple parts of the application stack. It’s incredibly annoying to be writing the same code to handle model accessors, view state, and rendering logic in two different places; it’s even more irksome to be fixing bugs in one or both areas as your application matures. But let’s back up a bit. Why do we need to be writing the same logic in multiple places at all?</p>
+
+<p>Generally speaking, modern web app development requires a choice from one of three architectural thrusts:</p>
+
+<ul>
+<li><p>thick server, thin client: view logic is written on the server, and rendering happens there as well. The client code deals with interactivity and AJAX requests, but is mostly just updating areas of the page with rendered view content returned by the server. This approach is <a href="http://37signals.com/svn/posts/3112-how-basecamp-next-got-to-be-so-damn-fast-without-using-much-client-side-ui">most famously advocated for by 37 Signals</a>. A thick server simplifies view code, but does so at the expense of larger AJAX payloads; why pull fully rendered code when you can just pull JSON data and render it with a client-side template?</p></li>
+<li><p>thick client, thin server: This architecture inverts the first approach; the server provides an API, which is basically just a wrapper around data access and caching. All of the app logic resides in the client. This approach can make for quick interactivity and rendering on the client, but presents a massive problem with “first load” delay, as the client needs to make two connections to the server: the first to load the client application code, and the second to pull the appropriate data to render. You may remember this problem from <a href="http://engineering.twitter.com/2012/05/improving-performance-on-twittercom.html">Old New Twitter</a>.</p></li>
+<li><p>thick client, thick server: Unsurprisingly, this approach combines both of the previous options. Views are rendered on the server, which means the initial load is fast, but the client handles all the rendering from that point forward. The good news is that you have two fairly independent, (hopefully) highly performant application structures; the bad news is that you’re now repeating logic in view templates, view states, model helpers, even route handlers.</p></li>
+</ul>
+
+
+<p>One exciting prospect of Node.js is that it makes Javascript an “isomorphic language”, which is to say that “any given line of code (with notable exceptions) can execute both on the client and the server” (h/t <a href="http://blog.nodejitsu.com/scaling-isomorphic-javascript-code">Nodejitsu</a>). But that said, there haven’t been very compelling demonstrations that solve the code-duplication problem.</p>
+
+<p>In the last few months, I’ve come up with a solution that allows for code reuse on client and server, leading to a unified codebase for handling view rendering, view states, and model interaction. It’s using components and libraries that you already know: Browserify, Backbone, Express, and Handlebars. But I’m going to hold off on describing that solution for now, and instead write about Rendr.</p>
+
+<p>Rendr <a href="http://nerds.airbnb.com/weve-launched-our-first-nodejs-app-to-product">is the result of Airbnb’s first Node app</a>, and it’s also the library that finally prompted me to close Vim and start writing here again. It’s the fulfillment of an idea that I first heard about from <a href="https://github.com/tbranyen">Tim Branyen</a>: what if we used Express to render the same Backbone Views that we render on the client? That question is what prompted me on my own path towards application stack unity, so I’ve been very eager to learn more about Rendr.</p>
+
+<p>Rendr took Tim Branyen’s initial idea and made it a reality. It’s important to note that Airbnb’s experiments here weren’t an excuse for architecture aeronautics; rather, they were expressly concerned with solving the “time to content” problem, which is to say, the rendering delay that Twitter famously faced. And by unifying client and server code, Rendr not only makes developers’ lives easier, it solves that time to content problem.</p>
+
+<p>Rendr has a number of features and design approaches that I very much like:</p>
+
+<ul>
+<li><p>it’s described as “a library, not a framework”</p></li>
+<li><p>it doesn’t create a server side DOM</p></li>
+<li><p>it doesn’t try to collapse backend data access into the client tier, as some other frameworks have done</p></li>
+<li><p>it utilizes existing, familiar code (Express and Backbone)</p></li>
+<li><p>it keeps the rendered DOM on first load and attaches client objects to it, rather than instantiating client views and replacing the DOM with the results of those client views.</p></li>
+</ul>
+
+
+<p>This last item is particularly important: rendering a page on the server, sending it to the client, and then recreating the DOM on the client can lead to odd rendering issues, interactivity problems, and problems with event listeners. But dynamically instantiating client objects and attaching them to an already-rendered DOM is not a trivial problem, and I commend <a href="https://github.com/spikebrehm">Spike Brehm</a> and the rest of the Airbnb team for taking the time to get this right.</p>
+
+<p>You should definitely take the time to <a href="https://github.com/airbnb/rendr">explore Rendr’s codebase</a>. If it existed when I first set out to solve this same set of problems last year, then I probably would’ve abandoned my own quest and just used this library. But the key point of differentiation with the approach I took from Rendr’s design is modularity. Is it possible to achieve application stack unity, while using objects and code that can be implemented with any number of frameworks in any number of ways?</p>
+
+<p>Stay tuned.</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/2012/10/01/error-isolation-with-promises.html">Error Isolation With Promises</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2012-10-01T09:39:00-07:00" pubdate data-updated="true">Oct 1<span>st</span>, 2012</time>
+        
+         | <a href="/2012/10/01/error-isolation-with-promises.html#disqus_thread">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>The entirety of the Javascript and Node.js universe is based around a
+continuation-passing coding style &mdash; that is to say, callbacks. This style of
+async coding greatly aggrevates Node critics, who constantly argue that
+continuation-passing invariably results in &ldquo;callback hell&rdquo;
+spaghetti code for any non-trivial problem. Node.js proponents respond that
+continuation-passing presents an easier mental model for async coding
+than alternative approaches, and that properly abstracted code avoids any
+gross &ldquo;chains of doom.&rdquo;</p>
+
+<p>This post has nothing to do with that argument.</p>
+
+<p>If you&rsquo;re coding in Javascript, you&rsquo;re going to be using callbacks, and if you&rsquo;re
+building a library, you&rsquo;re going to be supporting callbacks. It&rsquo;s the reality
+of the ecosystem. But there are certain problems for which some syntactic sugar is helpful.
+<a href="http://wiki.commonjs.org/wiki/Promises">Promises</a> provide a wrapper for callbacks that
+allow for a chainable API around a sequence of continuations. They&rsquo;re not a native part of
+the language, but there&rsquo;s <a href="http://wiki.ecmascript.org/doku.php?id=strawman:concurrency#promises_and_promise_states">a strawman</a>
+for the inclusion of Promises in a future version of JS. In the meantime, you can use
+the excellent <a href="https://github.com/kriskowal/q">Q Library</a> from
+<a href="https://github.com/kriskowal">Kris Kowal</a>.
+jQuery includes its own Promises implementation (<code>$.ajax</code> calls return Promises), but they&rsquo;re slightly
+divergent from the Q spec. You can read <a href="https://github.com/kriskowal/q/wiki/Coming-from-jQuery">this excellent guide</a>
+explaining the differences between jQuery and Q promises, if you&rsquo;re coming from one direction
+or the other.</p>
+
+<p>So much for introductions. I&rsquo;ve been using promises for awhile now in some of my
+Node code, and there&rsquo;s several cases where their inclusion can clean up an API. (One
+area: Mongo integration, where any simple action can require several callbacks.) One benefit
+of Promises is that they can provide exception isolation, just like continuation-passing.
+<a href="https://github.com/kriskowal/q/wiki/On-Exceptions">The Q wiki</a> provides the following
+example:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+</pre></td><td class='code'><pre><code class='javascript'><span class='line'><span class="kd">var</span> <span class="nx">info</span><span class="p">,</span> <span class="nx">processed</span><span class="p">;</span>
+</span><span class='line'><span class="k">try</span> <span class="p">{</span>
+</span><span class='line'>  <span class="nx">info</span> <span class="o">=</span> <span class="nx">JSON</span><span class="p">.</span><span class="nx">parse</span><span class="p">(</span><span class="nx">json</span><span class="p">);</span>
+</span><span class='line'>  <span class="nx">processed</span> <span class="o">=</span> <span class="nx">process</span><span class="p">(</span><span class="nx">info</span><span class="p">);</span>
+</span><span class='line'><span class="p">}</span> <span class="k">catch</span> <span class="p">(</span><span class="nx">exception</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>  <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;Information JSON malformed.&quot;</span><span class="p">);</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>In the above snippet, errors generated from the parser and the process function arne&rsquo;t isolated.
+Promises, meanwhile, offer this exception isolation out of the box:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+</pre></td><td class='code'><pre><code class='javascript'><span class='line'><span class="kd">var</span> <span class="nx">processed</span> <span class="o">=</span> <span class="nx">Q</span><span class="p">.</span><span class="nx">call</span><span class="p">(</span><span class="kd">function</span> <span class="p">(</span><span class="nx">json</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>  <span class="k">return</span> <span class="nx">JSON</span><span class="p">.</span><span class="nx">parse</span><span class="p">(</span><span class="nx">json</span><span class="p">);</span>
+</span><span class='line'><span class="p">})</span>
+</span><span class='line'><span class="p">.</span><span class="nx">then</span><span class="p">(</span><span class="kd">function</span> <span class="p">(</span><span class="nx">info</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>  <span class="k">return</span> <span class="nx">process</span><span class="p">(</span><span class="nx">info</span><span class="p">);</span>
+</span><span class='line'><span class="p">},</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">exception</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>  <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;Information JSON malformed.&quot;</span><span class="p">);</span>
+</span><span class='line'><span class="p">})</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>In the second example, the process function is only executed if <code>JSON.parse</code>
+doesn&rsquo;t throw an error. Conversely, this same goal could be achieved
+with continuation-passing:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+</pre></td><td class='code'><pre><code class='javascript'><span class='line'><span class="kd">var</span> <span class="nx">processFn</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">cb</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>  <span class="nx">asyncJSONParser</span><span class="p">(</span><span class="nx">json</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">info</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>    <span class="k">if</span> <span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>      <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;Information JSON malformed.&quot;</span><span class="p">);</span>
+</span><span class='line'>      <span class="k">return</span> <span class="nx">cb</span><span class="p">(</span><span class="nx">err</span><span class="p">);</span>
+</span><span class='line'>    <span class="p">}</span>
+</span><span class='line'>    <span class="nx">cb</span><span class="p">(</span><span class="kc">null</span><span class="p">,</span> <span class="nx">process</span><span class="p">(</span><span class="nx">info</span><span class="p">));</span>
+</span><span class='line'>  <span class="p">});</span>
+</span><span class='line'><span class="p">};</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>One caveat is that when you&rsquo;re chaining your promises together, the behavior is slightly
+different than you might expect:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+</pre></td><td class='code'><pre><code class='javascript'><span class='line'><span class="kd">var</span> <span class="nx">existingUser</span><span class="p">;</span>
+</span><span class='line'><span class="kd">var</span> <span class="nx">promise</span> <span class="o">=</span> <span class="nx">User</span><span class="p">.</span><span class="nx">findOne</span><span class="p">({</span><span class="nx">username</span><span class="o">:</span> <span class="nx">username</span><span class="p">})</span>
+</span><span class='line'>  <span class="p">.</span><span class="nx">then</span><span class="p">(</span><span class="kd">function</span> <span class="p">(</span><span class="nx">user</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>    <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="nx">user</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>      <span class="k">throw</span> <span class="k">new</span> <span class="nb">Error</span><span class="p">(</span><span class="s2">&quot;Username is incorrect&quot;</span><span class="p">);</span>
+</span><span class='line'>    <span class="p">}</span>
+</span><span class='line'>    <span class="nx">existingUser</span> <span class="o">=</span> <span class="nx">user</span><span class="p">;</span>
+</span><span class='line'>    <span class="k">return</span> <span class="nx">User</span><span class="p">.</span><span class="nx">_hashPassword</span><span class="p">(</span><span class="nx">password</span><span class="p">,</span> <span class="nx">user</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s1">&#39;salt&#39;</span><span class="p">));</span>
+</span><span class='line'>    <span class="p">},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">error</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>      <span class="nx">console</span><span class="p">.</span><span class="nx">error</span><span class="p">(</span><span class="s1">&#39;error in findOne&#39;</span><span class="p">);</span>
+</span><span class='line'>      <span class="k">throw</span> <span class="nx">error</span><span class="p">;</span>
+</span><span class='line'>  <span class="p">})</span>
+</span><span class='line'>  <span class="p">.</span><span class="nx">then</span><span class="p">(</span><span class="kd">function</span> <span class="p">(</span><span class="nx">hashedPassword</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>    <span class="k">if</span> <span class="p">(</span><span class="nx">existingUser</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s1">&#39;hashedPassword&#39;</span><span class="p">)</span> <span class="o">===</span> <span class="nx">hashedPassword</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>      <span class="k">return</span> <span class="nx">existingUser</span><span class="p">;</span>
+</span><span class='line'>    <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+</span><span class='line'>      <span class="k">throw</span> <span class="k">new</span> <span class="nb">Error</span><span class="p">(</span><span class="s2">&quot;Password is incorrect&quot;</span><span class="p">);</span>
+</span><span class='line'>    <span class="p">}</span>
+</span><span class='line'>  <span class="p">},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">error</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>    <span class="nx">console</span><span class="p">.</span><span class="nx">error</span><span class="p">(</span><span class="s1">&#39;error in _hashPassword&#39;</span><span class="p">);</span>
+</span><span class='line'>    <span class="k">throw</span> <span class="nx">error</span><span class="p">;</span>
+</span><span class='line'>  <span class="p">});</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>In the above example, if there is an error in <code>User.findOne</code>, the error is
+propagated throughout the chain, which means that your console will have both
+<code>error in findOne</code> and <code>error in _hashPassword</code> printed. There&rsquo;s no way
+of &ldquo;breaking&rdquo; from the promise chain early. But here&rsquo;s the thing: you don&rsquo;t have to.
+Unless you&rsquo;re interested in transforming error objects, there&rsquo;s not much
+point in catching promise errors in intermediary steps in the chain. So the
+above code would be abbreviated:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+</pre></td><td class='code'><pre><code class='javascript'><span class='line'><span class="kd">var</span> <span class="nx">promise</span> <span class="o">=</span> <span class="nx">User</span><span class="p">.</span><span class="nx">findOne</span><span class="p">({</span><span class="nx">username</span><span class="o">:</span> <span class="nx">username</span><span class="p">})</span>
+</span><span class='line'>  <span class="p">.</span><span class="nx">then</span><span class="p">(</span><span class="kd">function</span> <span class="p">(</span><span class="nx">user</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>    <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="nx">user</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>      <span class="k">throw</span> <span class="k">new</span> <span class="nb">Error</span><span class="p">(</span><span class="s2">&quot;Username is incorrect&quot;</span><span class="p">);</span>
+</span><span class='line'>    <span class="p">}</span>
+</span><span class='line'>    <span class="nx">existingUser</span> <span class="o">=</span> <span class="nx">user</span><span class="p">;</span>
+</span><span class='line'>    <span class="k">return</span> <span class="nx">User</span><span class="p">.</span><span class="nx">_hashPassword</span><span class="p">(</span><span class="nx">password</span><span class="p">,</span> <span class="nx">user</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s1">&#39;salt&#39;</span><span class="p">));</span>
+</span><span class='line'>  <span class="p">})</span>
+</span><span class='line'>  <span class="p">.</span><span class="nx">then</span><span class="p">(</span><span class="kd">function</span> <span class="p">(</span><span class="nx">hashedPassword</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>    <span class="k">if</span> <span class="p">(</span><span class="nx">existingUser</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s1">&#39;hashedPassword&#39;</span><span class="p">)</span> <span class="o">===</span> <span class="nx">hashedPassword</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>      <span class="k">return</span> <span class="nx">existingUser</span><span class="p">;</span>
+</span><span class='line'>    <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+</span><span class='line'>      <span class="k">throw</span> <span class="k">new</span> <span class="nb">Error</span><span class="p">(</span><span class="s2">&quot;Password is incorrect&quot;</span><span class="p">);</span>
+</span><span class='line'>    <span class="p">}</span>
+</span><span class='line'>  <span class="p">});</span>
+</span><span class='line'>
+</span><span class='line'><span class="c1">//later in chain or in a diffent function</span>
+</span><span class='line'><span class="nx">promise</span><span class="p">.</span><span class="nx">then</span><span class="p">(</span><span class="kd">function</span> <span class="p">(</span><span class="nx">eventualResult</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>    <span class="c1">//do something with result</span>
+</span><span class='line'>  <span class="p">},</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">error</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>    <span class="c1">//handle error</span>
+</span><span class='line'>  <span class="p">});</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>There&rsquo;s simply no point to having <code>then</code> failure handlers that just throw
+an error, since the library throws and propagates errors for you automatically.
+In promise chains, then, you have the benefit of isolating exceptions (only proceeding
+from step to step if everything is ok) without the extra semantics of <code>if (err) return cb(err)</code>
+from continuation passing.</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/2012/08/01/client-side-testing-insanity.html">Client-Side Testing Insanity</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2012-08-01T10:31:00-07:00" pubdate data-updated="true">Aug 1<span>st</span>, 2012</time>
+        
+         | <a href="/2012/08/01/client-side-testing-insanity.html#disqus_thread">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Client-side unit testing is crazy.</p>
+
+<p>Before you skip below to yell at me in the comments section, I don&rsquo;t mean that
+the <em>idea</em> of client-side unit testing is crazy. On the contrary: we need
+client-side tests more than ever! With ever-increasing complexity in our
+frontend code, not to mention the reliance on frameworks, building a web
+application without client-side tests is completely inadvisible.</p>
+
+<p>But the process. Ohhhh, the <em>process</em> of client-side testing is bonkers.</p>
+
+<p>Let&rsquo;s take the example of a modern Node.js web app setup.
+I’ve got the app’s configuration wired with <a href="http://gruntjs.com">grunt.js</a>.
+(If you’re not using grunt, you should be!) During development, server
+files are watched for changes and automatically kickoff <a href="http://visionmedia.github.com/mocha/">mocha</a> tests, which
+display their results in the grunt console. Great!</p>
+
+<p>Client-side changes kickoff their own unit tests, which of course are also
+using mocha for consitency in testing vocabulary. But because of the nature of
+client-side testing, we can’t just call <code>require</code> on the unit under test.
+Instead, we need something like the following setup:</p>
+
+<ul>
+<li><p><a href="http://requirejs.org/">requirejs</a> for managing dependencies</p></li>
+<li><p><a href="http://phantomjs.org/">PhantomJS</a> for running a headless browser</p></li>
+<li><p><a href="https://github.com/kmiyashiro/grunt-mocha">grunt-mocha</a>, which manages the
+PhantomJS process and reports test results to the grunt console</p></li>
+<li><p>an HTML fixture for loading the requirejs config, the browser environment, and test files</p></li>
+</ul>
+
+
+<p>This setup worked. It also felt downright medieval compared to the simple
+server-side mocha testing configuration.</p>
+
+<p>I’m not the only person who’s frustrated with this process. Chris Dickinson at
+<a href="http://urbanairship.com/">Urban Airship</a> recently released <a href="https://github.com/urbanairship/drive.js">Drive.js</a>,
+a unit testing framework and test driver that eases some of the above
+configuration. But in any of the setups I&rsquo;ve seen, your client-side “unit” tests feel
+much more like integration tests. If you need to load your entire client-side
+framework, load a headless browser, or even fire up an instance of your server
+to test a single function of your client-side code&hellip; why not just ignore
+client-side unit testing and skip straight to integration tests? The lack of
+true isolation of the system under test could lead to some frustrating false
+results anyway.</p>
+
+<p>There needs to be a better way. I’m not looking for a lot in my testing setup:</p>
+
+<ul>
+<li><p>I want to run my client-side tests with the same mocha vocabulary and
+configuration as my server tests</p></li>
+<li><p>I want to isolate my tests to requiring a single file and its immediate
+dependencies, and testing it</p></li>
+</ul>
+
+
+<p>That’s really it. And I think I’ve found a solution.</p>
+
+<p>First, I’ve needed to refactor my client-side code to follow the
+<a href="http://wiki.commonjs.org/wiki/Modules/1.1">CommonJS requires model</a>. I’ve also switched to
+<a href="https://github.com/substack/node-browserify">browserify</a> from requirejs, although this switch
+is no longer a necessity — requirejs has introduced a
+<a href="https://github.com/jrburke/r.js/blob/master/build/example.build.js#L412">new configuration option</a>,
+<code>cjsTranslate</code>, which will wrap CommonJS defined modules. Using the CommonJS
+approach means that my mocha tests can require my client-side files. Great.</p>
+
+<p>But the much larger problem with client-side testing is those pesky browser
+globals: the <code>window</code>object, the DOM itself, not to mention global code like
+jQuery, Backbone, etc.  How can we test code that relies on the presence of
+those globals, <em>without</em> resorting to running PhantomJS?</p>
+
+<p>The answer comes in two parts: <a href="https://github.com/tmpvar/jsdom/">jsdom</a>, and
+<a href="http://nodejs.org/api/vm.html">the Node.js vm module</a>.</p>
+
+<p>jsdom provides a server-side implementation of the DOM, while the vm module
+provides the “global” object that we can use to provide a fake browser
+environment to our client-side files. While I’m still fleshing out the
+implementation, the results so far have drastically improved my ease with
+client-side testing.</p>
+
+<p>Here&rsquo;s how it works. In a mocha test file, instead of a strict require call, I’m using a helper
+(passing <code>this</code>, the mocha test context):</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='javascript'><span class='line'><span class="nx">setupClientScript</span><span class="p">.</span><span class="nx">call</span><span class="p">(</span><span class="k">this</span><span class="p">,</span> <span class="s2">&quot;admin/postEdit&quot;</span><span class="p">,</span> <span class="nx">done</span><span class="p">);</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p><code>setupClientScript</code> loads a jsdom window, injects global javascripts (like jQuery),
+and wires the client-side file being tested. Here it looks in a slightly simplified form:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+</pre></td><td class='code'><pre><code class='javascript'><span class='line'><span class="kd">var</span> <span class="nx">setupClientScript</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">path</span><span class="p">,</span> <span class="nx">done</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>  <span class="kd">var</span> <span class="nx">relPath</span> <span class="o">=</span> <span class="nx">context</span><span class="p">.</span><span class="nx">clientRoot</span> <span class="o">+</span> <span class="nx">path</span><span class="p">;</span>
+</span><span class='line'>  <span class="kd">var</span> <span class="nx">self</span> <span class="o">=</span> <span class="k">this</span><span class="p">;</span>
+</span><span class='line'>  <span class="nx">jsdom</span><span class="p">.</span><span class="nx">env</span><span class="p">({</span>
+</span><span class='line'>    <span class="nx">html</span><span class="o">:</span> <span class="s1">&#39;&lt;html&gt;&lt;head&gt;&lt;/head&gt;&lt;body&gt;&lt;/body&gt;&lt;/html&gt;&#39;</span><span class="p">,</span>
+</span><span class='line'>    <span class="nx">src</span><span class="o">:</span> <span class="nx">context</span><span class="p">.</span><span class="nx">globalScripts</span><span class="p">,</span>
+</span><span class='line'>    <span class="nx">done</span><span class="o">:</span> <span class="kd">function</span><span class="p">(</span><span class="nx">errors</span><span class="p">,</span> <span class="nb">window</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>    <span class="nx">self</span><span class="p">.</span><span class="nx">clientRequires</span> <span class="o">=</span> <span class="nx">requireClientScript</span><span class="p">(</span><span class="nx">relPath</span><span class="p">,</span> <span class="nb">window</span><span class="p">,</span> <span class="p">{});</span>
+</span><span class='line'>    <span class="nx">self</span><span class="p">.</span><span class="nx">clientRequires</span><span class="p">[</span><span class="nx">path</span><span class="p">]</span> <span class="o">=</span> <span class="nx">self</span><span class="p">.</span><span class="nx">clientRequires</span><span class="p">[</span><span class="nx">relPath</span><span class="p">];</span>
+</span><span class='line'>      <span class="nx">done</span><span class="p">();</span>
+</span><span class='line'>    <span class="p">}</span>
+</span><span class='line'>  <span class="p">});</span>
+</span><span class='line'><span class="p">};</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Remember, the client-side <code>require</code> can’t <em>just</em> inject the DOM into the
+file under test, it also needs to make sure the file’s dependencies have access to
+the DOM:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+</pre></td><td class='code'><pre><code class='javascript'><span class='line'><span class="kd">var</span> <span class="nx">requireClientScript</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">path</span><span class="p">,</span> <span class="nb">window</span><span class="p">,</span> <span class="nx">r</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>  <span class="kd">var</span> <span class="nx">script</span> <span class="o">=</span> <span class="nx">fs</span><span class="p">.</span><span class="nx">readFileSync</span><span class="p">(</span><span class="nx">require</span><span class="p">.</span><span class="nx">resolve</span><span class="p">(</span><span class="nx">path</span><span class="p">)).</span><span class="nx">toString</span><span class="p">();</span>
+</span><span class='line'>  <span class="kd">var</span> <span class="nx">module</span> <span class="o">=</span> <span class="p">{</span> <span class="nx">exports</span><span class="o">:</span> <span class="p">{}</span> <span class="p">};</span>
+</span><span class='line'>  <span class="kd">var</span> <span class="nx">context</span> <span class="o">=</span> <span class="nx">vm</span><span class="p">.</span><span class="nx">createContext</span><span class="p">(</span><span class="nx">global</span><span class="p">);</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="nx">context</span><span class="p">.</span><span class="nb">window</span> <span class="o">=</span> <span class="nb">window</span><span class="p">;</span>
+</span><span class='line'>  <span class="nx">context</span><span class="p">.</span><span class="nx">exports</span> <span class="o">=</span> <span class="nx">module</span><span class="p">.</span><span class="nx">exports</span><span class="p">;</span>
+</span><span class='line'>  <span class="nx">context</span><span class="p">.</span><span class="nx">module</span> <span class="o">=</span> <span class="nx">module</span><span class="p">;</span>
+</span><span class='line'>  <span class="nx">context</span><span class="p">.</span><span class="nx">require</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">path</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>    <span class="nx">r</span><span class="p">[</span><span class="nx">path</span><span class="p">]</span> <span class="o">=</span> <span class="nx">requireClientScript</span><span class="p">(</span><span class="nx">path</span><span class="p">,</span> <span class="nb">window</span><span class="p">);</span>
+</span><span class='line'>    <span class="k">return</span> <span class="nx">r</span><span class="p">[</span><span class="nx">path</span><span class="p">];</span>
+</span><span class='line'>  <span class="p">};</span>
+</span><span class='line'>  <span class="nx">vm</span><span class="p">.</span><span class="nx">runInNewContext</span><span class="p">(</span><span class="nx">script</span><span class="p">,</span> <span class="nx">context</span><span class="p">);</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="k">if</span> <span class="p">(</span><span class="nx">r</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>    <span class="nx">r</span><span class="p">[</span><span class="nx">path</span><span class="p">]</span> <span class="o">=</span> <span class="nx">module</span><span class="p">.</span><span class="nx">exports</span><span class="p">;</span>
+</span><span class='line'>    <span class="nx">r</span><span class="p">.</span><span class="nb">window</span> <span class="o">=</span> <span class="nb">window</span><span class="p">;</span>
+</span><span class='line'>    <span class="k">return</span> <span class="nx">r</span><span class="p">;</span>
+</span><span class='line'>  <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+</span><span class='line'>    <span class="k">return</span> <span class="nx">module</span><span class="p">.</span><span class="nx">exports</span><span class="p">;</span>
+</span><span class='line'>  <span class="p">}</span>
+</span><span class='line'><span class="p">};</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>And that’s it. Now, any test function can call <code>this.clientRequires</code> to have
+access to the client-side file under test. No test server being spun up. No
+complex configuration or requirejs rewiring. No full-on headless browsers like
+PhantomJS. Just a single <code>before</code> setup call, and you can test with
+mocha as you normally would.</p>
+
+<p>As I wrote above, I’m still fleshing out the implementation, working out the
+interface and fixing deficiencies. I’ll be publishing the code when things are more
+mature, but in the meantime I&rsquo;d love to hear some feedback.</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/2012/07/06/reflections-on-nodeconf-2012.html">Reflections on NodeConf 2012</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2012-07-06T20:16:00-07:00" pubdate data-updated="true">Jul 6<span>th</span>, 2012</time>
+        
+         | <a href="/2012/07/06/reflections-on-nodeconf-2012.html#disqus_thread">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>NodeConf 2012 was my first real &ldquo;developer&rdquo; conference. I had attended
+conferences in the past, but because of the heavy sponsorship of industry, most
+had felt like trade shows or job fairs. NodeConf was advertised as a conference
+for developers, by developers; Mikeal Rogers, the event&rsquo;s main organizer,
+boasted that NodeConf 2012 would feature more core committers as presenters
+than any other Node.js conference.</p>
+
+<p>As the event grew closer, my curiosity about what NodeConf would entail
+heightened. Mikeal didn&rsquo;t divulge a clue as to the event&rsquo;s schedule, and even
+perusing the twitter feeds of probable speakers and
+<a href="http://lanyrd.com/2012/nodeconf/">NodeConf&rsquo;s site on lanyard</a> didn&rsquo;t reveal any helpful
+intelligence. At the opening party on Sunday, a general sense of cautious
+curiosity permeated the crowd. No one had ever attended a conference where the
+schedule would be revealed in realtime (appropriately for Node); my own
+conference inexperience left me more curious than most.</p>
+
+<p>Mikeal <em>had</em> revealed two details:  the major themes of each day of the
+conference.  Day 1 was structured around the world of Node; Day 2 around the
+power of Node. NodeConf began with Node creator Ryan Dahl reconstructing the
+origins of the framework from livejournal entries and blurry photos of late
+night coding session in Germany.  But as the day continued, I couldn&rsquo;t see how
+the talks related to each other, or what I should be taking away from them.
+Each of the presentations, while excellent and often inspiring, didn&rsquo;t leave me
+with a consistent narrative. I had expected &ldquo;the world of Node&rdquo; to consist
+mostly of talks like Isaac Schlueter&rsquo;s &ldquo;State of Node&rdquo; presentation: perhaps a
+roundup of the big open source projects and frameworks that dominate the Node
+ecosystem, and a discussion of where they were headed.  Instead, talks covered
+everything from realtime solutions with <a href="http://socket.io/">socket.io</a>, to
+<a href="https://github.com/indutny/candor">the creation of a whole new language</a>. I had
+started the first day of NodeConf curious, but ended it confused.</p>
+
+<p>Day Two changed all that.</p>
+
+<p>As one talk on the &ldquo;power of Node&rdquo; led into the next, the topics and structure
+of the first day of NodeConf started to make sense to me. Each speaker
+demonstrated amazing new contributions to the Node ecosystem, from the
+Node-inspired <a href="http://luvit.io/">Luvit framework</a> built with
+<a href="http://www.lua.org/">Lua</a>, to bleeding edge debugging tooling with dtrace, to
+ridiculous hardware demonstrations featuring human-detecting arduinos,
+three-dimensional saws, and
+<a href="https://dl.dropbox.com/u/3531958/nodeconf/index.html#/">radar laser robots</a> controlled by
+Javascript. These talks didn&rsquo;t just demonstrate powerful and frequently
+unexpected uses of Node: they helped me make sense of the previous day&rsquo;s
+selection of talks.</p>
+
+<p>Node is not <em>just</em> the Node framework: it&rsquo;s a philosophy, an approach to
+solving problems. The first inkling of &ldquo;Node as philosophy&rdquo; came in
+<a href="http://substack.net/posts/b96642/the-node-js-aesthetic">substack&rsquo;s post on Node&rsquo;s aesthetic</a>,
+discussing the &ldquo;limited surface area&rdquo; approach to Node&rsquo;s modular problem-solving. But
+NodeConf demonstrated that the node philosophy goes much further than that:</p>
+
+<ol>
+<li><p>async all of the things: Ryan&rsquo;s initial work with libuv focused on the
+challenges of creating an async IO layer that worked across platforms, but that
+work has been extended with new languages like
+<a href="https://twitter.com/indutny/">Fedor Indutny&rsquo;s</a> Candor and
+<a href="https://github.com/creationix/">Tim Caswell&rsquo;s</a> Luvit framework. But it&rsquo;s not just
+file IO &ndash; <a href="https://twitter.com/maxogden">Max Ogden</a> showed that the importance
+of a beautiful async API
+<a href="https://github.com/maxogden/domnode">could be extended to browsers</a> (utilizing ideas put forth by
+substack in day one), while <a href="https://twitter.com/rwaldron">Rick Waldron</a>
+brilliantly demonstrated how JavaScript&rsquo;s async nature could be used to solve
+problems which had always been approached synchronously. (Like robots. With
+lasers.)</p></li>
+<li><p>embrace the hard problems: JavaScript may frequently be maligned for its odd
+&ldquo;bad parts&rdquo;, and JS developers have been looked down on in the past because of
+the history of DOM based spaghetti code, but NodeConf 2012 demonstrated a
+community that was unabashed in its tackling of serious computing issues. From
+<a href="https://twitter.com/felixge/">Felix Geisendorfer&rsquo;s&rsquo;s</a> writing of a binary MySQL parser that
+surpassed a c library in performance, to the community&rsquo;s embracing of the
+concept of IO streams, to the use of dtrace in debugging: Node developers on
+the bleeding edge are not shying away from the toughest technical problems, but
+instead are taking them on at full speed and with high expectations.</p></li>
+<li><p>a virtuous cycle of framework and community: Node&rsquo;s &ldquo;limited surface area&rdquo;
+design of the core framework, along with the ease of use of NPM for publishing
+open source code and small useful modules, have led to an explosion of code. At
+NodeConf 2011, around 1800 packages had been published to NPM; now there are
+over 12000! Modules range from
+<a href="https://github.com/substack/earl-grey">steaming cups of earl grey</a>, to
+<a href="http://voiceboxpdx.com/">karaoke bar APIs</a>, to websocket adapters and arduino libraries.
+The design of the framework drove its community adoption, but the community
+adoption has further developed the framework.</p></li>
+</ol>
+
+
+<p>In the last talk of day two, <a href="https://twitter.com/tmpvar">Elijah Insua</a>
+discussed the hardware hacking he&rsquo;d done with Node. At one point, he mentioned
+that he came up with an idea that needed a midi driver, and he said something
+along the lines of: he never expected needing a midi driver, but as soon as he
+needed one, he came across one on NPM. The word that came to mind was
+serendipity: the contributions to Node, and the explorations of its philosophy,
+are feeding on themselves and driving completely unexpected innovation.</p>
+
+<p>As I thought of the serendipitous nature of the Node ecosystem, Mikeal&rsquo;s
+construction of NodeConf finally clicked for me. The two days of talks had been
+divided into groups of four presentations around a single theme; neither the
+themes nor the talks were made public, but each talk and theme bled into the
+next, with later speakers surprisingly stating how happy they were that a
+previous speaker had touched on a similar topic. The talks seemed to develop
+naturally, if unexpectedly; the overall direction was unclear to everyone
+except Mikeal, and gave the impression of the community simply exploring new
+ideas and pushing boundaries organically. The serendipity of Node&rsquo;s
+development, then, found itself reflected in Mikeal&rsquo;s construction of the
+conference. Does this sound ridiculously meta? Yes, but it completely worked.</p>
+
+<p>As Node grows up and attracts adoption, it will be increasingly difficult to
+maintain the philosophically-driven, community-minded hacker ethos of the Node
+ecosystem, but I hope that Mikeal and the other stewards of the Node community
+can continue to foster talks and events that focus on the behind-the-scenes
+developers who are laying the building blocks for the future of this
+fascinating set of technologies.</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/2012/06/25/mastering-your-toolset.html">Mastering Your Toolset</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2012-06-25T15:29:00-07:00" pubdate data-updated="true">Jun 25<span>th</span>, 2012</time>
+        
+         | <a href="/2012/06/25/mastering-your-toolset.html#disqus_thread">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>When I originally started thinking about writing this post, I was going to
+phrase it in terms of spring cleaning. When I moved to Portland, I took the
+opportunity to reasses my development environment and to cleanup the libraries
+and source repositories I had scattered across my system. Since then, I&rsquo;ve
+become the proud owner of a new retina MBP, so I&rsquo;ve ended up building a new
+environment from scratch. Provisioning a new laptop is incredibly fast
+now; if you have your projects stored in version control, and you keep your
+dotfiles controlled as well, setting up a new laptop is as easy as:</p>
+
+<ul>
+<li>installing <a href="http://mxcl.github.com/homebrew/">Homebrew</a></li>
+<li>installing <a href="http://www.iterm2.com/#/section/home">iTerm2</a></li>
+<li>brew install git, macvim, tmux, tmuxinator, whatever langs and dbs you need</li>
+<li>pulling down your <a href="https://github.com/jmreidy/dotfiles">.dotfiles</a></li>
+<li>installing and syncing your <a href="http://www.dropbox.com">Dropbox</a></li>
+</ul>
+
+
+<p>I was developing on my new machine the day it arrived.</p>
+
+<p>That experience of provisioning a machine so easily, and getting productive
+with it in no time at all, left me reconsidiering my original post on my
+toolset, which primarily boils down to zsh, tmux, and Vim.  There&rsquo;s plenty of
+material online to learn about these tools; a few of note are:</p>
+
+<ul>
+<li><a href="http://www.drbunsen.org/text-triumvirate.html">The Text Triumvirate</a></li>
+<li><a href="http://blog.sanctum.geek.nz/series/unix-as-ide/">Unix as IDE</a></li>
+<li><a href="http://stevelosh.com/blog/2010/09/coming-home-to-vim/">Coming Home to Vim</a></li>
+<li><a href="http://robots.thoughtbot.com/post/2641409235/a-tmux-crash-course">A Tmux Crash Course</a></li>
+<li><a href="http://wynnnetherland.com/journal/dotfiles-discovery">Dotfile Discovery</a></li>
+<li><a href="http://www.mahdiyusuf.com/post/24784023641/beautiful-tools">Beautiful Tools</a></li>
+</ul>
+
+
+<p>So why should you adopt tools with such a steep learning curve? Most discussions of IDEs
+and development environments quickly devolve into pointless arguments over the
+superiority of one tool over another, when in most cases the tool isn&rsquo;t the most
+important factor; differences in productivity will more frequently boil down to
+experience and mastery of a toolset, rather than the toolset itself. I&rsquo;ve seen
+masters of Vim, Eclipse, IntelliJ, and Textmate; in every case, the interface
+breaks down and gets out of the way of the user, who always &ldquo;does&rdquo; without any
+thought as to &ldquo;how to do&rdquo;.</p>
+
+<p>So if mastery is more important than toolset, does your choice really matter?</p>
+
+<p>Yes.</p>
+
+<p>There&rsquo;s two huge benefits of the Vim/tmux/shell toolset: ubiquity, and
+permanence.</p>
+
+<p>Mastery of a tool takes many, many, many hours: <blockquote
+class="twitter-tweet"><p>&ldquo;Malcolm Gladwell&rsquo;s observation that it takes 10,000
+hours to become truly expert at something.&rdquo; A little more than 3 years
+typically</p>&mdash; Jeff Atwood (@codinghorror) <a
+href="https://twitter.com/codinghorror/status/1066301753"
+data-datetime="2008-12-19T02:48:10+00:00">December 19, 2008</a></blockquote></p>
+
+<script src="//platform.twitter.com/widgets.js" charset="utf-8"></script>
+
+
+<p>So whatever tool you choose, you want to be able to use it as much of the time
+as possible, in as many environments as possible.</p>
+
+<p>A mastery of Eclipse, for example, doesn&rsquo;t help you when you need to ssh into a
+unix environment (but vi/m would).  Knowing Visual Studio inside and out can&rsquo;t
+help you if you need to work on a Max or Linux box (but gvim and cygwin will
+still work on Windows). There&rsquo;s not a lot that can compete with Vim in the ubiquity
+category; Emacs is the only other tool that comes to mind.</p>
+
+<p>Permanence is a whole other matter. Technology changes constantly; some tools
+are improved, others are abandoned, still others fall out of use entirely. Are
+you a Flex developer who spent spent huge amounts of time mastering FlexBuilder
+and Eclipse?  Out of luck now. Textmate? The tool that influenced countless
+developers to leave the Windows ecosystem eventually became pseudo-abandonware,
+leading to the current growth of tools liks <a href="http://www.sublimetext.com/2">Sublime Text 2</a>.</p>
+
+<p>Vim has been around since 1991. Its progenitor vi was written in 1976. (Again,
+Emacs is the only competitor here, having also been written in 1976.)</p>
+
+<p>All of this is to say: <strong>don&rsquo;t</strong> go and abandon your current toolset for mine!
+Just because what I use works for me, doesn&rsquo;t mean it&rsquo;s the best choice for
+you. If you&rsquo;ve already mastered your toolset and are happy with it, <strong>stay</strong> there:
+you&rsquo;d be wasting many productive hours on a new tool for the potential of
+hating it. And as wonderful as Vim/tmux/shell are for most, it&rsquo;s not the right
+toolset for everyone or everything. If you&rsquo;re doing mostly front-end web UX
+work, for example, <a href="http://panic.com/coda/">Coda 2</a> would probably be perfect
+for your needs; iOS means you&rsquo;re going to be stuck with Xcode, for better or worse.</p>
+
+<p>But if you&rsquo;re feeling constrained by your current toolset, or are making the jump
+from one technology to another, and haven&rsquo;t given &ldquo;the text triumvirate&rdquo; a try,
+I&rsquo;d very strongly recommend doing so. It&rsquo;s worth the effort.</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/2012/06/11/blog-bankruptcy.html">Blog Bankruptcy</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2012-06-11T16:13:00-07:00" pubdate data-updated="true">Jun 11<span>th</span>, 2012</time>
+        
+         | <a href="/2012/06/11/blog-bankruptcy.html#disqus_thread">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>If you only know me through this blog, and have spent any amount of
+time playing Oregon Trail in your youth, you may have grown a bit
+concerned. It&rsquo;s been four months since
+<a href="http://rzrsharp.net/2012/02/17/goodbye-brooklyn-hello-portland.html">my last post</a>, in which I wrote
+about my upcoming move to Portland, OR; since then, there&rsquo;s been total
+silence here. I&rsquo;m happy to report that, over the course of my
+cross-country move, I didn&rsquo;t contract dysentery,
+drown in a reckless attempt at fording a river, or suffer a terrible
+firearms accident while hunting squirrels. In fact, I had better luck
+with the move than I possibly could have imagined. Our drive to
+Minneapolis avoided any nasty weather; our flight from Minneapolis to
+Portland proceeded without incident; our new house was solidly intact and
+without any animal squatters; and our movers arrived with all of our
+belongings at the exactly scheduled time (to the minute!) with nothing
+broken or lost.</p>
+
+<p>Portland has lived up to, and perhaps exceeded, our expectations.
+Being able to bike around a city without a constant fear of death and
+dismemberment has been quite a refreshing change. Living in a house
+has allowed us to actually grow a legitimate garden instead of
+stuffing a few pots in a fire escape. We couldn&rsquo;t be happier with the
+food scene here; the amount of craft beer in
+Portland is downright intimidating. And it&rsquo;s been extraordinarily
+exciting to meet so many other new Portlanders who&rsquo;ve moved here for
+similar reasons. Needless to say, if you&rsquo;re a developer who&rsquo;s thinking
+about Portland as a place to call home, feel free to drop me a line,
+or introduce yourself if you&rsquo;ll be coming to
+<a href="http://nodeconf.com">node conf</a> in July.</p>
+
+<p>I&rsquo;ve finally had to declare blog bankruptcy here, in order to just
+wipe the list of well-intentioned-blog-topics clear and get started
+writing again. Two topics will survive the culling. First, the move to
+Portland presented an opportunity for a spring cleaning of my
+development environment. I&rsquo;ll be writing about how I organized my
+dotfiles, and explaining why tmux is not just a cargo culting fad, but
+a ridiculously awesome tool for maximizing your terminal productivity.</p>
+
+<p>The other surviving topic surrounds Backbone.js. Since moving to
+Portland, I&rsquo;ve continued working with Bloomberg Sports in New York on
+their application for MLB team analytics. (Think a modern web app
+version of Moneyball spreadsheets.) Working on such a large app has
+presented me with some difficult lessons on how to best use Backbone,
+especially for interacting with a polyglot backend, which I think
+would prove useful to any other web devs working on larger Backbone
+applications.</p>
+
+<p>So now, back to work so I can actually get these posts written in the
+next week!</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/2012/02/17/goodbye-brooklyn-hello-portland.html">Goodbye, Brooklyn. Hello, Portland!</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2012-02-17T13:23:00-08:00" pubdate data-updated="true">Feb 17<span>th</span>, 2012</time>
+        
+         | <a href="/2012/02/17/goodbye-brooklyn-hello-portland.html#disqus_thread">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Two and a half years ago, Meaghin and I moved from Washington, DC to Brooklyn.
+Our move came as a bit of a shock to our family and friends &ndash; partly because of
+its suddenness, and also because of its proximity to our marriage. The move to
+Brooklyn was not motivated by a job opportunity or anything similar; instead,
+we had started feeling constrained by DC after five years of living there, and
+couldn&rsquo;t imagine a more challenging and exciting place to live than New York
+(and Brooklyn in particular). A week after getting married, we made the
+decision to move, and three weeks after that, we found ourselves surrounded by
+boxes in an apartment overlooking the East River and Manhattan.</p>
+
+<p>The first few months of living in New York definitely delivered on the
+&ldquo;challenging&rdquo; part of our expectations; not a day went by that didn&rsquo;t evoke
+memories of Seinfeld plot-lines. Crazy co-op boards? Difficult supers?
+Ridiculous encounters on the subway? More than one New York stereotype proved
+its roots in authenticity. But as we grew used to the city and its
+neighborhoods, learned how to quickly cut from one area to another, discovered
+which subway lines consistently failed, and realized that one should avoid 5th
+Ave and Times Square at all costs, the challenges started to dissipate and left
+only excitement. New York, in its intensity and genuine melting pot of cultures
+and backgrounds, presents an amazing opportunity for people to define
+themselves. What matters most to you, and why does it matter? In a city where
+practically any hobby or interest can be pursued, you&rsquo;ve got to seriously
+prioritize your time, and that prioritization goes a long way towards
+identifying exactly who you are.</p>
+
+<p>But for all the excitement and growth, I started to notice another development
+in myself: pernicious cynicism. While I had once dreamed of tackling big
+problems and making the world a better place, years of living in DC and New
+York made me view such ideas as hopelessly naive. The seeming intractability of
+so many daily problems, the realization that apparently important movements
+were actually driven by petty motivations; older, wiser me didn&rsquo;t look at
+idealists with disdain, but rather with a wistful admiration of their blissful
+ignorance.</p>
+
+<p>Then I spent time in Portland, OR.</p>
+
+<p>It&rsquo;s hard to describe the feeling of Portland. And I don&rsquo;t mean the city
+portrayed on Portlandia &ndash; although that show is certainly accurate in its
+skewering. I have never been to a place where so many people devote themselves
+to mastering a craft, not just because of the rewards of the mastery, but
+because <em>not</em> mastering that craft is simply not an option. There&rsquo;s an
+entrepreneurial spirit that pervades Portland, but it&rsquo;s one that&rsquo;s devoted to
+developing new ideas and contributing back to the community. Even this &ldquo;return
+to community&rdquo; is not the traditional &ldquo;I&rsquo;ve done well so I&rsquo;m giving back&rdquo; idea,
+but rather a networked entrepreneurship, a continuous exploration of &ldquo;How can
+my idea involve the unique work of that awesome <whatever>?&rdquo;</p>
+
+<p>Mikeal Rogers, organizer of NodeConf, <a href="http://www.mikealrogers.com/posts/what-is-the-maximum-number-of-courses.html">described Portland with
+admiration</a>:</p>
+
+<pre><code>There are times and places, great cities, that are remembered much more
+fondly than they were thought of at the time. Paris in the twenties when it
+was home to Hemingway, Picaso and Fitzgerald. Or San Francisco in the 50s
+when the beat generation migrated from New York to call it home. So
+impressionable were those years that the echo fuels future, lesser,
+generations for decades.
+
+When you're in Portland, Oregon you can't help but think it might be such
+a place and the time. For what it will be remembered I have no idea, but
+everyone seems to be bursting with creativity and no one is content until
+they have done more.
+</code></pre>
+
+<p>Spending time in Portland pierced the shell of cynicism that I&rsquo;d developed, and
+rekindled my motivations to build something real and lasting, to improve my
+community. Portland provides the inspiration; New York has provided the
+confidence and skillset to do something about it.</p>
+
+<p>So once again Meaghin and I find ourselves surrounded by boxes and preparing
+for a big move. In a month I&rsquo;ll be a resident of Portland. I can&rsquo;t wait to find
+out what the future will bring.</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/2012/02/15/why-javascript-on-the-server-isnt-such-a-bad-idea.html">Why JavaScript on the Server Isn&#8217;t Such a Bad Idea</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2012-02-15T14:39:00-08:00" pubdate data-updated="true">Feb 15<span>th</span>, 2012</time>
+        
+         | <a href="/2012/02/15/why-javascript-on-the-server-isnt-such-a-bad-idea.html#disqus_thread">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Preaching the gospel of Node can be a tough job: how do you express your
+excitement for the technology without coming across as a fanboy? And how do you
+deal with people that view it as a cancer? I had to answer these questions when
+crafting a presentation last week introducting Node.js as part of
+a developer tech talk. Given the radically divergent opinions that Node has
+elicited, I wanted to address the FUD head on.  I tried to focus on the gut
+reaction most people tend to have towards Node (&ldquo;WHO would want to code their
+server in JS?!&rdquo;), and I think the talk went fairly well. I&rsquo;m embedding the
+slides here if anyone would like to take a look. Speakerdeck is a fantastic
+resource and I was happy to finally put it to use as a producer, instead of
+just a reader.</p>
+
+<script src="http://speakerdeck.com/embed/4f35ad1868bb50001f004b7f.js"></script>
+
+
+<p>For even more insight into the developing world of &ldquo;JavaScript everywhere&rdquo;, check out <a href="http://www.youtube.com/watch?v=AG6dyk8lkZg">this video</a> from Joe McCann, principal architect of subPrint Interactive, on &ldquo;End to End JavaScript&rdquo;.</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/2012/01/30/welcome-to-2012.html">Welcome to 2012</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2012-01-30T16:31:00-08:00" pubdate data-updated="true">Jan 30<span>th</span>, 2012</time>
+        
+         | <a href="/2012/01/30/welcome-to-2012.html#disqus_thread">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>January&rsquo;s been a long month; not in a <em>bad</em> sense, just sort of interminable. Looking through my links collection in notational velocity today, I found a good twenty plus from the last six weeks. I&rsquo;ve culled them down a bit to the true standouts:</p>
+
+<ul>
+<li><p>An Object is not (Always) a Hash &mdash; Great post from Guillermo Rauch about <a href="http://www.devthought.com/2012/01/18/an-object-is-not-a-hash/">the perils of using Javascript Objects as Hashes</a>. Definitely some tricky gotchas here that you may not have thought about.</p></li>
+<li><p>Hot Node Reloading &mdash; Also from Guillermo, a solution to the annoying problem of continuously restarting your node app during development: <a href="http://www.devthought.com/2012/01/29/staying-up-with-node-js/">Staying Up with Node.JS</a></p></li>
+<li><p>Shedding Light on SPDY &mdash; If you haven&rsquo;t been hearing a great deal about SPDY lately, you will be soon. SPDY, if you couldn&rsquo;t tell from the name, serves as a next-generation protocol to speed up web communication. Nodejitsu posts <a href="http://blog.nodejitsu.com/what-is-node-spdy">a helpful introduction to SPDY</a>.</p></li>
+<li><p>Improving your Git Logs &mdash; Git log, out of the box, is so wordy that it proves fairly worthless. Check out Oli Studholme&rsquo;s <a href="http://oli.jp/2012/git-powerup/">aliases for taming the git log beast</a>.</p></li>
+<li><p>Hack Learning &mdash; One of the key lessons I&rsquo;ve learned as a developer is that getting good at something requires hours, and hours, and hours, and <strong>hours</strong> of work, and many of these hours will be exhausting displays of ignorance which you&rsquo;ll want to quickly forget. The good news is that you can pick up nearly any skill with enough effort and time. Jack Kinsella provides a hack for cutting back on how many hours separate &ldquo;terrible newb&rdquo; from &ldquo;fairly competent practitioner&rdquo;. His <a href="http://www.jackkinsella.ie/2011/12/05/janki-method.html">Janki Method</a> may <em>sound</em> like a get rich quick scheme, but it&rsquo;s really just a simple approach to improving your effiency at learning. Maybe you can cut those 10,000 hours of practice to a more managable&hellip; 6,000.</p></li>
+</ul>
+
+</div>
+  
+  
+
+
+    </article>
+  
+  <div class="pagination">
+    
+      <a class="prev" href="/blog/page/2/">&larr; Older</a>
+    
+    <a href="/blog/archives">Blog Archives</a>
+    
+  </div>
+</div>
+<aside class="sidebar">
+  
+    <section>
+  <h1>About</h1>
+  <p>I&#8217;m Justin Reidy, a web developer living in Portland, OR.
+  I spend the majority of my time hacking on javascript.
+  I&#8217;m also an aspiring marathoner, a home cook and food lover, and a bit
+  of a bookworm.
+  Razor Sharp Design is the name of my
+  web development consultancy, and this, as you&#8217;ve guessed, is my blog. Feel free to <a
+  href="mailto:jmreidy@rzrsharp.net">email me</a>.</p>
+</section>
+<section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/2013/04/11/in-theory-not-practice.html">In Theory, Not Practice</a>
+      </li>
+    
+      <li class="post">
+        <a href="/2013/04/02/towards-a-unified-js-stack.html">Towards a Unified JS Stack</a>
+      </li>
+    
+      <li class="post">
+        <a href="/2012/10/01/error-isolation-with-promises.html">Error Isolation With Promises</a>
+      </li>
+    
+      <li class="post">
+        <a href="/2012/08/01/client-side-testing-insanity.html">Client-Side Testing Insanity</a>
+      </li>
+    
+      <li class="post">
+        <a href="/2012/07/06/reflections-on-nodeconf-2012.html">Reflections on NodeConf 2012</a>
+      </li>
+    
+  </ul>
+</section>
+
+<section>
+  <h1>GitHub Repos</h1>
+  <ul id="gh_repos">
+    <li class="loading">Status updating&#8230;</li>
+  </ul>
+  
+  <a href="https://github.com/jmreidy">@jmreidy</a> on GitHub
+  
+  <script type="text/javascript">
+    $(document).ready(function(){
+        if (!window.jXHR){
+            var jxhr = document.createElement('script');
+            jxhr.type = 'text/javascript';
+            jxhr.src = '/javascripts/libs/jXHR.js';
+            var s = document.getElementsByTagName('script')[0];
+            s.parentNode.insertBefore(jxhr, s);
+        }
+
+        github.showRepos({
+            user: 'jmreidy',
+            count: 5,
+            skip_forks: false,
+            target: '#gh_repos'
+        });
+    });
+  </script>
+  <script src="/javascripts/github.js" type="text/javascript"> </script>
+</section>
+
+
+  
+</aside>
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2013 - Justin Reidy -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+<script type="text/javascript">
+      var disqus_shortname = 'razorsharp';
+      
+        
+        var disqus_script = 'count.js';
+      
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = 'http://' + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = '//platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>
