@@ -2,116 +2,128 @@
 <urlset xmlns='http://www.sitemaps.org/schemas/sitemap/0.9'>
     <url>
         <loc>http://rzrsharp.net/2011/05/26/hello-world.html</loc>
-        <lastmod>2013-06-27T20:30:51-07:00</lastmod>
+        <lastmod>2013-06-27T21:25:23-07:00</lastmod>
     </url>
     <url>
         <loc>http://rzrsharp.net/2011/05/26/mark-zuckerberg-eats-what-he-kills.html</loc>
-        <lastmod>2013-06-27T20:30:51-07:00</lastmod>
+        <lastmod>2013-06-27T21:25:23-07:00</lastmod>
     </url>
     <url>
         <loc>http://rzrsharp.net/2011/06/01/attr_accessor-shortcut-in-ruby.html</loc>
-        <lastmod>2013-06-27T20:30:51-07:00</lastmod>
+        <lastmod>2013-06-27T21:25:23-07:00</lastmod>
     </url>
     <url>
         <loc>http://rzrsharp.net/2011/06/06/a-note-on-npm.html</loc>
-        <lastmod>2013-06-27T20:30:51-07:00</lastmod>
+        <lastmod>2013-06-27T21:25:23-07:00</lastmod>
     </url>
     <url>
         <loc>http://rzrsharp.net/2011/06/21/classes-in-coffeescript.html</loc>
-        <lastmod>2013-06-27T20:30:51-07:00</lastmod>
+        <lastmod>2013-06-27T21:25:23-07:00</lastmod>
     </url>
     <url>
         <loc>http://rzrsharp.net/2011/06/27/what-does-coffeescripts-do-do.html</loc>
-        <lastmod>2013-06-27T20:30:51-07:00</lastmod>
+        <lastmod>2013-06-27T21:25:23-07:00</lastmod>
     </url>
     <url>
         <loc>http://rzrsharp.net/2011/07/08/this-in-anonymous-functions.html</loc>
-        <lastmod>2013-06-27T20:30:51-07:00</lastmod>
+        <lastmod>2013-06-27T21:25:23-07:00</lastmod>
     </url>
     <url>
         <loc>http://rzrsharp.net/2011/08/16/introducing-vows-bdd.html</loc>
-        <lastmod>2013-06-27T20:30:51-07:00</lastmod>
+        <lastmod>2013-06-27T21:25:23-07:00</lastmod>
     </url>
     <url>
         <loc>http://rzrsharp.net/2011/09/13/back-from-vacation.html</loc>
-        <lastmod>2013-06-27T20:30:51-07:00</lastmod>
+        <lastmod>2013-06-27T21:25:23-07:00</lastmod>
     </url>
     <url>
         <loc>http://rzrsharp.net/2011/11/04/indie-productivity.html</loc>
-        <lastmod>2013-06-27T20:30:51-07:00</lastmod>
+        <lastmod>2013-06-27T21:25:23-07:00</lastmod>
     </url>
     <url>
         <loc>http://rzrsharp.net/2011/11/10/cleaning-up-yours-vows.html</loc>
-        <lastmod>2013-06-27T20:30:51-07:00</lastmod>
+        <lastmod>2013-06-27T21:25:23-07:00</lastmod>
     </url>
     <url>
         <loc>http://rzrsharp.net/2011/11/10/fix-that-commit.html</loc>
-        <lastmod>2013-06-27T20:30:51-07:00</lastmod>
+        <lastmod>2013-06-27T21:25:23-07:00</lastmod>
     </url>
     <url>
         <loc>http://rzrsharp.net/2011/11/21/thanksgiving-week-links.html</loc>
-        <lastmod>2013-06-27T20:30:51-07:00</lastmod>
+        <lastmod>2013-06-27T21:25:23-07:00</lastmod>
     </url>
     <url>
         <loc>http://rzrsharp.net/2011/12/05/better-support-for-helpers-in-vows-bdd.html</loc>
-        <lastmod>2013-06-27T20:30:51-07:00</lastmod>
+        <lastmod>2013-06-27T21:25:23-07:00</lastmod>
     </url>
     <url>
         <loc>http://rzrsharp.net/2012/01/12/a-year-in-coffee.html</loc>
-        <lastmod>2013-06-27T20:30:51-07:00</lastmod>
+        <lastmod>2013-06-27T21:25:23-07:00</lastmod>
     </url>
     <url>
         <loc>http://rzrsharp.net/2012/01/30/welcome-to-2012.html</loc>
-        <lastmod>2013-06-27T20:30:51-07:00</lastmod>
+        <lastmod>2013-06-27T21:25:23-07:00</lastmod>
     </url>
     <url>
         <loc>
             http://rzrsharp.net/2012/02/15/why-javascript-on-the-server-isnt-such-a-bad-idea.html
         </loc>
-        <lastmod>2013-06-27T20:30:51-07:00</lastmod>
+        <lastmod>2013-06-27T21:25:23-07:00</lastmod>
     </url>
     <url>
         <loc>http://rzrsharp.net/2012/02/17/goodbye-brooklyn-hello-portland.html</loc>
-        <lastmod>2013-06-27T20:30:51-07:00</lastmod>
+        <lastmod>2013-06-27T21:25:23-07:00</lastmod>
     </url>
     <url>
         <loc>http://rzrsharp.net/2012/06/11/blog-bankruptcy.html</loc>
-        <lastmod>2013-06-27T20:30:51-07:00</lastmod>
+        <lastmod>2013-06-27T21:25:23-07:00</lastmod>
     </url>
     <url>
         <loc>http://rzrsharp.net/2012/06/25/mastering-your-toolset.html</loc>
-        <lastmod>2013-06-27T20:30:51-07:00</lastmod>
+        <lastmod>2013-06-27T21:25:23-07:00</lastmod>
     </url>
     <url>
         <loc>http://rzrsharp.net/2012/07/06/reflections-on-nodeconf-2012.html</loc>
-        <lastmod>2013-06-27T20:30:51-07:00</lastmod>
+        <lastmod>2013-06-27T21:25:23-07:00</lastmod>
+    </url>
+    <url>
+        <loc>http://rzrsharp.net/2012/07/22/intro.html</loc>
+        <lastmod>2013-06-27T21:25:23-07:00</lastmod>
+    </url>
+    <url>
+        <loc>http://rzrsharp.net/2012/07/22/the-problem-with-pingdom.html</loc>
+        <lastmod>2013-06-27T21:25:23-07:00</lastmod>
     </url>
     <url>
         <loc>http://rzrsharp.net/2012/08/01/client-side-testing-insanity.html</loc>
-        <lastmod>2013-06-27T20:30:51-07:00</lastmod>
+        <lastmod>2013-06-27T21:25:23-07:00</lastmod>
     </url>
     <url>
         <loc>http://rzrsharp.net/2012/10/01/error-isolation-with-promises.html</loc>
-        <lastmod>2013-06-27T20:30:51-07:00</lastmod>
+        <lastmod>2013-06-27T21:25:23-07:00</lastmod>
     </url>
     <url>
         <loc>http://rzrsharp.net/2013/04/02/towards-a-unified-js-stack.html</loc>
-        <lastmod>2013-06-27T20:30:51-07:00</lastmod>
+        <lastmod>2013-06-27T21:25:23-07:00</lastmod>
     </url>
     <url>
         <loc>http://rzrsharp.net/2013/04/11/in-theory-not-practice.html</loc>
-        <lastmod>2013-06-27T20:30:51-07:00</lastmod>
+        <lastmod>2013-06-27T21:25:23-07:00</lastmod>
+    </url>
+    <url>
+        <loc>http://rzrsharp.net/about/</loc>
+        <lastmod>2013-06-28T14:35:37-07:00</lastmod>
     </url>
     <url>
         <loc>http://rzrsharp.net/blog/archives/</loc>
-        <lastmod>2013-06-27T20:30:51-07:00</lastmod>
+        <lastmod>2013-06-27T21:25:23-07:00</lastmod>
     </url>
     <url>
         <loc>http://rzrsharp.net/</loc>
-        <lastmod>2013-06-27T20:30:51-07:00</lastmod>
+        <lastmod>2013-06-27T21:25:23-07:00</lastmod>
     </url>
     <url>
         <loc>http://rzrsharp.net/robots.txt</loc>
-        <lastmod>2013-06-27T20:28:06-07:00</lastmod>
+        <lastmod>2013-06-27T21:25:23-07:00</lastmod>
     </url>
 </urlset>

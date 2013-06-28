@@ -4,7 +4,7 @@
   <title><![CDATA[Razor Sharp Design]]></title>
   <link href="http://rzrsharp.net/atom.xml" rel="self"/>
   <link href="http://rzrsharp.net/"/>
-  <updated>2013-06-27T20:53:40-07:00</updated>
+  <updated>2013-06-28T14:35:38-07:00</updated>
   <id>http://rzrsharp.net/</id>
   <author>
     <name><![CDATA[Justin Reidy]]></name>
@@ -14,10 +14,13 @@
 
   
   <entry>
+    
     <title type="html"><![CDATA[In Theory, Not Practice]]></title>
     <link href="http://rzrsharp.net/2013/04/11/in-theory-not-practice.html"/>
+    
     <updated>2013-04-11T19:49:00-07:00</updated>
     <id>http://rzrsharp.net/2013/04/11/in-theory-not-practice</id>
+    
     <content type="html"><![CDATA[<p>In <a href="http://rzrsharp.net/2013/04/02/towards-a-unified-js-stack.html">my previous post</a>, I wrote about the quest towards unifying web application architecture around a single shared codebase. <a href="https://github.com/airbnb/rendr">Airbnb’s Rendr library</a> provides one path forward on that quest. In this post, I’d like to provide a high-level explanation of my own solution for unifying application code.</p>
 
 <p>There’s a few segments of an application’s code that will almost certainly be repeated on both the client and server: views, view state, and data models (excluding data access). To a certain extent, routing could be repeated as well; if you’re not using hashbangs, you’ll need to implement the same named routes on the client and server (although the actions you perform for those routes will be dramatically different).</p>
@@ -83,13 +86,17 @@
 </ul>
 
 ]]></content>
+    
   </entry>
   
   <entry>
+    
     <title type="html"><![CDATA[Towards a Unified JS Stack]]></title>
     <link href="http://rzrsharp.net/2013/04/02/towards-a-unified-js-stack.html"/>
+    
     <updated>2013-04-02T19:49:00-07:00</updated>
     <id>http://rzrsharp.net/2013/04/02/towards-a-unified-js-stack</id>
+    
     <content type="html"><![CDATA[<p>It’s been a long time since I’ve written anything for this site. Neither neglect nor procrastination prompted my absence, but rather, lots and lots of coding. All that code has left me with a surfeit of topics to cover here, so instead of talking about what I’ve been working on, I’m going to dive straight into the good stuff.</p>
 
 <p>I want to write about the current “Holy Grail” of web application development: a unified application stack. Any dev who’s built a thick-client web app (regardless of library &ndash; Ember, Backbone, this problem is independent of tool choice) has dealt with the frustration of recreating logic in multiple parts of the application stack. It’s incredibly annoying to be writing the same code to handle model accessors, view state, and rendering logic in two different places; it’s even more irksome to be fixing bugs in one or both areas as your application matures. But let’s back up a bit. Why do we need to be writing the same logic in multiple places at all?</p>
@@ -128,13 +135,17 @@
 
 <p>Stay tuned.</p>
 ]]></content>
+    
   </entry>
   
   <entry>
+    
     <title type="html"><![CDATA[Error Isolation with Promises]]></title>
     <link href="http://rzrsharp.net/2012/10/01/error-isolation-with-promises.html"/>
+    
     <updated>2012-10-01T09:39:00-07:00</updated>
     <id>http://rzrsharp.net/2012/10/01/error-isolation-with-promises</id>
+    
     <content type="html"><![CDATA[<p>The entirety of the Javascript and Node.js universe is based around a
 continuation-passing coding style &mdash; that is to say, callbacks. This style of
 async coding greatly aggrevates Node critics, who constantly argue that
@@ -344,13 +355,17 @@ In promise chains, then, you have the benefit of isolating exceptions (only proc
 from step to step if everything is ok) without the extra semantics of <code>if (err) return cb(err)</code>
 from continuation passing.</p>
 ]]></content>
+    
   </entry>
   
   <entry>
+    
     <title type="html"><![CDATA[Client-Side Testing Insanity]]></title>
     <link href="http://rzrsharp.net/2012/08/01/client-side-testing-insanity.html"/>
+    
     <updated>2012-08-01T10:31:00-07:00</updated>
     <id>http://rzrsharp.net/2012/08/01/client-side-testing-insanity</id>
+    
     <content type="html"><![CDATA[<p>Client-side unit testing is crazy.</p>
 
 <p>Before you skip below to yell at me in the comments section, I don&rsquo;t mean that
@@ -530,13 +545,76 @@ mocha as you normally would.</p>
 interface and fixing deficiencies. I’ll be publishing the code when things are more
 mature, but in the meantime I&rsquo;d love to hear some feedback.</p>
 ]]></content>
+    
   </entry>
   
   <entry>
+    
+    <title type="html"><![CDATA[The problem with Pingdom GLYPH GOES HERE]]></title>&#8734;
+    <link href="http://google.com"/>
+    
+    <updated>2012-07-22T19:13:00-07:00</updated>
+    <id>http://rzrsharp.net/2012/07/22/the-problem-with-pingdom</id>
+    
+    <content type="html"><![CDATA[
+
+<figure class='code'><figcaption><span>Time to be Awesome - awesome.rb </span></figcaption>
+ <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='rb'><span class='line'><span class="nb">puts</span> <span class="s2">&quot;Awesome!&quot;</span> <span class="k">unless</span> <span class="n">lame</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p><a href="http://www.pingdom.com%20Pingdom">The problem with pingdom.</a></p>
+
+<p>My money&rsquo;s in that office, right? If she start giving me some bullshit about it ain&rsquo;t there, and we got to go someplace else and get it, I&rsquo;m gonna shoot you in the head then and there. Then I&rsquo;m gonna shoot that bitch in the kneecaps, find out where my goddamn money is. She gonna tell me too. Hey, look at me when I&rsquo;m talking to you, motherfucker. You listen: we go in there, and that nigga Winston or anybody else is in there, you the first motherfucker to get shot. You understand?</p>
+
+<blockquote><p>Blockquote is what goes
+inside this block here
+would you believe that
+bullshit?</p></blockquote>
+
+<p>Well, the way they make shows is, they make one show. That show&rsquo;s called a pilot. Then they show that show to the people who make shows, and on the strength of that one show they decide if they&rsquo;re going to make more shows. Some pilots get picked and become television programs. Some don&rsquo;t, become nothing. She starred in one of the ones that became nothing.</p>
+
+<p>The path of the righteous man is beset on all sides by the iniquities of the selfish and the tyranny of evil men. Blessed is he who, in the name of charity and good will, shepherds the weak through the valley of darkness, for he is truly his brother&rsquo;s keeper and the finder of lost children. And I will strike down upon thee with great vengeance and furious anger those who would attempt to poison and destroy My brothers. And you will know My name is the Lord when I lay My vengeance upon thee.</p>
+
+<p>Your bones don&rsquo;t break, mine do. That&rsquo;s clear. Your cells react to bacteria and viruses differently than mine. You don&rsquo;t get sick, I do. That&rsquo;s also clear. But for some reason, you and I react the exact same way to water. We swallow it too fast, we choke. We get some in our lungs, we drown. However unreal it may seem, we are connected, you and I. We&rsquo;re on the same curve, just on opposite ends.</p>
+
+<p>Do you see any Teletubbies in here? Do you see a slender plastic tag clipped to my shirt with my name printed on it? Do you see a little Asian child with a blank expression on his face sitting outside on a mechanical helicopter that shakes when you put quarters in it? No? Well, that&rsquo;s what you see at a toy store. And you must think you&rsquo;re in a toy store, because you&rsquo;re here shopping for an infant named Jeb.</p>
+<a rel="full-article" href="http://rzrsharp.net/2012/07/22/the-problem-with-pingdom.html">Permalink</a>]]></content>&#8734;
+    
+  </entry>
+  
+  <entry>
+    
+    <title type="html"><![CDATA[Intro]]></title>
+    <link href="http://rzrsharp.net/2012/07/22/intro.html"/>
+    
+    <updated>2012-07-22T08:23:00-07:00</updated>
+    <id>http://rzrsharp.net/2012/07/22/intro</id>
+    
+    <content type="html"><![CDATA[<p>Testing!</p>
+
+<p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Duis sollicitudin, massa eu vestibulum laoreet, nibh ante vulputate lorem, ac lobortis ante tellus eu mi. Duis sem nisi, luctus at feugiat eget, fringilla ut tellus. Nam a molestie justo. Sed pulvinar est vitae tellus semper tincidunt. Fusce euismod luctus lacus nec placerat. Mauris rutrum scelerisque nulla ut tempor. Nunc porttitor posuere mi, aliquet vehicula lorem feugiat in. Ut ut fermentum risus. Aliquam tincidunt ultricies ante sit amet bibendum. Cras nec sapien odio. Duis posuere congue sem, at congue massa faucibus at.</p>
+
+<p>Integer ut sapien eget nisl auctor faucibus ut fermentum arcu. Nunc rutrum urna non risus congue et tristique felis eleifend. Maecenas blandit est eu mauris aliquam aliquet. Quisque porttitor enim eget risus blandit in mollis orci eleifend. Nam malesuada nulla sed lacus elementum placerat accumsan arcu rhoncus. Phasellus feugiat cursus turpis nec facilisis. Duis eget metus arcu, eget commodo velit. Cum sociis natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus. Integer cursus vulputate enim, vel gravida velit faucibus et. Ut a urna vitae tellus cursus rhoncus. Maecenas at odio eget quam cursus elementum. Aliquam vitae eros quis tellus laoreet accumsan sed id lorem. Suspendisse et rutrum leo. Integer scelerisque vestibulum adipiscing. In posuere, libero ac accumsan suscipit, nulla ligula gravida erat, ut tempor odio erat nec sem. Quisque justo ipsum, adipiscing volutpat varius vitae, blandit eget nisi.</p>
+
+<p>Nullam adipiscing neque ac lacus commodo vitae imperdiet dui sollicitudin. Ut ac nunc augue. Nam at sem ut quam commodo aliquet vitae vitae dui. Vivamus scelerisque felis eget dolor cursus feugiat. Phasellus at dui sed lectus scelerisque pretium. Etiam nec massa ut justo vestibulum fringilla ac vitae urna. Morbi tortor erat, tempus sed consectetur at, elementum nec eros. Vivamus mattis arcu a sapien semper non lacinia eros pretium.</p>
+
+<p>Proin ut hendrerit arcu. Maecenas ullamcorper tristique magna vel mattis. Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas. Nullam tincidunt euismod viverra. In sit amet neque turpis. Suspendisse ac sapien mi, id blandit purus. Ut tortor turpis, rutrum ac tempor at, accumsan sit amet erat. Etiam ultricies eleifend dolor, eget tempus justo tristique vitae. In hac habitasse platea dictumst. Aliquam eu enim neque.</p>
+
+<p>Morbi massa lorem, viverra non dictum at, malesuada vel nibh. Nam fermentum lobortis varius. Sed a nulla lacus, quis posuere risus. Nunc id urna libero, quis rutrum mi. In gravida felis urna. Praesent nec dolor ac urna tempor fermentum. Curabitur rutrum arcu et lorem volutpat viverra.</p>
+]]></content>
+    
+  </entry>
+  
+  <entry>
+    
     <title type="html"><![CDATA[Reflections on NodeConf 2012]]></title>
     <link href="http://rzrsharp.net/2012/07/06/reflections-on-nodeconf-2012.html"/>
+    
     <updated>2012-07-06T20:16:00-07:00</updated>
     <id>http://rzrsharp.net/2012/07/06/reflections-on-nodeconf-2012</id>
+    
     <content type="html"><![CDATA[<p>NodeConf 2012 was my first real &ldquo;developer&rdquo; conference. I had attended
 conferences in the past, but because of the heavy sponsorship of industry, most
 had felt like trade shows or job fairs. NodeConf was advertised as a conference
@@ -649,13 +727,17 @@ can continue to foster talks and events that focus on the behind-the-scenes
 developers who are laying the building blocks for the future of this
 fascinating set of technologies.</p>
 ]]></content>
+    
   </entry>
   
   <entry>
+    
     <title type="html"><![CDATA[Mastering Your Toolset]]></title>
     <link href="http://rzrsharp.net/2012/06/25/mastering-your-toolset.html"/>
+    
     <updated>2012-06-25T15:29:00-07:00</updated>
     <id>http://rzrsharp.net/2012/06/25/mastering-your-toolset</id>
+    
     <content type="html"><![CDATA[<p>When I originally started thinking about writing this post, I was going to
 phrase it in terms of spring cleaning. When I moved to Portland, I took the
 opportunity to reasses my development environment and to cleanup the libraries
@@ -749,13 +831,17 @@ for your needs; iOS means you&rsquo;re going to be stuck with Xcode, for better 
 from one technology to another, and haven&rsquo;t given &ldquo;the text triumvirate&rdquo; a try,
 I&rsquo;d very strongly recommend doing so. It&rsquo;s worth the effort.</p>
 ]]></content>
+    
   </entry>
   
   <entry>
+    
     <title type="html"><![CDATA[Blog Bankruptcy]]></title>
     <link href="http://rzrsharp.net/2012/06/11/blog-bankruptcy.html"/>
+    
     <updated>2012-06-11T16:13:00-07:00</updated>
     <id>http://rzrsharp.net/2012/06/11/blog-bankruptcy</id>
+    
     <content type="html"><![CDATA[<p>If you only know me through this blog, and have spent any amount of
 time playing Oregon Trail in your youth, you may have grown a bit
 concerned. It&rsquo;s been four months since
@@ -805,13 +891,17 @@ applications.</p>
 <p>So now, back to work so I can actually get these posts written in the
 next week!</p>
 ]]></content>
+    
   </entry>
   
   <entry>
+    
     <title type="html"><![CDATA[Goodbye, Brooklyn. Hello, Portland!]]></title>
     <link href="http://rzrsharp.net/2012/02/17/goodbye-brooklyn-hello-portland.html"/>
+    
     <updated>2012-02-17T13:23:00-08:00</updated>
     <id>http://rzrsharp.net/2012/02/17/goodbye-brooklyn-hello-portland</id>
+    
     <content type="html"><![CDATA[<p>Two and a half years ago, Meaghin and I moved from Washington, DC to Brooklyn.
 Our move came as a bit of a shock to our family and friends &ndash; partly because of
 its suddenness, and also because of its proximity to our marriage. The move to
@@ -884,13 +974,17 @@ confidence and skillset to do something about it.</p>
 for a big move. In a month I&rsquo;ll be a resident of Portland. I can&rsquo;t wait to find
 out what the future will bring.</p>
 ]]></content>
+    
   </entry>
   
   <entry>
+    
     <title type="html"><![CDATA[Why JavaScript on the Server Isn't Such a Bad Idea]]></title>
     <link href="http://rzrsharp.net/2012/02/15/why-javascript-on-the-server-isnt-such-a-bad-idea.html"/>
+    
     <updated>2012-02-15T14:39:00-08:00</updated>
     <id>http://rzrsharp.net/2012/02/15/why-javascript-on-the-server-isnt-such-a-bad-idea</id>
+    
     <content type="html"><![CDATA[<p>Preaching the gospel of Node can be a tough job: how do you express your
 excitement for the technology without coming across as a fanboy? And how do you
 deal with people that view it as a cancer? I had to answer these questions when
@@ -908,13 +1002,17 @@ just a reader.</p>
 
 <p>For even more insight into the developing world of &ldquo;JavaScript everywhere&rdquo;, check out <a href="http://www.youtube.com/watch?v=AG6dyk8lkZg">this video</a> from Joe McCann, principal architect of subPrint Interactive, on &ldquo;End to End JavaScript&rdquo;.</p>
 ]]></content>
+    
   </entry>
   
   <entry>
+    
     <title type="html"><![CDATA[Welcome to 2012]]></title>
     <link href="http://rzrsharp.net/2012/01/30/welcome-to-2012.html"/>
+    
     <updated>2012-01-30T16:31:00-08:00</updated>
     <id>http://rzrsharp.net/2012/01/30/welcome-to-2012</id>
+    
     <content type="html"><![CDATA[<p>January&rsquo;s been a long month; not in a <em>bad</em> sense, just sort of interminable. Looking through my links collection in notational velocity today, I found a good twenty plus from the last six weeks. I&rsquo;ve culled them down a bit to the true standouts:</p>
 
 <ul>
@@ -926,13 +1024,17 @@ just a reader.</p>
 </ul>
 
 ]]></content>
+    
   </entry>
   
   <entry>
+    
     <title type="html"><![CDATA[A Year in Coffee]]></title>
     <link href="http://rzrsharp.net/2012/01/12/a-year-in-coffee.html"/>
+    
     <updated>2012-01-12T13:48:00-08:00</updated>
     <id>http://rzrsharp.net/2012/01/12/a-year-in-coffee</id>
+    
     <content type="html"><![CDATA[<p>Last year was the first that I dove deeply into the coffee world, turning what
 was previously an interest into a full-blown passion. While I had previously
 ground beans at home and brewed in a french press, I decided sometime in 2010
@@ -984,13 +1086,17 @@ the Kieni from Nyeri, Kenya proved particularly delicious.</p>
 roast from <a href="http://www.cafegrumpy.com">Cafe Grumpy</a>, from Finca La Coqueta in
 Columbia. I look forward to finding out what my favorites will be <em>this</em> year.</p>
 ]]></content>
+    
   </entry>
   
   <entry>
+    
     <title type="html"><![CDATA[Better Support for Helpers in vows-bdd]]></title>
     <link href="http://rzrsharp.net/2011/12/05/better-support-for-helpers-in-vows-bdd.html"/>
+    
     <updated>2011-12-05T15:31:00-08:00</updated>
     <id>http://rzrsharp.net/2011/12/05/better-support-for-helpers-in-vows-bdd</id>
+    
     <content type="html"><![CDATA[<p>This last week has been a particularly busy one, so I&rsquo;ve been delayed in blogging,
 but I released v0.2 of vows-bdd to NPM a week ago. There&rsquo;s two changes of note.
 The first is proper documentation for the library: you can see the docco documentation
@@ -1169,13 +1275,17 @@ way to supporting declarative testing style.</p>
 <p>As always, please let me know if you run into any problems with the library or
 have any suggestions!</p>
 ]]></content>
+    
   </entry>
   
   <entry>
+    
     <title type="html"><![CDATA[Thanksgiving Week Links]]></title>
     <link href="http://rzrsharp.net/2011/11/21/thanksgiving-week-links.html"/>
+    
     <updated>2011-11-21T16:17:00-08:00</updated>
     <id>http://rzrsharp.net/2011/11/21/thanksgiving-week-links</id>
+    
     <content type="html"><![CDATA[<p>I&rsquo;ve never been a fan of links posts &ndash; they always feel like &ldquo;clips
 episodes&rdquo; from sitcoms to me &ndash; but I&rsquo;ve realized that they can be pretty helpful, if
 they&rsquo;re well curated. I&rsquo;m going to be experimenting with the &ldquo;well curated&rdquo; sort
@@ -1213,13 +1323,17 @@ I was excited to see <a href="http://www.avc.com/a_vc/2011/11/sustainability.htm
 
 
 ]]></content>
+    
   </entry>
   
   <entry>
+    
     <title type="html"><![CDATA[Fix That Commit!]]></title>
     <link href="http://rzrsharp.net/2011/11/10/fix-that-commit.html"/>
+    
     <updated>2011-11-10T16:55:00-08:00</updated>
     <id>http://rzrsharp.net/2011/11/10/fix-that-commit</id>
+    
     <content type="html"><![CDATA[<p>While it sometimes seems as if everyone has already switched to git (or a similar distributed
 version control system), I still meet people who are only leaving subversion
 behind now. A lot of git&rsquo;s idioms are impenetrable to those who are new to it, but the presence
@@ -1238,13 +1352,17 @@ you&rsquo;re done, <code>git commit --amend</code> and <code>git rebase --contin
 upstream or issuing a pull request. With the ability to revisit any previous commit, you
 can be more comfortable in a &lsquo;commit-all-the-time&rsquo; workflow.</p>
 ]]></content>
+    
   </entry>
   
   <entry>
+    
     <title type="html"><![CDATA[Cleaning Up Yours Vows]]></title>
     <link href="http://rzrsharp.net/2011/11/10/cleaning-up-yours-vows.html"/>
+    
     <updated>2011-11-10T11:07:00-08:00</updated>
     <id>http://rzrsharp.net/2011/11/10/cleaning-up-yours-vows</id>
+    
     <content type="html"><![CDATA[<p>Learning a framework as you&rsquo;re TDD-ing a project can be dangerous. But even if you
 know what you&rsquo;re doing, some of the conveniences of node.js can make you a bit sloppy
 with your code. Namely, the ability to pull functions from files as you need them and pass
@@ -1590,13 +1708,17 @@ across my tests:</p>
 
 
 ]]></content>
+    
   </entry>
   
   <entry>
+    
     <title type="html"><![CDATA[Indie Productivity]]></title>
     <link href="http://rzrsharp.net/2011/11/04/indie-productivity.html"/>
+    
     <updated>2011-11-04T14:25:00-07:00</updated>
     <id>http://rzrsharp.net/2011/11/04/indie-productivity</id>
+    
     <content type="html"><![CDATA[<p>Being a contract web developer means working in a large number of enterprise
 environments. While clients and projects vary dramatically, enterprise
 environments almost always share certain characteristics in common: locked down
@@ -1660,13 +1782,17 @@ advantage in tools, cost, and agility over large organizations?</p>
 
 <p>It&rsquo;s an exciting time for indie developers. And the future keeps looking better.</p>
 ]]></content>
+    
   </entry>
   
   <entry>
+    
     <title type="html"><![CDATA[Back from Vacation]]></title>
     <link href="http://rzrsharp.net/2011/09/13/back-from-vacation.html"/>
+    
     <updated>2011-09-13T00:00:00-07:00</updated>
     <id>http://rzrsharp.net/2011/09/13/back-from-vacation</id>
+    
     <content type="html"><![CDATA[<p>I just returned from a fantastic vacation to London and Copenhagen. I&rsquo;d visited
 London, before but had never been to Copenhagen, or any Scandinavian country.
 As an engineer, I could barely wrap my mind around the brilliant efficiencies
@@ -1697,13 +1823,17 @@ that uses minimalism and consistency to foster reuse.</p></blockquote>
 API construction to individual units of code. I&rsquo;m certainly planning on using them
 as my mantra as I slowly get back up to speed with work.</p>
 ]]></content>
+    
   </entry>
   
   <entry>
+    
     <title type="html"><![CDATA[Introducing vows-bdd]]></title>
     <link href="http://rzrsharp.net/2011/08/16/introducing-vows-bdd.html"/>
+    
     <updated>2011-08-16T00:00:00-07:00</updated>
     <id>http://rzrsharp.net/2011/08/16/introducing-vows-bdd</id>
+    
     <content type="html"><![CDATA[<p>My work with Node.js has recently transformed from the occassional experiment to
 the building of a full-on side project. It&rsquo;s fascinating to be working with a set
 of tools that are so rapidly developing; the energy and excitement in the Node
@@ -1944,164 +2074,7 @@ useful, then maybe someone else will too.</p>
 <p>So please &ndash; <a href="https://github.com/jmreidy/vows-bdd">checkout vows-bdd</a> and give it a whirl.
 Any suggestions or comments would be very much appreciated!</p>
 ]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA["This" in Anonymous Functions
-]]></title>
-    <link href="http://rzrsharp.net/2011/07/08/this-in-anonymous-functions.html"/>
-    <updated>2011-07-08T00:00:00-07:00</updated>
-    <id>http://rzrsharp.net/2011/07/08/this-in-anonymous-functions</id>
-    <content type="html"><![CDATA[<p>Sometimes it&rsquo;s difficult to find an easy answer to common coding questions. Because
-Google ignores most punctuation, even the most exact queries fail to produce
-relevant results. Questions about the nature and value of <code>this</code> in Javascript present
-a particularly thorny problem, since &ldquo;this&rdquo; is about as common a word as you can find.</p>
-
-<p>A common point of confusion in Javascript is that the value of <code>this</code> depends entirely
-on a function&rsquo;s context, and can even be overridden depending on how a function is
-invoked. Hopefully this post will save time for new Javascript devs trolling through
-Google&rsquo;s depths:</p>
-
-<blockquote><p>In anonymous functions, the value of <code>this</code> refers to the anonymous function itself,
-and not the calling scope. However, the nature of closures allows the anonymous function
-to still refer to the calling object.</p></blockquote>
-
-<p>The above rule is demonstrated with the following nodejs code:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-</pre></td><td class='code'><pre><code class='javascript'><span class='line'><span class="kd">var</span> <span class="nx">that</span> <span class="o">=</span> <span class="k">this</span><span class="p">;</span>
-</span><span class='line'><span class="nx">that</span><span class="p">.</span><span class="nx">foo</span> <span class="o">=</span> <span class="s1">&#39;bar&#39;</span><span class="p">;</span>
-</span><span class='line'><span class="nx">process</span><span class="p">.</span><span class="nx">nextTick</span><span class="p">(</span><span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
-</span><span class='line'>  <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;this &quot;</span> <span class="o">+</span> <span class="k">this</span><span class="p">.</span><span class="nx">foo</span> <span class="o">+</span> <span class="s2">&quot; and that &quot;</span> <span class="o">+</span> <span class="nx">that</span><span class="p">.</span><span class="nx">foo</span><span class="p">)</span> <span class="p">});</span>
-</span></code></pre></td></tr></table></div></figure>
-
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[What Does Coffeescript's "do" Do?]]></title>
-    <link href="http://rzrsharp.net/2011/06/27/what-does-coffeescripts-do-do.html"/>
-    <updated>2011-06-27T00:00:00-07:00</updated>
-    <id>http://rzrsharp.net/2011/06/27/what-does-coffeescripts-do-do</id>
-    <content type="html"><![CDATA[<p>When reading over some Node.js source code written in Coffeescript, I came across
-a couple uses of the Coffeescript <code>do</code> operator. While <code>do</code> is a very familiar tool
-for Ruby developers, I wasn&rsquo;t sure how Coffeescript used it, so I took at look at
-its documentation, which states:</p>
-
-<blockquote><p>When using a JavaScript loop to generate functions, it&rsquo;s common to insert a closure
-wrapper in order to ensure that loop variables are closed over, and all the
-generated functions don&rsquo;t just share the final values. CoffeeScript provides the
-do keyword, which immediately invokes a passed function, forwarding any arguments.</p></blockquote>
-
-<p>&ldquo;All the generated functions don&rsquo;t just share the final values.&rdquo; Huh. This statement
-didn&rsquo;t mean a lot to me. A little searching on Google led to a fairly helpful post
-on <a href="http://stackoverflow.com/questions/643542/doesnt-javascript-support-closures-with-local-variables/643664#643664">Stack Overflow</a>. The question there presented the following Javascript:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-<span class='line-number'>14</span>
-<span class='line-number'>15</span>
-<span class='line-number'>16</span>
-<span class='line-number'>17</span>
-</pre></td><td class='code'><pre><code class='javascript'><span class='line'><span class="kd">var</span> <span class="nx">closures</span> <span class="o">=</span> <span class="p">[];</span>
-</span><span class='line'><span class="kd">function</span> <span class="nx">create</span><span class="p">()</span> <span class="p">{</span>
-</span><span class='line'>  <span class="k">for</span> <span class="p">(</span><span class="kd">var</span> <span class="nx">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="nx">i</span> <span class="o">&lt;</span> <span class="mi">5</span><span class="p">;</span> <span class="nx">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
-</span><span class='line'>    <span class="nx">closures</span><span class="p">[</span><span class="nx">i</span><span class="p">]</span> <span class="o">=</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
-</span><span class='line'>      <span class="nx">alert</span><span class="p">(</span><span class="s2">&quot;i = &quot;</span> <span class="o">+</span> <span class="nx">i</span><span class="p">);</span>
-</span><span class='line'>    <span class="p">};</span>
-</span><span class='line'>  <span class="p">}</span>
-</span><span class='line'><span class="p">}</span>
-</span><span class='line'>
-</span><span class='line'><span class="kd">function</span> <span class="nx">run</span><span class="p">()</span> <span class="p">{</span>
-</span><span class='line'>  <span class="k">for</span> <span class="p">(</span><span class="kd">var</span> <span class="nx">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="nx">i</span> <span class="o">&lt;</span> <span class="mi">5</span><span class="p">;</span> <span class="nx">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
-</span><span class='line'>    <span class="nx">closures</span><span class="p">[</span><span class="nx">i</span><span class="p">]();</span>
-</span><span class='line'>  <span class="p">}</span>
-</span><span class='line'><span class="p">}</span>
-</span><span class='line'>
-</span><span class='line'><span class="nx">create</span><span class="p">();</span>
-</span><span class='line'><span class="nx">run</span><span class="p">();</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>The question stated that the result of running this code was <code>5,5,5,5,5</code> instead
-of the expect <code>0,1,2,3,4</code>. The answer which created the &ldquo;correct&rdquo; result
-provided the code below:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-</pre></td><td class='code'><pre><code class='javascript'><span class='line'><span class="kd">function</span> <span class="nx">create</span><span class="p">()</span> <span class="p">{</span>
-</span><span class='line'>  <span class="k">for</span> <span class="p">(</span><span class="kd">var</span> <span class="nx">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="nx">i</span> <span class="o">&lt;</span> <span class="mi">5</span><span class="p">;</span> <span class="nx">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
-</span><span class='line'>    <span class="nx">closures</span><span class="p">[</span><span class="nx">i</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="kd">function</span><span class="p">(</span><span class="nx">tmp</span><span class="p">)</span> <span class="p">{</span>
-</span><span class='line'>      <span class="k">return</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
-</span><span class='line'>        <span class="nx">alert</span><span class="p">(</span><span class="s2">&quot;i = &quot;</span> <span class="o">+</span> <span class="nx">tmp</span><span class="p">);</span>
-</span><span class='line'>      <span class="p">};</span>
-</span><span class='line'>    <span class="p">})(</span><span class="nx">i</span><span class="p">);</span>
-</span><span class='line'>  <span class="p">}</span>
-</span><span class='line'><span class="p">}</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>and also explained:</p>
-
-<blockquote><p>JavaScript&rsquo;s scopes are function-level, not block-level, and creating a closure just means that the enclosing scope gets added to the lexical environment of the enclosed function.</p></blockquote>
-
-<p>OK, this was even less helpful. But after going back and reading the Coffeescript
-docs again, the concept made sense. As always with Javascript, the <em>context</em> in
-which a function is called demands as much attention as the function itself. Reading
-the code in the Stack Overflow post, a developer&rsquo;s brain automatically thinks of the
-returned function at the time of evaluation. But in reality, each of those functions
-created in the <code>create</code> function aren&rsquo;t called until <em>after</em> the for loop has completed.
-Thus, by the time each function is called, it evaluates <code>i</code> when <code>i</code> has already
-finished the loop with a value of <code>5</code>. The closure-wrapping provided in the answer
-is exactly what the <code>do</code> keyword in Coffeescript provides!</p>
-
-<p>Here&rsquo;s an example of the solution&rsquo;s function, in Coffeescript:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-</pre></td><td class='code'><pre><code class='coffeescript'><span class='line'><span class="nv">closures = </span><span class="p">[]</span>
-</span><span class='line'><span class="nx">create</span> <span class="nf">-&gt;</span>
-</span><span class='line'>  <span class="k">for</span> <span class="nx">i</span> <span class="k">in</span> <span class="p">[</span><span class="mi">0</span><span class="p">..</span><span class="mi">5</span><span class="p">]</span>
-</span><span class='line'>    <span class="nx">closures</span><span class="p">[</span><span class="nx">i</span><span class="p">]</span> <span class="o">=</span> <span class="nx">do</span> <span class="nf">(i) -&gt;</span>
-</span><span class='line'>      <span class="nf">-&gt;</span> <span class="nx">alert</span> <span class="nx">i</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>Even with this contrived example, I find the Coffeescript easier to read, although
-of course it&rsquo;s personal preference. If you wanted to go really crazy with Coffeescript
-syntax, you could write:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-</pre></td><td class='code'><pre><code class='coffeescript'><span class='line'>  <span class="nv">closures = </span><span class="p">((</span><span class="nx">do</span> <span class="nf">(i) -&gt;</span> <span class="nf">-&gt;</span> <span class="nx">alert</span> <span class="nx">i</span><span class="p">)</span> <span class="k">for</span> <span class="nx">i</span> <span class="k">in</span> <span class="p">[</span><span class="mi">0</span><span class="p">..</span><span class="mi">5</span><span class="p">])</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>Two points for cool implementation, no points for readability!</p>
-]]></content>
+    
   </entry>
   
 </feed>
