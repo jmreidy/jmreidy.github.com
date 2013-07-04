@@ -4,7 +4,7 @@
   <title><![CDATA[Razor Sharp Design]]></title>
   <link href="http://rzrsharp.net/atom.xml" rel="self"/>
   <link href="http://rzrsharp.net/"/>
-  <updated>2013-06-28T14:38:10-07:00</updated>
+  <updated>2013-07-03T19:15:37-07:00</updated>
   <id>http://rzrsharp.net/</id>
   <author>
     <name><![CDATA[Justin Reidy]]></name>
@@ -12,6 +12,97 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    
+    <title type="html"><![CDATA[Private Github Repos with NPM &amp; Heroku]]></title>
+    <link href="http://rzrsharp.net/2013/07/02/private-github-repos-with-npm-and-heroku.html"/>
+    
+    <updated>2013-07-02T16:59:00-07:00</updated>
+    <id>http://rzrsharp.net/2013/07/02/private-github-repos-with-npm-and-heroku</id>
+    
+    <content type="html"><![CDATA[<p>As you spend time coding in the Node.js ecosystem, you become increasingly
+reliant on small modules, both consuming them and building them yourself.
+This habit of building and composing modular toolsets begins
+to extend beyond library code, and you start to think of web application code
+as a collection of modules. Data models, for example, can be easily
+packaged into a separate Node module for re-use in related applications
+(and to chunk off a set of application dependencies).</p>
+
+<p>Seeing code that can be broken off into its own module, you dutifully follow
+your Node.js instincts, break off the code, and move it to its own directory.
+You create a new private Github repo for this small module, and push it up.
+But how do you re-integrate this new (actively developed) sub-project back into
+its containing projects?</p>
+
+<p>NPM has always made it easy to manage Node modules as Git submodules. The NPM
+<a href="https://npmjs.org/api/submodule.html">submodule</a> command will add a package
+dependency as a Git submodule, and from then on will basically ignore the
+containing folder, letting you update and modify the package as you will.
+There&rsquo;s also NPM&rsquo;s <a href="https://npmjs.org/api/link.html">link</a> command, which will
+install a package dependency from a symlink on your development machine rather
+than from the npmjs.org repository.</p>
+
+<p>But when it comes to the common use case of deploying a web app with a Git submodule package to Heroku, things get complicated:</p>
+
+<ol>
+<li><p>Your submodules are private Github repositories, so you need to get access
+to them without sacrificing account security;</p></li>
+<li><p>Assuming you get around the first challenge, Git submodules are autotomatically
+installed on Heroku deploy, and then NPM will stubbornly refuse to install the
+submodule dependencies;</p></li>
+<li><p>If you&rsquo;re using <code>npm shrinkwrap</code> to lock down your app dependencies, the
+presence of Git submodules or linked directories screws up the shrinkwrap
+metadata and makes install difficult.</p></li>
+</ol>
+
+
+<p>There&rsquo;s a very specific approach you need to take to work around these issues.</p>
+
+<p>First, there&rsquo;s the account security issue. HTTPS access to your Github
+repositories allows you to use a username and password instead of an SSH key,
+but then you&rsquo;re putting your account credentials in plaintext &ndash; an
+obvious problem. Thankfully, you can use Github&rsquo;s OAuth token support to better
+secure your repositories. Follow <a href="https://help.github.com/articles/creating-an-oauth-token-for-command-line-use">Github&rsquo;s instructions</a>
+for creating a token with &ldquo;repo&rdquo; scope. Then, in your package.json, add the following for your submodule:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='javascript'><span class='line'>  <span class="s2">&quot;package-name&quot;</span><span class="o">:</span> <span class="s2">&quot;git+https://&lt;github_token&gt;:x-oauth-basic@github.com/&lt;user&gt;/&lt;repo&gt;.git&quot;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Great! Now you&rsquo;ve got an installable submodule that can be deployed to Heroku
+and/or shrinkwrapped without a problem.</p>
+
+<p>But if your module is changing frequently (e.g. its under active development along
+with its parent project), you probably want a &ldquo;live&rdquo; version of the code in
+your project folder. Using a Git submodule solves some problems but introduces
+others. The best approach is to use <code>npm link</code> to link a checked-out copy of
+the submodule from elsewhere on your filesystem.</p>
+
+<p>Sadly, <code>link</code>-ing to a project will cause problems for you if you use <code>npm
+shrinkwrap</code>. Shrinkwrap tracks the origin of each node module, and when you
+link, you lose that nice OAuth-ified Github url. There&rsquo;s only one way around
+this problem, and while it feels a bit hacky, it works. Add that <code>git+https</code>
+url from above (the one with the OAuth token) to a <code>_from</code> field in each
+submodule&rsquo;s <code>package.json</code>. <code>shrinkwrap</code> will defer to this field whenever it&rsquo;s
+run.</p>
+
+<p>So the succint list of steps:</p>
+
+<ol>
+<li><p>Create a Github OAuth token.</p></li>
+<li><p>Add Github module dependencies to your main app&rsquo;s <code>package.json</code> file with the URL scheme specified above.</p></li>
+<li><p>Add the same URL to your submodule packages&#8217; <code>_from</code> fields.</p></li>
+<li><p><code>npm link</code> the submodules if you&rsquo;re actively working on them.</p></li>
+<li><p>Deploy to Heroku as normal and everything will just work.</p></li>
+</ol>
+
+
+<p>&hellip;Hopefully.</p>
+]]></content>
+    
+  </entry>
   
   <entry>
     
@@ -2053,133 +2144,6 @@ to still refer to the calling object.</p></blockquote>
 </span><span class='line'>  <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;this &quot;</span> <span class="o">+</span> <span class="k">this</span><span class="p">.</span><span class="nx">foo</span> <span class="o">+</span> <span class="s2">&quot; and that &quot;</span> <span class="o">+</span> <span class="nx">that</span><span class="p">.</span><span class="nx">foo</span><span class="p">)</span> <span class="p">});</span>
 </span></code></pre></td></tr></table></div></figure>
 
-]]></content>
-    
-  </entry>
-  
-  <entry>
-    
-    <title type="html"><![CDATA[What Does Coffeescript's "do" Do?]]></title>
-    <link href="http://rzrsharp.net/2011/06/27/what-does-coffeescripts-do-do.html"/>
-    
-    <updated>2011-06-27T00:00:00-07:00</updated>
-    <id>http://rzrsharp.net/2011/06/27/what-does-coffeescripts-do-do</id>
-    
-    <content type="html"><![CDATA[<p>When reading over some Node.js source code written in Coffeescript, I came across
-a couple uses of the Coffeescript <code>do</code> operator. While <code>do</code> is a very familiar tool
-for Ruby developers, I wasn&rsquo;t sure how Coffeescript used it, so I took at look at
-its documentation, which states:</p>
-
-<blockquote><p>When using a JavaScript loop to generate functions, it&rsquo;s common to insert a closure
-wrapper in order to ensure that loop variables are closed over, and all the
-generated functions don&rsquo;t just share the final values. CoffeeScript provides the
-do keyword, which immediately invokes a passed function, forwarding any arguments.</p></blockquote>
-
-<p>&ldquo;All the generated functions don&rsquo;t just share the final values.&rdquo; Huh. This statement
-didn&rsquo;t mean a lot to me. A little searching on Google led to a fairly helpful post
-on <a href="http://stackoverflow.com/questions/643542/doesnt-javascript-support-closures-with-local-variables/643664#643664">Stack Overflow</a>. The question there presented the following Javascript:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-<span class='line-number'>14</span>
-<span class='line-number'>15</span>
-<span class='line-number'>16</span>
-<span class='line-number'>17</span>
-</pre></td><td class='code'><pre><code class='javascript'><span class='line'><span class="kd">var</span> <span class="nx">closures</span> <span class="o">=</span> <span class="p">[];</span>
-</span><span class='line'><span class="kd">function</span> <span class="nx">create</span><span class="p">()</span> <span class="p">{</span>
-</span><span class='line'>  <span class="k">for</span> <span class="p">(</span><span class="kd">var</span> <span class="nx">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="nx">i</span> <span class="o">&lt;</span> <span class="mi">5</span><span class="p">;</span> <span class="nx">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
-</span><span class='line'>    <span class="nx">closures</span><span class="p">[</span><span class="nx">i</span><span class="p">]</span> <span class="o">=</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
-</span><span class='line'>      <span class="nx">alert</span><span class="p">(</span><span class="s2">&quot;i = &quot;</span> <span class="o">+</span> <span class="nx">i</span><span class="p">);</span>
-</span><span class='line'>    <span class="p">};</span>
-</span><span class='line'>  <span class="p">}</span>
-</span><span class='line'><span class="p">}</span>
-</span><span class='line'>
-</span><span class='line'><span class="kd">function</span> <span class="nx">run</span><span class="p">()</span> <span class="p">{</span>
-</span><span class='line'>  <span class="k">for</span> <span class="p">(</span><span class="kd">var</span> <span class="nx">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="nx">i</span> <span class="o">&lt;</span> <span class="mi">5</span><span class="p">;</span> <span class="nx">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
-</span><span class='line'>    <span class="nx">closures</span><span class="p">[</span><span class="nx">i</span><span class="p">]();</span>
-</span><span class='line'>  <span class="p">}</span>
-</span><span class='line'><span class="p">}</span>
-</span><span class='line'>
-</span><span class='line'><span class="nx">create</span><span class="p">();</span>
-</span><span class='line'><span class="nx">run</span><span class="p">();</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>The question stated that the result of running this code was <code>5,5,5,5,5</code> instead
-of the expect <code>0,1,2,3,4</code>. The answer which created the &ldquo;correct&rdquo; result
-provided the code below:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-</pre></td><td class='code'><pre><code class='javascript'><span class='line'><span class="kd">function</span> <span class="nx">create</span><span class="p">()</span> <span class="p">{</span>
-</span><span class='line'>  <span class="k">for</span> <span class="p">(</span><span class="kd">var</span> <span class="nx">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="nx">i</span> <span class="o">&lt;</span> <span class="mi">5</span><span class="p">;</span> <span class="nx">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
-</span><span class='line'>    <span class="nx">closures</span><span class="p">[</span><span class="nx">i</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="kd">function</span><span class="p">(</span><span class="nx">tmp</span><span class="p">)</span> <span class="p">{</span>
-</span><span class='line'>      <span class="k">return</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
-</span><span class='line'>        <span class="nx">alert</span><span class="p">(</span><span class="s2">&quot;i = &quot;</span> <span class="o">+</span> <span class="nx">tmp</span><span class="p">);</span>
-</span><span class='line'>      <span class="p">};</span>
-</span><span class='line'>    <span class="p">})(</span><span class="nx">i</span><span class="p">);</span>
-</span><span class='line'>  <span class="p">}</span>
-</span><span class='line'><span class="p">}</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>and also explained:</p>
-
-<blockquote><p>JavaScript&rsquo;s scopes are function-level, not block-level, and creating a closure just means that the enclosing scope gets added to the lexical environment of the enclosed function.</p></blockquote>
-
-<p>OK, this was even less helpful. But after going back and reading the Coffeescript
-docs again, the concept made sense. As always with Javascript, the <em>context</em> in
-which a function is called demands as much attention as the function itself. Reading
-the code in the Stack Overflow post, a developer&rsquo;s brain automatically thinks of the
-returned function at the time of evaluation. But in reality, each of those functions
-created in the <code>create</code> function aren&rsquo;t called until <em>after</em> the for loop has completed.
-Thus, by the time each function is called, it evaluates <code>i</code> when <code>i</code> has already
-finished the loop with a value of <code>5</code>. The closure-wrapping provided in the answer
-is exactly what the <code>do</code> keyword in Coffeescript provides!</p>
-
-<p>Here&rsquo;s an example of the solution&rsquo;s function, in Coffeescript:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-</pre></td><td class='code'><pre><code class='coffeescript'><span class='line'><span class="nv">closures = </span><span class="p">[]</span>
-</span><span class='line'><span class="nx">create</span> <span class="nf">-&gt;</span>
-</span><span class='line'>  <span class="k">for</span> <span class="nx">i</span> <span class="k">in</span> <span class="p">[</span><span class="mi">0</span><span class="p">..</span><span class="mi">5</span><span class="p">]</span>
-</span><span class='line'>    <span class="nx">closures</span><span class="p">[</span><span class="nx">i</span><span class="p">]</span> <span class="o">=</span> <span class="nx">do</span> <span class="nf">(i) -&gt;</span>
-</span><span class='line'>      <span class="nf">-&gt;</span> <span class="nx">alert</span> <span class="nx">i</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>Even with this contrived example, I find the Coffeescript easier to read, although
-of course it&rsquo;s personal preference. If you wanted to go really crazy with Coffeescript
-syntax, you could write:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-</pre></td><td class='code'><pre><code class='coffeescript'><span class='line'>  <span class="nv">closures = </span><span class="p">((</span><span class="nx">do</span> <span class="nf">(i) -&gt;</span> <span class="nf">-&gt;</span> <span class="nx">alert</span> <span class="nx">i</span><span class="p">)</span> <span class="k">for</span> <span class="nx">i</span> <span class="k">in</span> <span class="p">[</span><span class="mi">0</span><span class="p">..</span><span class="mi">5</span><span class="p">])</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>Two points for cool implementation, no points for readability!</p>
 ]]></content>
     
   </entry>

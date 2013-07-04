@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: Heroku | Razor Sharp Design]]></title>
+  <link href="http://rzrsharp.net/blog/categories/heroku/atom.xml" rel="self"/>
+  <link href="http://rzrsharp.net/"/>
+  <updated>2013-07-03T19:15:37-07:00</updated>
+  <id>http://rzrsharp.net/</id>
+  <author>
+    <name><![CDATA[Justin Reidy]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[Private Github Repos with NPM &amp; Heroku]]></title>
+    <link href="http://rzrsharp.net/2013/07/02/private-github-repos-with-npm-and-heroku.html"/>
+    <updated>2013-07-02T16:59:00-07:00</updated>
+    <id>http://rzrsharp.net/2013/07/02/private-github-repos-with-npm-and-heroku</id>
+    <content type="html"><![CDATA[<p>As you spend time coding in the Node.js ecosystem, you become increasingly
+reliant on small modules, both consuming them and building them yourself.
+This habit of building and composing modular toolsets begins
+to extend beyond library code, and you start to think of web application code
+as a collection of modules. Data models, for example, can be easily
+packaged into a separate Node module for re-use in related applications
+(and to chunk off a set of application dependencies).</p>
+
+<p>Seeing code that can be broken off into its own module, you dutifully follow
+your Node.js instincts, break off the code, and move it to its own directory.
+You create a new private Github repo for this small module, and push it up.
+But how do you re-integrate this new (actively developed) sub-project back into
+its containing projects?</p>
+
+<p>NPM has always made it easy to manage Node modules as Git submodules. The NPM
+<a href="https://npmjs.org/api/submodule.html">submodule</a> command will add a package
+dependency as a Git submodule, and from then on will basically ignore the
+containing folder, letting you update and modify the package as you will.
+There&rsquo;s also NPM&rsquo;s <a href="https://npmjs.org/api/link.html">link</a> command, which will
+install a package dependency from a symlink on your development machine rather
+than from the npmjs.org repository.</p>
+
+<p>But when it comes to the common use case of deploying a web app with a Git submodule package to Heroku, things get complicated:</p>
+
+<ol>
+<li><p>Your submodules are private Github repositories, so you need to get access
+to them without sacrificing account security;</p></li>
+<li><p>Assuming you get around the first challenge, Git submodules are autotomatically
+installed on Heroku deploy, and then NPM will stubbornly refuse to install the
+submodule dependencies;</p></li>
+<li><p>If you&rsquo;re using <code>npm shrinkwrap</code> to lock down your app dependencies, the
+presence of Git submodules or linked directories screws up the shrinkwrap
+metadata and makes install difficult.</p></li>
+</ol>
+
+
+<p>There&rsquo;s a very specific approach you need to take to work around these issues.</p>
+
+<p>First, there&rsquo;s the account security issue. HTTPS access to your Github
+repositories allows you to use a username and password instead of an SSH key,
+but then you&rsquo;re putting your account credentials in plaintext &ndash; an
+obvious problem. Thankfully, you can use Github&rsquo;s OAuth token support to better
+secure your repositories. Follow <a href="https://help.github.com/articles/creating-an-oauth-token-for-command-line-use">Github&rsquo;s instructions</a>
+for creating a token with &ldquo;repo&rdquo; scope. Then, in your package.json, add the following for your submodule:</p>
+
+<p><code>javascript
+  "package-name": "git+https://&lt;github_token&gt;:x-oauth-basic@github.com/&lt;user&gt;/&lt;repo&gt;.git"
+</code></p>
+
+<p>Great! Now you&rsquo;ve got an installable submodule that can be deployed to Heroku
+and/or shrinkwrapped without a problem.</p>
+
+<p>But if your module is changing frequently (e.g. its under active development along
+with its parent project), you probably want a &ldquo;live&rdquo; version of the code in
+your project folder. Using a Git submodule solves some problems but introduces
+others. The best approach is to use <code>npm link</code> to link a checked-out copy of
+the submodule from elsewhere on your filesystem.</p>
+
+<p>Sadly, <code>link</code>-ing to a project will cause problems for you if you use <code>npm
+shrinkwrap</code>. Shrinkwrap tracks the origin of each node module, and when you
+link, you lose that nice OAuth-ified Github url. There&rsquo;s only one way around
+this problem, and while it feels a bit hacky, it works. Add that <code>git+https</code>
+url from above (the one with the OAuth token) to a <code>_from</code> field in each
+submodule&rsquo;s <code>package.json</code>. <code>shrinkwrap</code> will defer to this field whenever it&rsquo;s
+run.</p>
+
+<p>So the succint list of steps:</p>
+
+<ol>
+<li><p>Create a Github OAuth token.</p></li>
+<li><p>Add Github module dependencies to your main app&rsquo;s <code>package.json</code> file with the URL scheme specified above.</p></li>
+<li><p>Add the same URL to your submodule packages' <code>_from</code> fields.</p></li>
+<li><p><code>npm link</code> the submodules if you&rsquo;re actively working on them.</p></li>
+<li><p>Deploy to Heroku as normal and everything will just work.</p></li>
+</ol>
+
+
+<p>&hellip;Hopefully.</p>
+]]></content>
+  </entry>
+  
+</feed>

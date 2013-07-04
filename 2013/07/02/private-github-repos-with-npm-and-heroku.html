@@ -5,12 +5,12 @@
 <!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
 <head>
   <meta charset="utf-8">
-  <title>Indie Productivity - Razor Sharp Design</title>
+  <title>Private Github Repos with NPM &amp; Heroku - Razor Sharp Design</title>
   <meta name="author" content="Justin Reidy">
 
   
-  <meta name="description" content="Being a contract web developer means working in a large number of enterprise
-environments. While clients and projects vary dramatically, enterprise &hellip;">
+  <meta name="description" content="As you spend time coding in the Node.js ecosystem, you become increasingly
+reliant on small modules, both consuming them and building them yourself. &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -19,7 +19,7 @@ environments. While clients and projects vary dramatically, enterprise &hellip;"
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
   
-  <link rel="canonical" href="http://rzrsharp.net/2011/11/04/indie-productivity.html">
+  <link rel="canonical" href="http://rzrsharp.net/2013/07/02/private-github-repos-with-npm-and-heroku.html">
   <link href="/favicon.png" rel="icon">
   <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
   <link href="/atom.xml" rel="alternate" title="Razor Sharp Design" type="application/atom+xml">
@@ -82,7 +82,7 @@ environments. While clients and projects vary dramatically, enterprise &hellip;"
   <header>
   
     
-      <h1 class="entry-title">Indie Productivity</h1>
+      <h1 class="entry-title">Private Github Repos With NPM &amp; Heroku</h1>
     
   
     
@@ -99,7 +99,7 @@ environments. While clients and projects vary dramatically, enterprise &hellip;"
   
 
 
-<time datetime="2011-11-04T14:25:00-07:00" pubdate data-updated="true">Nov 4<span>th</span>, 2011</time>
+<time datetime="2013-07-02T16:59:00-07:00" pubdate data-updated="true">Jul 2<span>nd</span>, 2013</time>
         
          | <a href="#disqus_thread">Comments</a>
         
@@ -108,68 +108,85 @@ environments. While clients and projects vary dramatically, enterprise &hellip;"
   </header>
 
 
-<div class="entry-content"><p>Being a contract web developer means working in a large number of enterprise
-environments. While clients and projects vary dramatically, enterprise
-environments almost always share certain characteristics in common: locked down
-networks, limited use of open source libraries (and certainly no
-contribution!), extreme caution regarding new technologies, and reliance on
-libraries and tools which some might consider&hellip; deprecated. Most of these
-characteristics are perfectly logical, given the complexity of enterprise
-projects and the security required by legal considerations. Enterprise software
-is frequently disregarded as sloppy, boring, uncreative, and poor &mdash; and I&rsquo;ve
-certainly worked on these kinds of projects, and dealt with some
-frustrating situations &mdash; but classifying <em>all</em> software in this way is unfair.
-That said, even the best of enterprise projects feel constraining compared to
-independent work.</p>
+<div class="entry-content"><p>As you spend time coding in the Node.js ecosystem, you become increasingly
+reliant on small modules, both consuming them and building them yourself.
+This habit of building and composing modular toolsets begins
+to extend beyond library code, and you start to think of web application code
+as a collection of modules. Data models, for example, can be easily
+packaged into a separate Node module for re-use in related applications
+(and to chunk off a set of application dependencies).</p>
 
-<p>Recent developments have certainly improvemed the enterprise work
-environment. The proliferation of iOS devices has not only brought Macs into
-the traditionally Windows-only world of the enterprise; it&rsquo;s brought a new
-focus on standards-based webapps, which has forced
-a reconsideration of existing technology stacks. As enterprises have adopted
-dynamic languages and agile approaches &mdash; albeit slowly &mdash; they&rsquo;ve begun
-upgrading their toolsets, as well. <a href="https://github.com/blog/978-introducing-github-enterprise">Github&rsquo;s announcement of an enterprise plan</a> demonstrates that it&rsquo;s starting to feel a little bit more
-human within the confines of corporate intranets.</p>
+<p>Seeing code that can be broken off into its own module, you dutifully follow
+your Node.js instincts, break off the code, and move it to its own directory.
+You create a new private Github repo for this small module, and push it up.
+But how do you re-integrate this new (actively developed) sub-project back into
+its containing projects?</p>
 
-<p>But even as the enterprise has evolved, the improvements made for individual
-developer productivity have exploded. The ease with which a single developer
-can build and deploy a scalable, cross-device, and revenue generating app is
-beyond remarkable. The maturing of tools, languages, development environments,
-and deployment strategies has created a fantastically productive environment.
-To name a few favorites:</p>
+<p>NPM has always made it easy to manage Node modules as Git submodules. The NPM
+<a href="https://npmjs.org/api/submodule.html">submodule</a> command will add a package
+dependency as a Git submodule, and from then on will basically ignore the
+containing folder, letting you update and modify the package as you will.
+There&rsquo;s also NPM&rsquo;s <a href="https://npmjs.org/api/link.html">link</a> command, which will
+install a package dependency from a symlink on your development machine rather
+than from the npmjs.org repository.</p>
 
-<ul>
-<li><p>Macbooks &ndash; The new Macbook Airs, when fully tricked out, offer incredibly
-powerful development workhorses weighing less than 3 pounds and costing
-less than $2k</p></li>
-<li><p><a href="http://mxcl.github.com/homebrew/">Homebrew</a> &ndash; A package manager for Mac OS,
-making that Macbook purchase perfect</p></li>
-<li><p><a href="http://heroku.com">Heroku</a> &ndash; Have an idea for a new project? Deploy it for
-free. Want to scale it? Flip a switch</p></li>
-<li><p><a href="http://www.opscode.com/chef/">Chef</a> and <a href="http://puppetlabs.com/">Puppet</a> &ndash; Want
-more control than Heroku offers? Fine, manage your own boxes with
-a sane devops solution that you can take with you.</p></li>
-<li><p>Git and <a href="http://github.com">Github</a> &ndash; Who could have ever imagined that
-managing code could be so enjoyable?</p></li>
-<li><p>zsh and <a href="https://github.com/robbyrussell/oh-my-zsh">oh-my-zsh</a> &ndash; Tab completion, customizable plugins, persistent Git HUD</p></li>
-<li><p>The incredible profusion of programming languages, libraries, and frameworks &ndash; <a href="http://scala-lang.org">Scala</a>,
-<a href="http://clojure.org">Clojure</a>,
-<a href="http://nodejs.org">node.js</a>, the <a href="http://www.playframework.org/">Play framework</a>, NoSql solutions,
-nginx, to say nothing of the maturing of Ruby (especially Rails) and Python &ndash; all of
-these technologies make it easier than ever to work in one&rsquo;s preferred
-style without sacrificing power or performance. The communities around each
-of these technologies, empowered by twitter, StackExchange, and Github,
-ease learning curves and offer helpful answers to any questions.</p></li>
-<li><p>The Apple App store, <a href="https://squareup.com/">Square</a>, <a href="http://stripe.com">Stripe</a>, <a href="http://recurly.com/">Recurly</a>,
-and <a href="https://samurai.feefighters.com/">Samurai</a> enable developers to make money on their ideas and apps
-with far less effort than in the past.</p></li>
-</ul>
+<p>But when it comes to the common use case of deploying a web app with a Git submodule package to Heroku, things get complicated:</p>
+
+<ol>
+<li><p>Your submodules are private Github repositories, so you need to get access
+to them without sacrificing account security;</p></li>
+<li><p>Assuming you get around the first challenge, Git submodules are autotomatically
+installed on Heroku deploy, and then NPM will stubbornly refuse to install the
+submodule dependencies;</p></li>
+<li><p>If you&rsquo;re using <code>npm shrinkwrap</code> to lock down your app dependencies, the
+presence of Git submodules or linked directories screws up the shrinkwrap
+metadata and makes install difficult.</p></li>
+</ol>
 
 
-<p>Is there <em>any other industry</em> in which an individual has such a <em>dramatic</em>
-advantage in tools, cost, and agility over large organizations?</p>
+<p>There&rsquo;s a very specific approach you need to take to work around these issues.</p>
 
-<p>It&rsquo;s an exciting time for indie developers. And the future keeps looking better.</p>
+<p>First, there&rsquo;s the account security issue. HTTPS access to your Github
+repositories allows you to use a username and password instead of an SSH key,
+but then you&rsquo;re putting your account credentials in plaintext &ndash; an
+obvious problem. Thankfully, you can use Github&rsquo;s OAuth token support to better
+secure your repositories. Follow <a href="https://help.github.com/articles/creating-an-oauth-token-for-command-line-use">Github&rsquo;s instructions</a>
+for creating a token with &ldquo;repo&rdquo; scope. Then, in your package.json, add the following for your submodule:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='javascript'><span class='line'>  <span class="s2">&quot;package-name&quot;</span><span class="o">:</span> <span class="s2">&quot;git+https://&lt;github_token&gt;:x-oauth-basic@github.com/&lt;user&gt;/&lt;repo&gt;.git&quot;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Great! Now you&rsquo;ve got an installable submodule that can be deployed to Heroku
+and/or shrinkwrapped without a problem.</p>
+
+<p>But if your module is changing frequently (e.g. its under active development along
+with its parent project), you probably want a &ldquo;live&rdquo; version of the code in
+your project folder. Using a Git submodule solves some problems but introduces
+others. The best approach is to use <code>npm link</code> to link a checked-out copy of
+the submodule from elsewhere on your filesystem.</p>
+
+<p>Sadly, <code>link</code>-ing to a project will cause problems for you if you use <code>npm
+shrinkwrap</code>. Shrinkwrap tracks the origin of each node module, and when you
+link, you lose that nice OAuth-ified Github url. There&rsquo;s only one way around
+this problem, and while it feels a bit hacky, it works. Add that <code>git+https</code>
+url from above (the one with the OAuth token) to a <code>_from</code> field in each
+submodule&rsquo;s <code>package.json</code>. <code>shrinkwrap</code> will defer to this field whenever it&rsquo;s
+run.</p>
+
+<p>So the succint list of steps:</p>
+
+<ol>
+<li><p>Create a Github OAuth token.</p></li>
+<li><p>Add Github module dependencies to your main app&rsquo;s <code>package.json</code> file with the URL scheme specified above.</p></li>
+<li><p>Add the same URL to your submodule packages&#8217; <code>_from</code> fields.</p></li>
+<li><p><code>npm link</code> the submodules if you&rsquo;re actively working on them.</p></li>
+<li><p>Deploy to Heroku as normal and everything will just work.</p></li>
+</ol>
+
+
+<p>&hellip;Hopefully.</p>
 </div>
 
 
@@ -192,15 +209,21 @@ advantage in tools, cost, and agility over large organizations?</p>
   
 
 
-<time datetime="2011-11-04T14:25:00-07:00" pubdate data-updated="true">Nov 4<span>th</span>, 2011</time>
+<time datetime="2013-07-02T16:59:00-07:00" pubdate data-updated="true">Jul 2<span>nd</span>, 2013</time>
       
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/github/'>Github</a>, <a class='category' href='/blog/categories/heroku/'>Heroku</a>, <a class='category' href='/blog/categories/npm/'>NPM</a>
+  
+</span>
 
 
     </p>
     
       <div class="sharing">
   
-  <a href="http://twitter.com/share" class="twitter-share-button" data-url="http://rzrsharp.net/2011/11/04/indie-productivity.html" data-via="jmreidy" data-counturl="http://rzrsharp.net/2011/11/04/indie-productivity.html" >Tweet</a>
+  <a href="http://twitter.com/share" class="twitter-share-button" data-url="http://rzrsharp.net/2013/07/02/private-github-repos-with-npm-and-heroku.html" data-via="jmreidy" data-counturl="http://rzrsharp.net/2013/07/02/private-github-repos-with-npm-and-heroku.html" >Tweet</a>
   
   
   
@@ -209,10 +232,8 @@ advantage in tools, cost, and agility over large organizations?</p>
     
     <p class="meta">
       
-        <a class="basic-alignment left" href="/2011/09/13/back-from-vacation.html" title="Previous Post: Back from Vacation">&laquo; Back from Vacation</a>
+        <a class="basic-alignment left" href="/2013/04/11/in-theory-not-practice.html" title="Previous Post: In Theory, Not Practice">&laquo; In Theory, Not Practice</a>
       
-      
-        <a class="basic-alignment right" href="/2011/11/10/cleaning-up-yours-vows.html" title="Next Post: Cleaning Up Yours Vows">Cleaning Up Yours Vows &raquo;</a>
       
     </p>
   </footer>
@@ -308,8 +329,8 @@ advantage in tools, cost, and agility over large organizations?</p>
       
         
         // var disqus_developer = 1;
-        var disqus_identifier = 'http://rzrsharp.net/2011/11/04/indie-productivity.html';
-        var disqus_url = 'http://rzrsharp.net/2011/11/04/indie-productivity.html';
+        var disqus_identifier = 'http://rzrsharp.net/2013/07/02/private-github-repos-with-npm-and-heroku.html';
+        var disqus_url = 'http://rzrsharp.net/2013/07/02/private-github-repos-with-npm-and-heroku.html';
         var disqus_script = 'embed.js';
       
     (function () {

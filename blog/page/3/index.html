@@ -9,9 +9,8 @@
   <meta name="author" content="Justin Reidy">
 
   
-  <meta name="description" content="Javascript is a prototypal language, a concept which is quite challenging for
-programmers coming from almost any other language.
-The most well-known &hellip;">
+  <meta name="description" content="When reading over some Node.js source code written in Coffeescript, I came across
+a couple uses of the Coffeescript do operator. While do is a very &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -79,6 +78,160 @@ The most well-known &hellip;">
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+  
+    
+      <h1 class="entry-title"><a href="/2011/06/27/what-does-coffeescripts-do-do.html">What Does Coffeescript&#8217;s &#8220;Do&#8221; Do?</a></h1>
+      
+      
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2011-06-27T00:00:00-07:00" pubdate data-updated="true">Jun 27<span>th</span>, 2011</time>
+        
+         | <a href="/2011/06/27/what-does-coffeescripts-do-do.html#disqus_thread">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>When reading over some Node.js source code written in Coffeescript, I came across
+a couple uses of the Coffeescript <code>do</code> operator. While <code>do</code> is a very familiar tool
+for Ruby developers, I wasn&rsquo;t sure how Coffeescript used it, so I took at look at
+its documentation, which states:</p>
+
+<blockquote><p>When using a JavaScript loop to generate functions, it&rsquo;s common to insert a closure
+wrapper in order to ensure that loop variables are closed over, and all the
+generated functions don&rsquo;t just share the final values. CoffeeScript provides the
+do keyword, which immediately invokes a passed function, forwarding any arguments.</p></blockquote>
+
+<p>&ldquo;All the generated functions don&rsquo;t just share the final values.&rdquo; Huh. This statement
+didn&rsquo;t mean a lot to me. A little searching on Google led to a fairly helpful post
+on <a href="http://stackoverflow.com/questions/643542/doesnt-javascript-support-closures-with-local-variables/643664#643664">Stack Overflow</a>. The question there presented the following Javascript:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+</pre></td><td class='code'><pre><code class='javascript'><span class='line'><span class="kd">var</span> <span class="nx">closures</span> <span class="o">=</span> <span class="p">[];</span>
+</span><span class='line'><span class="kd">function</span> <span class="nx">create</span><span class="p">()</span> <span class="p">{</span>
+</span><span class='line'>  <span class="k">for</span> <span class="p">(</span><span class="kd">var</span> <span class="nx">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="nx">i</span> <span class="o">&lt;</span> <span class="mi">5</span><span class="p">;</span> <span class="nx">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>    <span class="nx">closures</span><span class="p">[</span><span class="nx">i</span><span class="p">]</span> <span class="o">=</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+</span><span class='line'>      <span class="nx">alert</span><span class="p">(</span><span class="s2">&quot;i = &quot;</span> <span class="o">+</span> <span class="nx">i</span><span class="p">);</span>
+</span><span class='line'>    <span class="p">};</span>
+</span><span class='line'>  <span class="p">}</span>
+</span><span class='line'><span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="kd">function</span> <span class="nx">run</span><span class="p">()</span> <span class="p">{</span>
+</span><span class='line'>  <span class="k">for</span> <span class="p">(</span><span class="kd">var</span> <span class="nx">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="nx">i</span> <span class="o">&lt;</span> <span class="mi">5</span><span class="p">;</span> <span class="nx">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>    <span class="nx">closures</span><span class="p">[</span><span class="nx">i</span><span class="p">]();</span>
+</span><span class='line'>  <span class="p">}</span>
+</span><span class='line'><span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="nx">create</span><span class="p">();</span>
+</span><span class='line'><span class="nx">run</span><span class="p">();</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>The question stated that the result of running this code was <code>5,5,5,5,5</code> instead
+of the expect <code>0,1,2,3,4</code>. The answer which created the &ldquo;correct&rdquo; result
+provided the code below:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+</pre></td><td class='code'><pre><code class='javascript'><span class='line'><span class="kd">function</span> <span class="nx">create</span><span class="p">()</span> <span class="p">{</span>
+</span><span class='line'>  <span class="k">for</span> <span class="p">(</span><span class="kd">var</span> <span class="nx">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="nx">i</span> <span class="o">&lt;</span> <span class="mi">5</span><span class="p">;</span> <span class="nx">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>    <span class="nx">closures</span><span class="p">[</span><span class="nx">i</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="kd">function</span><span class="p">(</span><span class="nx">tmp</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>      <span class="k">return</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+</span><span class='line'>        <span class="nx">alert</span><span class="p">(</span><span class="s2">&quot;i = &quot;</span> <span class="o">+</span> <span class="nx">tmp</span><span class="p">);</span>
+</span><span class='line'>      <span class="p">};</span>
+</span><span class='line'>    <span class="p">})(</span><span class="nx">i</span><span class="p">);</span>
+</span><span class='line'>  <span class="p">}</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>and also explained:</p>
+
+<blockquote><p>JavaScript&rsquo;s scopes are function-level, not block-level, and creating a closure just means that the enclosing scope gets added to the lexical environment of the enclosed function.</p></blockquote>
+
+<p>OK, this was even less helpful. But after going back and reading the Coffeescript
+docs again, the concept made sense. As always with Javascript, the <em>context</em> in
+which a function is called demands as much attention as the function itself. Reading
+the code in the Stack Overflow post, a developer&rsquo;s brain automatically thinks of the
+returned function at the time of evaluation. But in reality, each of those functions
+created in the <code>create</code> function aren&rsquo;t called until <em>after</em> the for loop has completed.
+Thus, by the time each function is called, it evaluates <code>i</code> when <code>i</code> has already
+finished the loop with a value of <code>5</code>. The closure-wrapping provided in the answer
+is exactly what the <code>do</code> keyword in Coffeescript provides!</p>
+
+<p>Here&rsquo;s an example of the solution&rsquo;s function, in Coffeescript:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class='coffeescript'><span class='line'><span class="nv">closures = </span><span class="p">[]</span>
+</span><span class='line'><span class="nx">create</span> <span class="nf">-&gt;</span>
+</span><span class='line'>  <span class="k">for</span> <span class="nx">i</span> <span class="k">in</span> <span class="p">[</span><span class="mi">0</span><span class="p">..</span><span class="mi">5</span><span class="p">]</span>
+</span><span class='line'>    <span class="nx">closures</span><span class="p">[</span><span class="nx">i</span><span class="p">]</span> <span class="o">=</span> <span class="nx">do</span> <span class="nf">(i) -&gt;</span>
+</span><span class='line'>      <span class="nf">-&gt;</span> <span class="nx">alert</span> <span class="nx">i</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Even with this contrived example, I find the Coffeescript easier to read, although
+of course it&rsquo;s personal preference. If you wanted to go really crazy with Coffeescript
+syntax, you could write:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='coffeescript'><span class='line'>  <span class="nv">closures = </span><span class="p">((</span><span class="nx">do</span> <span class="nf">(i) -&gt;</span> <span class="nf">-&gt;</span> <span class="nx">alert</span> <span class="nx">i</span><span class="p">)</span> <span class="k">for</span> <span class="nx">i</span> <span class="k">in</span> <span class="p">[</span><span class="mi">0</span><span class="p">..</span><span class="mi">5</span><span class="p">])</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Two points for cool implementation, no points for readability!</p>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -518,6 +671,10 @@ some stimulating writing!</p>
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/2013/07/02/private-github-repos-with-npm-and-heroku.html">Private Github Repos with NPM &amp; Heroku</a>
+      </li>
+    
+      <li class="post">
         <a href="/2013/04/11/in-theory-not-practice.html">In Theory, Not Practice</a>
       </li>
     
@@ -531,10 +688,6 @@ some stimulating writing!</p>
     
       <li class="post">
         <a href="/2012/08/01/client-side-testing-insanity.html">Client-Side Testing Insanity</a>
-      </li>
-    
-      <li class="post">
-        <a href="/2012/07/06/reflections-on-nodeconf-2012.html">Reflections on NodeConf 2012</a>
       </li>
     
   </ul>

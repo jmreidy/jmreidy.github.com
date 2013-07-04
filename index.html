@@ -9,7 +9,8 @@
   <meta name="author" content="Justin Reidy">
 
   
-  <meta name="description" content="In my previous post, I wrote about the quest towards unifying web application architecture around a single shared codebase. Airbnb’s Rendr library &hellip;">
+  <meta name="description" content="As you spend time coding in the Node.js ecosystem, you become increasingly
+reliant on small modules, both consuming them and building them yourself. &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -77,6 +78,124 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+  
+    
+      <h1 class="entry-title"><a href="/2013/07/02/private-github-repos-with-npm-and-heroku.html">Private Github Repos With NPM &amp; Heroku</a></h1>
+      
+      
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-07-02T16:59:00-07:00" pubdate data-updated="true">Jul 2<span>nd</span>, 2013</time>
+        
+         | <a href="/2013/07/02/private-github-repos-with-npm-and-heroku.html#disqus_thread">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>As you spend time coding in the Node.js ecosystem, you become increasingly
+reliant on small modules, both consuming them and building them yourself.
+This habit of building and composing modular toolsets begins
+to extend beyond library code, and you start to think of web application code
+as a collection of modules. Data models, for example, can be easily
+packaged into a separate Node module for re-use in related applications
+(and to chunk off a set of application dependencies).</p>
+
+<p>Seeing code that can be broken off into its own module, you dutifully follow
+your Node.js instincts, break off the code, and move it to its own directory.
+You create a new private Github repo for this small module, and push it up.
+But how do you re-integrate this new (actively developed) sub-project back into
+its containing projects?</p>
+
+<p>NPM has always made it easy to manage Node modules as Git submodules. The NPM
+<a href="https://npmjs.org/api/submodule.html">submodule</a> command will add a package
+dependency as a Git submodule, and from then on will basically ignore the
+containing folder, letting you update and modify the package as you will.
+There&rsquo;s also NPM&rsquo;s <a href="https://npmjs.org/api/link.html">link</a> command, which will
+install a package dependency from a symlink on your development machine rather
+than from the npmjs.org repository.</p>
+
+<p>But when it comes to the common use case of deploying a web app with a Git submodule package to Heroku, things get complicated:</p>
+
+<ol>
+<li><p>Your submodules are private Github repositories, so you need to get access
+to them without sacrificing account security;</p></li>
+<li><p>Assuming you get around the first challenge, Git submodules are autotomatically
+installed on Heroku deploy, and then NPM will stubbornly refuse to install the
+submodule dependencies;</p></li>
+<li><p>If you&rsquo;re using <code>npm shrinkwrap</code> to lock down your app dependencies, the
+presence of Git submodules or linked directories screws up the shrinkwrap
+metadata and makes install difficult.</p></li>
+</ol>
+
+
+<p>There&rsquo;s a very specific approach you need to take to work around these issues.</p>
+
+<p>First, there&rsquo;s the account security issue. HTTPS access to your Github
+repositories allows you to use a username and password instead of an SSH key,
+but then you&rsquo;re putting your account credentials in plaintext &ndash; an
+obvious problem. Thankfully, you can use Github&rsquo;s OAuth token support to better
+secure your repositories. Follow <a href="https://help.github.com/articles/creating-an-oauth-token-for-command-line-use">Github&rsquo;s instructions</a>
+for creating a token with &ldquo;repo&rdquo; scope. Then, in your package.json, add the following for your submodule:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='javascript'><span class='line'>  <span class="s2">&quot;package-name&quot;</span><span class="o">:</span> <span class="s2">&quot;git+https://&lt;github_token&gt;:x-oauth-basic@github.com/&lt;user&gt;/&lt;repo&gt;.git&quot;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Great! Now you&rsquo;ve got an installable submodule that can be deployed to Heroku
+and/or shrinkwrapped without a problem.</p>
+
+<p>But if your module is changing frequently (e.g. its under active development along
+with its parent project), you probably want a &ldquo;live&rdquo; version of the code in
+your project folder. Using a Git submodule solves some problems but introduces
+others. The best approach is to use <code>npm link</code> to link a checked-out copy of
+the submodule from elsewhere on your filesystem.</p>
+
+<p>Sadly, <code>link</code>-ing to a project will cause problems for you if you use <code>npm
+shrinkwrap</code>. Shrinkwrap tracks the origin of each node module, and when you
+link, you lose that nice OAuth-ified Github url. There&rsquo;s only one way around
+this problem, and while it feels a bit hacky, it works. Add that <code>git+https</code>
+url from above (the one with the OAuth token) to a <code>_from</code> field in each
+submodule&rsquo;s <code>package.json</code>. <code>shrinkwrap</code> will defer to this field whenever it&rsquo;s
+run.</p>
+
+<p>So the succint list of steps:</p>
+
+<ol>
+<li><p>Create a Github OAuth token.</p></li>
+<li><p>Add Github module dependencies to your main app&rsquo;s <code>package.json</code> file with the URL scheme specified above.</p></li>
+<li><p>Add the same URL to your submodule packages&#8217; <code>_from</code> fields.</p></li>
+<li><p><code>npm link</code> the submodules if you&rsquo;re actively working on them.</p></li>
+<li><p>Deploy to Heroku as normal and everything will just work.</p></li>
+</ol>
+
+
+<p>&hellip;Hopefully.</p>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -1254,55 +1373,6 @@ just a reader.</p>
 
     </article>
   
-  
-    <article>
-      
-  <header>
-  
-    
-      <h1 class="entry-title"><a href="/2012/01/30/welcome-to-2012.html">Welcome to 2012</a></h1>
-      
-      
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2012-01-30T16:31:00-08:00" pubdate data-updated="true">Jan 30<span>th</span>, 2012</time>
-        
-         | <a href="/2012/01/30/welcome-to-2012.html#disqus_thread">Comments</a>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>January&rsquo;s been a long month; not in a <em>bad</em> sense, just sort of interminable. Looking through my links collection in notational velocity today, I found a good twenty plus from the last six weeks. I&rsquo;ve culled them down a bit to the true standouts:</p>
-
-<ul>
-<li><p>An Object is not (Always) a Hash &mdash; Great post from Guillermo Rauch about <a href="http://www.devthought.com/2012/01/18/an-object-is-not-a-hash/">the perils of using Javascript Objects as Hashes</a>. Definitely some tricky gotchas here that you may not have thought about.</p></li>
-<li><p>Hot Node Reloading &mdash; Also from Guillermo, a solution to the annoying problem of continuously restarting your node app during development: <a href="http://www.devthought.com/2012/01/29/staying-up-with-node-js/">Staying Up with Node.JS</a></p></li>
-<li><p>Shedding Light on SPDY &mdash; If you haven&rsquo;t been hearing a great deal about SPDY lately, you will be soon. SPDY, if you couldn&rsquo;t tell from the name, serves as a next-generation protocol to speed up web communication. Nodejitsu posts <a href="http://blog.nodejitsu.com/what-is-node-spdy">a helpful introduction to SPDY</a>.</p></li>
-<li><p>Improving your Git Logs &mdash; Git log, out of the box, is so wordy that it proves fairly worthless. Check out Oli Studholme&rsquo;s <a href="http://oli.jp/2012/git-powerup/">aliases for taming the git log beast</a>.</p></li>
-<li><p>Hack Learning &mdash; One of the key lessons I&rsquo;ve learned as a developer is that getting good at something requires hours, and hours, and hours, and <strong>hours</strong> of work, and many of these hours will be exhausting displays of ignorance which you&rsquo;ll want to quickly forget. The good news is that you can pick up nearly any skill with enough effort and time. Jack Kinsella provides a hack for cutting back on how many hours separate &ldquo;terrible newb&rdquo; from &ldquo;fairly competent practitioner&rdquo;. His <a href="http://www.jackkinsella.ie/2011/12/05/janki-method.html">Janki Method</a> may <em>sound</em> like a get rich quick scheme, but it&rsquo;s really just a simple approach to improving your effiency at learning. Maybe you can cut those 10,000 hours of practice to a more managable&hellip; 6,000.</p></li>
-</ul>
-
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/blog/page/2/">&larr; Older</a>
@@ -1322,6 +1392,10 @@ just a reader.</p>
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/2013/07/02/private-github-repos-with-npm-and-heroku.html">Private Github Repos with NPM &amp; Heroku</a>
+      </li>
+    
+      <li class="post">
         <a href="/2013/04/11/in-theory-not-practice.html">In Theory, Not Practice</a>
       </li>
     
@@ -1335,10 +1409,6 @@ just a reader.</p>
     
       <li class="post">
         <a href="/2012/08/01/client-side-testing-insanity.html">Client-Side Testing Insanity</a>
-      </li>
-    
-      <li class="post">
-        <a href="/2012/07/06/reflections-on-nodeconf-2012.html">Reflections on NodeConf 2012</a>
       </li>
     
   </ul>
