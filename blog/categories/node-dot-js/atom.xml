@@ -4,7 +4,7 @@
   <title><![CDATA[Category: Node.js | Razor Sharp Design]]></title>
   <link href="http://rzrsharp.net/blog/categories/node-dot-js/atom.xml" rel="self"/>
   <link href="http://rzrsharp.net/"/>
-  <updated>2013-07-16T16:32:21-07:00</updated>
+  <updated>2013-07-16T16:34:50-07:00</updated>
   <id>http://rzrsharp.net/</id>
   <author>
     <name><![CDATA[Justin Reidy]]></name>
@@ -47,8 +47,7 @@ your development team spend extra time writing tests (or testing first) when
 they could instead be building features or fixing bugs?</p>
 
 <p>The most compelling answer I&rsquo;ve found to this question comes from Sandi Metz in
-her book <a href="http://www.amazon.com/Practical-Object-Oriented-Design-Ruby-Addison-Wesley/dp/0321721330/ref=sr_1_1?s=books&amp;ie=UTF8&amp;qid=1374015857&amp;sr=1-1">Practical Object-Oriented Design in
-Ruby</a>.
+her book <a href="http://www.amazon.com/Practical-Object-Oriented-Design-Ruby-Addison-Wesley/dp/0321721330/ref=sr_1_1?s=books&amp;ie=UTF8&amp;qid=1374015857&amp;sr=1-1">Practical Object-Oriented Design in Ruby</a>.
 It&rsquo;s probably not surprising that a strong case for testing comes from a
 Rubyist; the Ruby community has been loudly preaching test-first Agile
 methodologies for years. But Metz articulates ideas in a way that increases
