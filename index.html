@@ -9,8 +9,8 @@
   <meta name="author" content="Justin Reidy">
 
   
-  <meta name="description" content="As you spend time coding in the Node.js ecosystem, you become increasingly
-reliant on small modules, both consuming them and building them yourself. &hellip;">
+  <meta name="description" content="Why do we test our code? The question itself seems sacrilegious in today&rsquo;s developer culture. Admitting
+that you aren&rsquo;t building a &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -78,6 +78,138 @@ reliant on small modules, both consuming them and building them yourself. &helli
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+  
+    
+      <h1 class="entry-title"><a href="/2013/07/16/testing-and-node-why-do-we-test.html">Testing and Node: Why Do We Test?</a></h1>
+      
+      
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-07-16T16:30:00-07:00" pubdate data-updated="true">Jul 16<span>th</span>, 2013</time>
+        
+         | <a href="/2013/07/16/testing-and-node-why-do-we-test.html#disqus_thread">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Why do we test our code?</p>
+
+<p>The question itself seems sacrilegious in today&rsquo;s developer culture. Admitting
+that you aren&rsquo;t building a comprehensive suite of unit and integration tests,
+let alone not testing <em>first</em>, amounts to hanging a giant &ldquo;newb&rdquo; sign around
+your neck. But sacred cows in any culture can lead to stagnation and a lack of
+innovation; if you can&rsquo;t provide good cause for a practice that&rsquo;s demanded of
+you, why bother doing it?</p>
+
+<p>I&rsquo;ve worked on a number of different projects, spanning maturity levels,
+technologies, and team sizes. While most have employed some degree of testing,
+I can&rsquo;t think of a single one that employed what would be considered a &ldquo;robust
+test suite&rdquo;. Certainly, open source libraries to which I&rsquo;ve contributed (and
+the ones I&rsquo;ve created) have almost all included solid unit test coverage. But
+there&rsquo;s a gap between what many product teams and consulting agencies preach
+(&ldquo;We test all our code all the time, and only want developers who believe in
+testing!&rdquo;) and what they practice (&ldquo;We&rsquo;ve got to get this feature out the door,
+forget the tests for now.&rdquo;).</p>
+
+<p>What makes the testing question more complicated is that you can never
+fully-automate your way to safety. No matter how comprehensive your tests,
+you&rsquo;re going to need a QA team. The most glaring need for QA is the fact that
+you can&rsquo;t test the appearance of an app &mdash; and with the rise of the responsive
+web, testing appearance (and by extension, usability) becomes even more
+important. If you need to spend resources on QA-ing an app anyway, why should
+your development team spend extra time writing tests (or testing first) when
+they could instead be building features or fixing bugs?</p>
+
+<p>The most compelling answer I&rsquo;ve found to this question comes from Sandi Metz in
+her book <a href="http://www.amazon.com/Practical-Object-Oriented-Design-Ruby-Addison-Wesley/dp/0321721330/ref=sr_1_1?s=books&amp;ie=UTF8&amp;qid=1374015857&amp;sr=1-1">Practical Object-Oriented Design in
+Ruby</a>.
+It&rsquo;s probably not surprising that a strong case for testing comes from a
+Rubyist; the Ruby community has been loudly preaching test-first Agile
+methodologies for years. But Metz articulates ideas in a way that increases
+their poignancy. &ldquo;Tests give you confidence to refactor constantly,&rdquo; she
+writes. This idea takes the common catchphrase of testing &mdash; &ldquo;red, green,
+refactor&rdquo; &mdash; and turns it on its head. Instead of refactoring being a <em>part</em> of
+testing, refactoring becomes the <em>point</em> of testing. &ldquo;The true purpose of
+testing,&rdquo; Metz argues, &ldquo;is to reduce costs.&rdquo;</p>
+
+<p>As a Node developer, the idea that testing provides you freedom to refactor is
+entirely compelling. As I wrote in <a href="http://rzrsharp.net/2013/07/02/private-github-repos-with-npm-and-heroku.html">my article on using private Github
+repositories for web application
+submodules</a>,
+Node developers are constantly on the prowl to refactor common bits of logic
+into their own encapsulated components. By test-driving feature development,
+you make it significantly easier to break out common modules:</p>
+
+<ol>
+<li>Test from the outside in: integration, then unit 2. Implement the feature
+(make the tests pass) 3. Isolate code that&rsquo;s useful elsewhere, break it off
+into its own module, confirm the tests still pass.</li>
+</ol>
+
+
+<p>In Node-land, &ldquo;red-green-refactor&rdquo; becomes &ldquo;red-green-refactor-publish
+[module]&rdquo;.</p>
+
+<p>Further, building proper test coverage may require some additional time from
+your development team, but it should also decrease the pressure on your QA team
+&mdash; and help everyone involved by reducing coordination costs. Think of a
+scenario in which one developer bumps up an application dependency to a newer
+version in order to implement a new feature (or fix a bug). The developer
+sanity checks the application to see if the new version causes any problems
+elsewhere in the app; finding none, the updated dependency is added to the
+app&rsquo;s manifest and deployed. A week later, a bug report comes in that&rsquo;s vetted
+and validated by a member of the QA team, who then needs to coordinate with
+multiple developers to identify the cause of the bug (a regression from the
+bumped dependency), fix it, and confirm the fix. The cost of coordinating a fix
+to this regression clearly outweighs the cost of writing tests in the first
+place, and this scenario is of the sort that automated testing can easily
+address. In the Node ecosystem, where we frequently rely on many small
+third-party modules, it&rsquo;s especially important to automatically test that our
+integration with these modules is always working.</p>
+
+<p>But testing can&rsquo;t reduce costs if we aren&rsquo;t efficient testers. And being an
+efficient tester is only partially dependent on your knowledge of good OO
+design; it is equally important to have a full and proper understanding of the
+tools with which you need to test.</p>
+
+<p>Which brings me to the point of this post. The Node community has a very
+effective toolbox for testing first, testing well, and testing comprehensively.
+But despite the capabilities of these tools, there&rsquo;s very little discussion on
+the web of how to use them. An introduction to Mocha or Jasmine doesn&rsquo;t really
+explain how to use them to TDD a Node app, and it certainly doesn&rsquo;t explain how
+to integrate these libraries into a continuous-deployment setup with Grunt.</p>
+
+<p>In the next few posts, I&rsquo;ll be stepping through my own &ldquo;best practices&rdquo; for
+testing a Node app. I&rsquo;ll be the first to admit that there are probably better
+approaches to testing, and I&rsquo;ll be quite happy to receive feedback, but
+hopefully this series can serve as a guide to get the Node testing discussion
+started. If there&rsquo;s anything you&rsquo;re particularly curious about, please let me
+know and I&rsquo;ll try to address it.</p>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -1318,61 +1450,6 @@ out what the future will bring.</p>
 
     </article>
   
-  
-    <article>
-      
-  <header>
-  
-    
-      <h1 class="entry-title"><a href="/2012/02/15/why-javascript-on-the-server-isnt-such-a-bad-idea.html">Why JavaScript on the Server Isn&#8217;t Such a Bad Idea</a></h1>
-      
-      
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2012-02-15T14:39:00-08:00" pubdate data-updated="true">Feb 15<span>th</span>, 2012</time>
-        
-         | <a href="/2012/02/15/why-javascript-on-the-server-isnt-such-a-bad-idea.html#disqus_thread">Comments</a>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>Preaching the gospel of Node can be a tough job: how do you express your
-excitement for the technology without coming across as a fanboy? And how do you
-deal with people that view it as a cancer? I had to answer these questions when
-crafting a presentation last week introducting Node.js as part of
-a developer tech talk. Given the radically divergent opinions that Node has
-elicited, I wanted to address the FUD head on.  I tried to focus on the gut
-reaction most people tend to have towards Node (&ldquo;WHO would want to code their
-server in JS?!&rdquo;), and I think the talk went fairly well. I&rsquo;m embedding the
-slides here if anyone would like to take a look. Speakerdeck is a fantastic
-resource and I was happy to finally put it to use as a producer, instead of
-just a reader.</p>
-
-<script src="http://speakerdeck.com/embed/4f35ad1868bb50001f004b7f.js"></script>
-
-
-<p>For even more insight into the developing world of &ldquo;JavaScript everywhere&rdquo;, check out <a href="http://www.youtube.com/watch?v=AG6dyk8lkZg">this video</a> from Joe McCann, principal architect of subPrint Interactive, on &ldquo;End to End JavaScript&rdquo;.</p>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/blog/page/2/">&larr; Older</a>
@@ -1392,6 +1469,10 @@ just a reader.</p>
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/2013/07/16/testing-and-node-why-do-we-test.html">Testing and Node: Why Do We Test?</a>
+      </li>
+    
+      <li class="post">
         <a href="/2013/07/02/private-github-repos-with-npm-and-heroku.html">Private Github Repos with NPM &amp; Heroku</a>
       </li>
     
@@ -1405,10 +1486,6 @@ just a reader.</p>
     
       <li class="post">
         <a href="/2012/10/01/error-isolation-with-promises.html">Error Isolation with Promises</a>
-      </li>
-    
-      <li class="post">
-        <a href="/2012/08/01/client-side-testing-insanity.html">Client-Side Testing Insanity</a>
       </li>
     
   </ul>

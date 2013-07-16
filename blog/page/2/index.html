@@ -9,7 +9,8 @@
   <meta name="author" content="Justin Reidy">
 
   
-  <meta name="description" content="January&rsquo;s been a long month; not in a bad sense, just sort of interminable. Looking through my links collection in notational velocity today, I &hellip;">
+  <meta name="description" content="Preaching the gospel of Node can be a tough job: how do you express your
+excitement for the technology without coming across as a fanboy? And how do &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -77,6 +78,61 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+  
+    
+      <h1 class="entry-title"><a href="/2012/02/15/why-javascript-on-the-server-isnt-such-a-bad-idea.html">Why JavaScript on the Server Isn&#8217;t Such a Bad Idea</a></h1>
+      
+      
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2012-02-15T14:39:00-08:00" pubdate data-updated="true">Feb 15<span>th</span>, 2012</time>
+        
+         | <a href="/2012/02/15/why-javascript-on-the-server-isnt-such-a-bad-idea.html#disqus_thread">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Preaching the gospel of Node can be a tough job: how do you express your
+excitement for the technology without coming across as a fanboy? And how do you
+deal with people that view it as a cancer? I had to answer these questions when
+crafting a presentation last week introducting Node.js as part of
+a developer tech talk. Given the radically divergent opinions that Node has
+elicited, I wanted to address the FUD head on.  I tried to focus on the gut
+reaction most people tend to have towards Node (&ldquo;WHO would want to code their
+server in JS?!&rdquo;), and I think the talk went fairly well. I&rsquo;m embedding the
+slides here if anyone would like to take a look. Speakerdeck is a fantastic
+resource and I was happy to finally put it to use as a producer, instead of
+just a reader.</p>
+
+<script src="http://speakerdeck.com/embed/4f35ad1868bb50001f004b7f.js"></script>
+
+
+<p>For even more insight into the developing world of &ldquo;JavaScript everywhere&rdquo;, check out <a href="http://www.youtube.com/watch?v=AG6dyk8lkZg">this video</a> from Joe McCann, principal architect of subPrint Interactive, on &ldquo;End to End JavaScript&rdquo;.</p>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -1393,71 +1449,6 @@ Any suggestions or comments would be very much appreciated!</p>
 
     </article>
   
-  
-    <article>
-      
-  <header>
-  
-    
-      <h1 class="entry-title"><a href="/2011/07/08/this-in-anonymous-functions.html">&#8220;This&#8221; in Anonymous Functions</a></h1>
-      
-      
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2011-07-08T00:00:00-07:00" pubdate data-updated="true">Jul 8<span>th</span>, 2011</time>
-        
-         | <a href="/2011/07/08/this-in-anonymous-functions.html#disqus_thread">Comments</a>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>Sometimes it&rsquo;s difficult to find an easy answer to common coding questions. Because
-Google ignores most punctuation, even the most exact queries fail to produce
-relevant results. Questions about the nature and value of <code>this</code> in Javascript present
-a particularly thorny problem, since &ldquo;this&rdquo; is about as common a word as you can find.</p>
-
-<p>A common point of confusion in Javascript is that the value of <code>this</code> depends entirely
-on a function&rsquo;s context, and can even be overridden depending on how a function is
-invoked. Hopefully this post will save time for new Javascript devs trolling through
-Google&rsquo;s depths:</p>
-
-<blockquote><p>In anonymous functions, the value of <code>this</code> refers to the anonymous function itself,
-and not the calling scope. However, the nature of closures allows the anonymous function
-to still refer to the calling object.</p></blockquote>
-
-<p>The above rule is demonstrated with the following nodejs code:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-</pre></td><td class='code'><pre><code class='javascript'><span class='line'><span class="kd">var</span> <span class="nx">that</span> <span class="o">=</span> <span class="k">this</span><span class="p">;</span>
-</span><span class='line'><span class="nx">that</span><span class="p">.</span><span class="nx">foo</span> <span class="o">=</span> <span class="s1">&#39;bar&#39;</span><span class="p">;</span>
-</span><span class='line'><span class="nx">process</span><span class="p">.</span><span class="nx">nextTick</span><span class="p">(</span><span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
-</span><span class='line'>  <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;this &quot;</span> <span class="o">+</span> <span class="k">this</span><span class="p">.</span><span class="nx">foo</span> <span class="o">+</span> <span class="s2">&quot; and that &quot;</span> <span class="o">+</span> <span class="nx">that</span><span class="p">.</span><span class="nx">foo</span><span class="p">)</span> <span class="p">});</span>
-</span></code></pre></td></tr></table></div></figure>
-
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/blog/page/3/">&larr; Older</a>
@@ -1479,6 +1470,10 @@ to still refer to the calling object.</p></blockquote>
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/2013/07/16/testing-and-node-why-do-we-test.html">Testing and Node: Why Do We Test?</a>
+      </li>
+    
+      <li class="post">
         <a href="/2013/07/02/private-github-repos-with-npm-and-heroku.html">Private Github Repos with NPM &amp; Heroku</a>
       </li>
     
@@ -1492,10 +1487,6 @@ to still refer to the calling object.</p></blockquote>
     
       <li class="post">
         <a href="/2012/10/01/error-isolation-with-promises.html">Error Isolation with Promises</a>
-      </li>
-    
-      <li class="post">
-        <a href="/2012/08/01/client-side-testing-insanity.html">Client-Side Testing Insanity</a>
       </li>
     
   </ul>

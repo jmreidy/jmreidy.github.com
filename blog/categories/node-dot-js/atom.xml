@@ -4,7 +4,7 @@
   <title><![CDATA[Category: Node.js | Razor Sharp Design]]></title>
   <link href="http://rzrsharp.net/blog/categories/node-dot-js/atom.xml" rel="self"/>
   <link href="http://rzrsharp.net/"/>
-  <updated>2013-07-03T19:15:37-07:00</updated>
+  <updated>2013-07-16T16:32:21-07:00</updated>
   <id>http://rzrsharp.net/</id>
   <author>
     <name><![CDATA[Justin Reidy]]></name>
@@ -12,6 +12,107 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Testing and Node: Why Do We Test?]]></title>
+    <link href="http://rzrsharp.net/2013/07/16/testing-and-node-why-do-we-test.html"/>
+    <updated>2013-07-16T16:30:00-07:00</updated>
+    <id>http://rzrsharp.net/2013/07/16/testing-and-node-why-do-we-test</id>
+    <content type="html"><![CDATA[<p>Why do we test our code?</p>
+
+<p>The question itself seems sacrilegious in today&rsquo;s developer culture. Admitting
+that you aren&rsquo;t building a comprehensive suite of unit and integration tests,
+let alone not testing <em>first</em>, amounts to hanging a giant &ldquo;newb&rdquo; sign around
+your neck. But sacred cows in any culture can lead to stagnation and a lack of
+innovation; if you can&rsquo;t provide good cause for a practice that&rsquo;s demanded of
+you, why bother doing it?</p>
+
+<p>I&rsquo;ve worked on a number of different projects, spanning maturity levels,
+technologies, and team sizes. While most have employed some degree of testing,
+I can&rsquo;t think of a single one that employed what would be considered a &ldquo;robust
+test suite&rdquo;. Certainly, open source libraries to which I&rsquo;ve contributed (and
+the ones I&rsquo;ve created) have almost all included solid unit test coverage. But
+there&rsquo;s a gap between what many product teams and consulting agencies preach
+(&ldquo;We test all our code all the time, and only want developers who believe in
+testing!&rdquo;) and what they practice (&ldquo;We&rsquo;ve got to get this feature out the door,
+forget the tests for now.&rdquo;).</p>
+
+<p>What makes the testing question more complicated is that you can never
+fully-automate your way to safety. No matter how comprehensive your tests,
+you&rsquo;re going to need a QA team. The most glaring need for QA is the fact that
+you can&rsquo;t test the appearance of an app &mdash; and with the rise of the responsive
+web, testing appearance (and by extension, usability) becomes even more
+important. If you need to spend resources on QA-ing an app anyway, why should
+your development team spend extra time writing tests (or testing first) when
+they could instead be building features or fixing bugs?</p>
+
+<p>The most compelling answer I&rsquo;ve found to this question comes from Sandi Metz in
+her book <a href="http://www.amazon.com/Practical-Object-Oriented-Design-Ruby-Addison-Wesley/dp/0321721330/ref=sr_1_1?s=books&amp;ie=UTF8&amp;qid=1374015857&amp;sr=1-1">Practical Object-Oriented Design in
+Ruby</a>.
+It&rsquo;s probably not surprising that a strong case for testing comes from a
+Rubyist; the Ruby community has been loudly preaching test-first Agile
+methodologies for years. But Metz articulates ideas in a way that increases
+their poignancy. &ldquo;Tests give you confidence to refactor constantly,&rdquo; she
+writes. This idea takes the common catchphrase of testing &mdash; &ldquo;red, green,
+refactor&rdquo; &mdash; and turns it on its head. Instead of refactoring being a <em>part</em> of
+testing, refactoring becomes the <em>point</em> of testing. &ldquo;The true purpose of
+testing,&rdquo; Metz argues, &ldquo;is to reduce costs.&rdquo;</p>
+
+<p>As a Node developer, the idea that testing provides you freedom to refactor is
+entirely compelling. As I wrote in <a href="http://rzrsharp.net/2013/07/02/private-github-repos-with-npm-and-heroku.html">my article on using private Github
+repositories for web application
+submodules</a>,
+Node developers are constantly on the prowl to refactor common bits of logic
+into their own encapsulated components. By test-driving feature development,
+you make it significantly easier to break out common modules:</p>
+
+<ol>
+<li>Test from the outside in: integration, then unit 2. Implement the feature
+(make the tests pass) 3. Isolate code that&rsquo;s useful elsewhere, break it off
+into its own module, confirm the tests still pass.</li>
+</ol>
+
+
+<p>In Node-land, &ldquo;red-green-refactor&rdquo; becomes &ldquo;red-green-refactor-publish
+[module]&rdquo;.</p>
+
+<p>Further, building proper test coverage may require some additional time from
+your development team, but it should also decrease the pressure on your QA team
+&mdash; and help everyone involved by reducing coordination costs. Think of a
+scenario in which one developer bumps up an application dependency to a newer
+version in order to implement a new feature (or fix a bug). The developer
+sanity checks the application to see if the new version causes any problems
+elsewhere in the app; finding none, the updated dependency is added to the
+app&rsquo;s manifest and deployed. A week later, a bug report comes in that&rsquo;s vetted
+and validated by a member of the QA team, who then needs to coordinate with
+multiple developers to identify the cause of the bug (a regression from the
+bumped dependency), fix it, and confirm the fix. The cost of coordinating a fix
+to this regression clearly outweighs the cost of writing tests in the first
+place, and this scenario is of the sort that automated testing can easily
+address. In the Node ecosystem, where we frequently rely on many small
+third-party modules, it&rsquo;s especially important to automatically test that our
+integration with these modules is always working.</p>
+
+<p>But testing can&rsquo;t reduce costs if we aren&rsquo;t efficient testers. And being an
+efficient tester is only partially dependent on your knowledge of good OO
+design; it is equally important to have a full and proper understanding of the
+tools with which you need to test.</p>
+
+<p>Which brings me to the point of this post. The Node community has a very
+effective toolbox for testing first, testing well, and testing comprehensively.
+But despite the capabilities of these tools, there&rsquo;s very little discussion on
+the web of how to use them. An introduction to Mocha or Jasmine doesn&rsquo;t really
+explain how to use them to TDD a Node app, and it certainly doesn&rsquo;t explain how
+to integrate these libraries into a continuous-deployment setup with Grunt.</p>
+
+<p>In the next few posts, I&rsquo;ll be stepping through my own &ldquo;best practices&rdquo; for
+testing a Node app. I&rsquo;ll be the first to admit that there are probably better
+approaches to testing, and I&rsquo;ll be quite happy to receive feedback, but
+hopefully this series can serve as a guide to get the Node testing discussion
+started. If there&rsquo;s anything you&rsquo;re particularly curious about, please let me
+know and I&rsquo;ll try to address it.</p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[In Theory, Not Practice]]></title>
@@ -466,125 +567,6 @@ mocha as you normally would.</p>
 <p>As I wrote above, I’m still fleshing out the implementation, working out the
 interface and fixing deficiencies. I’ll be publishing the code when things are more
 mature, but in the meantime I&rsquo;d love to hear some feedback.</p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Reflections on NodeConf 2012]]></title>
-    <link href="http://rzrsharp.net/2012/07/06/reflections-on-nodeconf-2012.html"/>
-    <updated>2012-07-06T20:16:00-07:00</updated>
-    <id>http://rzrsharp.net/2012/07/06/reflections-on-nodeconf-2012</id>
-    <content type="html"><![CDATA[<p>NodeConf 2012 was my first real &ldquo;developer&rdquo; conference. I had attended
-conferences in the past, but because of the heavy sponsorship of industry, most
-had felt like trade shows or job fairs. NodeConf was advertised as a conference
-for developers, by developers; Mikeal Rogers, the event&rsquo;s main organizer,
-boasted that NodeConf 2012 would feature more core committers as presenters
-than any other Node.js conference.</p>
-
-<p>As the event grew closer, my curiosity about what NodeConf would entail
-heightened. Mikeal didn&rsquo;t divulge a clue as to the event&rsquo;s schedule, and even
-perusing the twitter feeds of probable speakers and
-<a href="http://lanyrd.com/2012/nodeconf/">NodeConf&rsquo;s site on lanyard</a> didn&rsquo;t reveal any helpful
-intelligence. At the opening party on Sunday, a general sense of cautious
-curiosity permeated the crowd. No one had ever attended a conference where the
-schedule would be revealed in realtime (appropriately for Node); my own
-conference inexperience left me more curious than most.</p>
-
-<p>Mikeal <em>had</em> revealed two details:  the major themes of each day of the
-conference.  Day 1 was structured around the world of Node; Day 2 around the
-power of Node. NodeConf began with Node creator Ryan Dahl reconstructing the
-origins of the framework from livejournal entries and blurry photos of late
-night coding session in Germany.  But as the day continued, I couldn&rsquo;t see how
-the talks related to each other, or what I should be taking away from them.
-Each of the presentations, while excellent and often inspiring, didn&rsquo;t leave me
-with a consistent narrative. I had expected &ldquo;the world of Node&rdquo; to consist
-mostly of talks like Isaac Schlueter&rsquo;s &ldquo;State of Node&rdquo; presentation: perhaps a
-roundup of the big open source projects and frameworks that dominate the Node
-ecosystem, and a discussion of where they were headed.  Instead, talks covered
-everything from realtime solutions with <a href="http://socket.io/">socket.io</a>, to
-<a href="https://github.com/indutny/candor">the creation of a whole new language</a>. I had
-started the first day of NodeConf curious, but ended it confused.</p>
-
-<p>Day Two changed all that.</p>
-
-<p>As one talk on the &ldquo;power of Node&rdquo; led into the next, the topics and structure
-of the first day of NodeConf started to make sense to me. Each speaker
-demonstrated amazing new contributions to the Node ecosystem, from the
-Node-inspired <a href="http://luvit.io/">Luvit framework</a> built with
-<a href="http://www.lua.org/">Lua</a>, to bleeding edge debugging tooling with dtrace, to
-ridiculous hardware demonstrations featuring human-detecting arduinos,
-three-dimensional saws, and
-<a href="https://dl.dropbox.com/u/3531958/nodeconf/index.html#/">radar laser robots</a> controlled by
-Javascript. These talks didn&rsquo;t just demonstrate powerful and frequently
-unexpected uses of Node: they helped me make sense of the previous day&rsquo;s
-selection of talks.</p>
-
-<p>Node is not <em>just</em> the Node framework: it&rsquo;s a philosophy, an approach to
-solving problems. The first inkling of &ldquo;Node as philosophy&rdquo; came in
-<a href="http://substack.net/posts/b96642/the-node-js-aesthetic">substack&rsquo;s post on Node&rsquo;s aesthetic</a>,
-discussing the &ldquo;limited surface area&rdquo; approach to Node&rsquo;s modular problem-solving. But
-NodeConf demonstrated that the node philosophy goes much further than that:</p>
-
-<ol>
-<li><p>async all of the things: Ryan&rsquo;s initial work with libuv focused on the
-challenges of creating an async IO layer that worked across platforms, but that
-work has been extended with new languages like
-<a href="https://twitter.com/indutny/">Fedor Indutny&rsquo;s</a> Candor and
-<a href="https://github.com/creationix/">Tim Caswell&rsquo;s</a> Luvit framework. But it&rsquo;s not just
-file IO &ndash; <a href="https://twitter.com/maxogden">Max Ogden</a> showed that the importance
-of a beautiful async API
-<a href="https://github.com/maxogden/domnode">could be extended to browsers</a> (utilizing ideas put forth by
-substack in day one), while <a href="https://twitter.com/rwaldron">Rick Waldron</a>
-brilliantly demonstrated how JavaScript&rsquo;s async nature could be used to solve
-problems which had always been approached synchronously. (Like robots. With
-lasers.)</p></li>
-<li><p>embrace the hard problems: JavaScript may frequently be maligned for its odd
-&ldquo;bad parts&rdquo;, and JS developers have been looked down on in the past because of
-the history of DOM based spaghetti code, but NodeConf 2012 demonstrated a
-community that was unabashed in its tackling of serious computing issues. From
-<a href="https://twitter.com/felixge/">Felix Geisendorfer&rsquo;s&rsquo;s</a> writing of a binary MySQL parser that
-surpassed a c library in performance, to the community&rsquo;s embracing of the
-concept of IO streams, to the use of dtrace in debugging: Node developers on
-the bleeding edge are not shying away from the toughest technical problems, but
-instead are taking them on at full speed and with high expectations.</p></li>
-<li><p>a virtuous cycle of framework and community: Node&rsquo;s &ldquo;limited surface area&rdquo;
-design of the core framework, along with the ease of use of NPM for publishing
-open source code and small useful modules, have led to an explosion of code. At
-NodeConf 2011, around 1800 packages had been published to NPM; now there are
-over 12000! Modules range from
-<a href="https://github.com/substack/earl-grey">steaming cups of earl grey</a>, to
-<a href="http://voiceboxpdx.com/">karaoke bar APIs</a>, to websocket adapters and arduino libraries.
-The design of the framework drove its community adoption, but the community
-adoption has further developed the framework.</p></li>
-</ol>
-
-
-<p>In the last talk of day two, <a href="https://twitter.com/tmpvar">Elijah Insua</a>
-discussed the hardware hacking he&rsquo;d done with Node. At one point, he mentioned
-that he came up with an idea that needed a midi driver, and he said something
-along the lines of: he never expected needing a midi driver, but as soon as he
-needed one, he came across one on NPM. The word that came to mind was
-serendipity: the contributions to Node, and the explorations of its philosophy,
-are feeding on themselves and driving completely unexpected innovation.</p>
-
-<p>As I thought of the serendipitous nature of the Node ecosystem, Mikeal&rsquo;s
-construction of NodeConf finally clicked for me. The two days of talks had been
-divided into groups of four presentations around a single theme; neither the
-themes nor the talks were made public, but each talk and theme bled into the
-next, with later speakers surprisingly stating how happy they were that a
-previous speaker had touched on a similar topic. The talks seemed to develop
-naturally, if unexpectedly; the overall direction was unclear to everyone
-except Mikeal, and gave the impression of the community simply exploring new
-ideas and pushing boundaries organically. The serendipity of Node&rsquo;s
-development, then, found itself reflected in Mikeal&rsquo;s construction of the
-conference. Does this sound ridiculously meta? Yes, but it completely worked.</p>
-
-<p>As Node grows up and attracts adoption, it will be increasingly difficult to
-maintain the philosophically-driven, community-minded hacker ethos of the Node
-ecosystem, but I hope that Mikeal and the other stewards of the Node community
-can continue to foster talks and events that focus on the behind-the-scenes
-developers who are laying the building blocks for the future of this
-fascinating set of technologies.</p>
 ]]></content>
   </entry>
   

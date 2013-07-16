@@ -9,8 +9,8 @@
   <meta name="author" content="Justin Reidy">
 
   
-  <meta name="description" content="When reading over some Node.js source code written in Coffeescript, I came across
-a couple uses of the Coffeescript do operator. While do is a very &hellip;">
+  <meta name="description" content="Sometimes it&rsquo;s difficult to find an easy answer to common coding questions. Because
+Google ignores most punctuation, even the most exact &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -78,6 +78,71 @@ a couple uses of the Coffeescript do operator. While do is a very &hellip;">
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+  
+    
+      <h1 class="entry-title"><a href="/2011/07/08/this-in-anonymous-functions.html">&#8220;This&#8221; in Anonymous Functions</a></h1>
+      
+      
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2011-07-08T00:00:00-07:00" pubdate data-updated="true">Jul 8<span>th</span>, 2011</time>
+        
+         | <a href="/2011/07/08/this-in-anonymous-functions.html#disqus_thread">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Sometimes it&rsquo;s difficult to find an easy answer to common coding questions. Because
+Google ignores most punctuation, even the most exact queries fail to produce
+relevant results. Questions about the nature and value of <code>this</code> in Javascript present
+a particularly thorny problem, since &ldquo;this&rdquo; is about as common a word as you can find.</p>
+
+<p>A common point of confusion in Javascript is that the value of <code>this</code> depends entirely
+on a function&rsquo;s context, and can even be overridden depending on how a function is
+invoked. Hopefully this post will save time for new Javascript devs trolling through
+Google&rsquo;s depths:</p>
+
+<blockquote><p>In anonymous functions, the value of <code>this</code> refers to the anonymous function itself,
+and not the calling scope. However, the nature of closures allows the anonymous function
+to still refer to the calling object.</p></blockquote>
+
+<p>The above rule is demonstrated with the following nodejs code:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+</pre></td><td class='code'><pre><code class='javascript'><span class='line'><span class="kd">var</span> <span class="nx">that</span> <span class="o">=</span> <span class="k">this</span><span class="p">;</span>
+</span><span class='line'><span class="nx">that</span><span class="p">.</span><span class="nx">foo</span> <span class="o">=</span> <span class="s1">&#39;bar&#39;</span><span class="p">;</span>
+</span><span class='line'><span class="nx">process</span><span class="p">.</span><span class="nx">nextTick</span><span class="p">(</span><span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+</span><span class='line'>  <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;this &quot;</span> <span class="o">+</span> <span class="k">this</span><span class="p">.</span><span class="nx">foo</span> <span class="o">+</span> <span class="s2">&quot; and that &quot;</span> <span class="o">+</span> <span class="nx">that</span><span class="p">.</span><span class="nx">foo</span><span class="p">)</span> <span class="p">});</span>
+</span></code></pre></td></tr></table></div></figure>
+
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -671,6 +736,10 @@ some stimulating writing!</p>
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/2013/07/16/testing-and-node-why-do-we-test.html">Testing and Node: Why Do We Test?</a>
+      </li>
+    
+      <li class="post">
         <a href="/2013/07/02/private-github-repos-with-npm-and-heroku.html">Private Github Repos with NPM &amp; Heroku</a>
       </li>
     
@@ -684,10 +753,6 @@ some stimulating writing!</p>
     
       <li class="post">
         <a href="/2012/10/01/error-isolation-with-promises.html">Error Isolation with Promises</a>
-      </li>
-    
-      <li class="post">
-        <a href="/2012/08/01/client-side-testing-insanity.html">Client-Side Testing Insanity</a>
       </li>
     
   </ul>
