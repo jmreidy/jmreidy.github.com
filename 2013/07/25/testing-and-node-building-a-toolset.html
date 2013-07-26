@@ -1,0 +1,538 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Testing and Node: Building a Toolset - Razor Sharp Design</title>
+  <meta name="author" content="Justin Reidy">
+
+  
+  <meta name="description" content="This is part two of a series on testing and Node; check out part one,
+Why do we test. Despite Node.js&rsquo;s relative youth, there&rsquo;s already a &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://rzrsharp.net/2013/07/25/testing-and-node-building-a-toolset.html">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="Razor Sharp Design" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/lib/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="http://fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href='http://fonts.googleapis.com/css?family=Open+Sans' rel='stylesheet' type='text/css'>
+<link href='http://fonts.googleapis.com/css?family=Fjalla+One' rel='stylesheet' type='text/css'>
+
+<script type="text/javascript" src="http://use.typekit.com/eqy0aif.js"></script>
+<script type="text/javascript">try{Typekit.load();}catch(e){}</script>
+
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-5761922-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+
+
+</head>
+
+<body   class="collapse-sidebar sidebar-footer" >
+  <header role="banner">
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="http://google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:rzrsharp.net" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+  <li><a href="/about">About</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+  
+    
+      <h1 class="entry-title">Testing and Node: Building a Toolset</h1>
+    
+  
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-07-25T16:48:00-07:00" pubdate data-updated="true">Jul 25<span>th</span>, 2013</time>
+        
+         | <a href="#disqus_thread">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p><em>This is part two of a series on testing and Node; check out part one,
+<a href="/2013/07/16/testing-and-node-why-do-we-test.html">Why do we test</a>.</em></p>
+
+<p>Despite Node.js&rsquo;s relative youth, there&rsquo;s already a  vast ecosystem of tooling
+surrounding end-to-end application testing. But the bounteous availability of tools isn&rsquo;t
+as positive an aspect as it may appear; many tools lack maturity, while others
+have gone beyond the point of maturity to abandonware. Choosing the right
+testing toolset when starting a new Node project can be daunting, and can be
+enough to discourage you from testing in the first place.</p>
+
+<p>Don&rsquo;t delay. Don&rsquo;t put off. Follow the advice of the excellent
+<a href="http://www.growing-object-oriented-software.com/">Growing Object-Oriented Software, Guided by Tests</a>
+and set up your test infrastructure
+when you first set up your application.</p>
+
+<p>Today, we&rsquo;re going to go step-by-step through creating a new Node app and its accompanying test toolset.
+Over the rest of the series, we&rsquo;ll walk through writing a
+feature from the outside-in.</p>
+
+<p>Let&rsquo;s get started. Create a new directory for this project; I created one
+called <code>testing-and-node</code>. <code>cd</code> in and then <code>npm init</code>. If you haven&rsquo;t used
+<code>npm init</code> before, it just asks a series of questions to put together a
+<code>package.json</code> file for you. Fill in whatever answers you want, but when the
+script asks for the &ldquo;test command&rdquo;, make sure to enter <code>grunt test</code>.</p>
+
+<p>Speaking of which&hellip; you do have <a href="http://gruntjs.com/">Grunt</a> installed, right?
+Grunt is a fantastically powerful build tool for JS projects. While some
+developers prefer the power and unix-ness of Makefiles, and Rubyists long for
+Rake&rsquo;s API, Grunt has a comprehensive ecosystem of tasks that&rsquo;s growing daily.
+And since you&rsquo;re coding in JavaScript, you might as well write your build tasks
+in JS, too.</p>
+
+<p>If you <em>are</em> new to Grunt, you&rsquo;ll need to install the cli module for use
+globally:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'>npm install -g grunt-cli
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Next, install a local version of Grunt itself:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'>npm install --save grunt
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Great. Grunt relies on the presence of a file called <code>Gruntfile.js</code> to
+configure and run builds. Let&rsquo;s set that up now. Open a new Gruntfile.js file
+in your editor and enter the following:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+</pre></td><td class='code'><pre><code class='javascript'><span class='line'><span class="nx">module</span><span class="p">.</span><span class="nx">exports</span> <span class="o">=</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">grunt</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="nx">grunt</span><span class="p">.</span><span class="nx">initConfig</span><span class="p">({</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="p">});</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="nx">grunt</span><span class="p">.</span><span class="nx">registerTask</span><span class="p">(</span><span class="s1">&#39;test&#39;</span><span class="p">,</span> <span class="p">[]);</span> <span class="p">};</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Go ahead and run <code>npm test</code>. It&rsquo;s green. Hooray! Yes, it&rsquo;s true your tests
+don&rsquo;t currently do anything, but now you&rsquo;re free to start setting up the rest
+of your toolset. Let&rsquo;s install them in one bunch:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'>npm install --save-dev mocha sinon chai sinon-chai grunt-mocha-test grunt-mocha-webdriver
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>And if you&rsquo;re a fan of
+<a href="http://domenic.me/2012/10/14/youre-missing-the-point-of-promises/">promises</a>,
+you might as well install the following right now:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'>npm install --save Q
+</span><span class='line'>npm install --save-dev chai-as-promised
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>We&rsquo;ll also need to install a tool that&rsquo;s not a Node module:
+<a href="http://phantomjs.org/">PhantomJS</a>.  You can install it with
+<a href="http://brew.sh/">Homebrew</a> if you&rsquo;ve got it; otherwise, there&rsquo;s
+<a href="http://phantomjs.org/download.html">binary installers here</a>. If you already have
+Phantom installed, just make sure it&rsquo;s on the latest version.</p>
+
+<p>Let&rsquo;s go over the selection of each of these tools. There&rsquo;s certainly other
+sets of modules that would work equally well, but this is the toolset with
+which I&rsquo;m most familiar, and the one for which I&rsquo;ll advocate.</p>
+
+<h3>mocha <a href="http://visionmedia.github.io/mocha/">http://visionmedia.github.io/mocha/</a></h3>
+
+<p>There&rsquo;s a wide variety of testing frameworks available for Node, from the
+extraordinarily comprehensive (<a href="http://pivotal.github.io/jasmine/">Jasmine</a>) to
+the extraordinarily minimal (<a href="https://github.com/isaacs/node-tap">node-tap</a>).
+Mocha fits neatly in between these two extremes; its one role is to run tests,
+and it&rsquo;s agnostic about output, assertion library, and even interface-style
+(the only thing Mocha <em>isn&rsquo;t</em> agnostic about is <a href="https://github.com/visionmedia/mocha/pull/329">promise
+support</a>). Mocha&rsquo;s best feature
+is its ease of async use; supply a test with a callback, and it will be run
+asynchronously.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+</pre></td><td class='code'><pre><code class='javascript'><span class='line'><span class="nx">describe</span><span class="p">(</span><span class="s1">&#39;a sync test&#39;</span><span class="p">,</span> <span class="kd">function</span> <span class="p">()</span> <span class="p">{</span>
+</span><span class='line'>  <span class="nx">it</span><span class="p">(</span><span class="s1">&#39;is run synchronously&#39;</span><span class="p">,</span> <span class="kd">function</span> <span class="p">()</span> <span class="p">{</span>
+</span><span class='line'>    <span class="c1">//assert something synchronous</span>
+</span><span class='line'>  <span class="p">});</span>
+</span><span class='line'><span class="p">});</span>
+</span><span class='line'>
+</span><span class='line'><span class="nx">describe</span><span class="p">(</span><span class="s1">&#39;an async test&#39;</span><span class="p">,</span> <span class="kd">function</span> <span class="p">()</span> <span class="p">{</span>
+</span><span class='line'>  <span class="nx">it</span><span class="p">(</span><span class="s1">&#39;is run asynchronously&#39;</span><span class="p">,</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">done</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>    <span class="c1">//do something async</span>
+</span><span class='line'>    <span class="nx">done</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">result</span><span class="p">);</span>
+</span><span class='line'>  <span class="p">});</span>
+</span><span class='line'><span class="p">});</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<h3>sinon <a href="http://sinonjs.org/">http://sinonjs.org/</a></h3>
+
+<p>Since Mocha simply plays the role of test-runner, we need other components to complete our testing
+toolset. Sinon is a framework-agnostic library that provides spies, stubs, and
+mocks for JavaScript
+(<a href="http://martinfowler.com/articles/mocksArentStubs.html#TheDifferenceBetweenMocksAndStubs">Martin Fowler</a>
+provides a useful explanation of those terms). Spies, stubs, and mocks are
+integral for properly testing the interfaces through which your application
+objects communicate; Sinon makes it simple to verify how any function is
+called, and can even indicate whether a function has been new-ed.</p>
+
+<h3>chai <a href="http://chaijs.com/">chaijs.com</a></h3>
+
+<p>Completing our main set of testing
+tools is chai, a framework-agnostic assertion library. Node provides
+<a href="http://nodejs.org/api/assert.html">its own assertion api</a> directly in core, so it&rsquo;s not
+strictly necessary to include a third-party assertion module. But Chai provides
+a choice of excellent APIs, with error messages that should make the path from
+red to green much clearer. I&rsquo;m personally partial to Chai&rsquo;s
+<a href="http://chaijs.com/api/bdd/">expect</a> bdd interface. Another benefit of Chai is
+that it provides an easy mechanism for adding your own assertion language,
+which has led to assertion-plugins like sinon-chai and chai-as-promised.</p>
+
+<h3>sinon-chai <a href="http://chaijs.com/plugins/sinon-chai">http://chaijs.com/plugins/sinon-chai</a></h3>
+
+<p>I&rsquo;m a big believer that cleaner APIs lead to better code; while it&rsquo;s perfectly
+acceptable to test Sinon object properties directly, the sinon-chai plugin
+makes your tests even clearer. Instead of:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='javascript'><span class='line'><span class="nx">expect</span><span class="p">(</span><span class="nx">mySpy</span><span class="p">.</span><span class="nx">calledWith</span><span class="p">(</span><span class="s2">&quot;foo&quot;</span><span class="p">)).</span><span class="nx">to</span><span class="p">.</span><span class="nx">be</span><span class="p">.</span><span class="nx">ok</span><span class="p">;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>you can just write:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='javascript'><span class='line'><span class="nx">expect</span><span class="p">(</span><span class="nx">mySpy</span><span class="p">).</span><span class="nx">to</span><span class="p">.</span><span class="nx">have</span><span class="p">.</span><span class="nx">been</span><span class="p">.</span><span class="nx">calledWith</span><span class="p">(</span><span class="s2">&quot;foo&quot;</span><span class="p">);</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Since you&rsquo;re
+going to the trouble of using an expressive assertion library, it makes sense
+to make those assertions as clear as possible.</p>
+
+<h3>chai-as-promised <a href="http://chaijs.com/plugins/chai-as-promised">http://chaijs.com/plugins/chai-as-promised</a></h3>
+
+<p>For promise-users, chai-as-promised provides the same benefits as sinon-chai:
+more expressive test assertions. Instead of chaining a promise onto the subject
+of your test to verify the eventual resolution or rejection, chai-as-promised
+allows you to use the same chaining-API as the rest of Chai:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='javascript'><span class='line'><span class="nx">expect</span><span class="p">(</span><span class="nx">promiseFn</span><span class="p">({</span><span class="nx">foo</span><span class="o">:</span> <span class="s1">&#39;bar&#39;</span><span class="p">})).</span><span class="nx">to</span><span class="p">.</span><span class="nx">eventually</span><span class="p">.</span><span class="nx">deep</span><span class="p">.</span><span class="nx">equal</span><span class="p">(</span><span class="s1">&#39;foobar&#39;</span><span class="p">)</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<h3>grunt-mocha-test <a href="https://github.com/pghalliday/grunt-mocha-test">https://github.com/pghalliday/grunt-mocha-test</a></h3>
+
+<p>Because Mocha can be run on both the client and server, there&rsquo;s a surprisingly
+large number of Grunt tasks that use the testing framework; I prefer
+grunt-mocha-test because of its extreme simplicity. grunt-mocha-test uses the
+same options hash as Mocha itself; in fact, all it&rsquo;s doing is firing up processes
+with which to run Mocha instances. Of course, running those instances properly,
+and catching any weird exceptions, is harder than it sounds &mdash; grunt-mocha-test
+has figured out those fringe cases so you don&rsquo;t have to.</p>
+
+<h3>grunt-mocha-webdriver <a href="https://github.com/jmreidy/grunt-mocha-webdriver">https://github.com/jmreidy/grunt-mocha-webdriver</a></h3>
+
+<p>When it comes down to full-stack (aka acceptance or end-to-end) testing, you&rsquo;ll
+need a headless browser with which to interact. PhantomJS, which we&rsquo;ll get to
+below, provides a headless WebKit browser, but what if you want to run your
+acceptance tests against more than just a (fake) instance of WebKit? What if you
+want to know if your application will work on mobile browsers, or legacy
+versions of IE? That&rsquo;s where <a href="https://saucelabs.com/">SauceLabs</a> comes into
+play; it provides an IaaS for testing against any matrix of browsers and
+devices.</p>
+
+<p>grunt-mocha-webdriver allows you to write and run Mocha tests as you normally
+would, but with one huge benefit &mdash; it automatically inserts a
+<a href="https://github.com/admc/wd">WebDriver/Selenium</a> interface into your tests for you. With
+grunt-mocha-webdriver, you&rsquo;ll be able to run a single acceptance test against
+PhantomJS locally, and then run against a whole suite of browsers on SauceLabs
+when you deploy to your CI environment.</p>
+
+<p>If all of that sounds incredibly confusing now, it will make more sense in a
+future post in this series.</p>
+
+<h3>PhantomJS <a href="http://phantomjs.org/">http://phantomjs.org/</a></h3>
+
+<p>PhantomJS isn&rsquo;t a Node module; it&rsquo;s a headless WebKit browser. Traditionally,
+the interface through which you&rsquo;d interact with Phantom would be a JavaScript
+API, and it was notoriously tricky to setup and integrate into the rest of the
+testing stack. All that changed with PhantomJS&rsquo;s 1.8 release, which included
+<a href="https://github.com/detro/ghostdriver">Ghost Driver</a>,
+a pure JavaScript implementation of the WebDriver / Selenium Wire Protocol.
+With new versions of PhantomJS, you can run:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'>phantomjs --webdriver<span class="o">=</span>4444
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>That will keep an instance of Phantom running in the background, against which
+you can run your tests via grunt-mocha-webdriver.</p>
+
+<p>This whole process will be explained more in a later post in this series.</p>
+
+<hr>
+
+
+<br />
+
+
+<p>And with that, we have a working testing toolset. We&rsquo;re ready to build &mdash; which
+we&rsquo;ll start doing in the next post.</p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">Justin Reidy</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-07-25T16:48:00-07:00" pubdate data-updated="true">Jul 25<span>th</span>, 2013</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/bdd/'>BDD</a>, <a class='category' href='/blog/categories/node-dot-js/'>Node.js</a>, <a class='category' href='/blog/categories/tdd/'>TDD</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="http://twitter.com/share" class="twitter-share-button" data-url="http://rzrsharp.net/2013/07/25/testing-and-node-building-a-toolset.html" data-via="jmreidy" data-counturl="http://rzrsharp.net/2013/07/25/testing-and-node-building-a-toolset.html" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/2013/07/16/testing-and-node-why-do-we-test.html" title="Previous Post: Testing and Node: Why Do We Test?">&laquo; Testing and Node: Why Do We Test?</a>
+      
+      
+    </p>
+  </footer>
+</article>
+
+  <section>
+    <h1>Comments</h1>
+    <div id="disqus_thread" aria-live="polite"><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+  </section>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>About Me</h1>
+  <p>A little something about me.</p>
+</section>
+<section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/2013/07/25/testing-and-node-building-a-toolset.html">Testing and Node: Building a Toolset</a>
+      </li>
+    
+      <li class="post">
+        <a href="/2013/07/16/testing-and-node-why-do-we-test.html">Testing and Node: Why Do We Test?</a>
+      </li>
+    
+      <li class="post">
+        <a href="/2013/07/02/private-github-repos-with-npm-and-heroku.html">Private Github Repos with NPM &amp; Heroku</a>
+      </li>
+    
+      <li class="post">
+        <a href="/2013/04/11/in-theory-not-practice.html">In Theory, Not Practice</a>
+      </li>
+    
+      <li class="post">
+        <a href="/2013/04/02/towards-a-unified-js-stack.html">Towards a Unified JS Stack</a>
+      </li>
+    
+  </ul>
+</section>
+
+<section>
+  <h1>GitHub Repos</h1>
+  <ul id="gh_repos">
+    <li class="loading">Status updating...</li>
+  </ul>
+  
+  <a href="https://github.com/jmreidy">@jmreidy</a> on GitHub
+  
+  <script type="text/javascript">
+    $(document).ready(function(){
+        if (!window.jXHR){
+            var jxhr = document.createElement('script');
+            jxhr.type = 'text/javascript';
+            jxhr.src = '/javascripts/libs/jXHR.js';
+            var s = document.getElementsByTagName('script')[0];
+            s.parentNode.insertBefore(jxhr, s);
+        }
+
+        github.showRepos({
+            user: 'jmreidy',
+            count: 5,
+            skip_forks: false,
+            target: '#gh_repos'
+        });
+    });
+  </script>
+  <script src="/javascripts/github.js" type="text/javascript"> </script>
+</section>
+
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2013 - Justin Reidy <br/>
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a>, customized with <a href="https://github.com/mjhea0/whiterspace">whiterspace</a>.</span>
+</p>
+
+</footer>
+  
+
+<script type="text/javascript">
+      var disqus_shortname = 'razorsharp';
+      
+        
+        // var disqus_developer = 1;
+        var disqus_identifier = 'http://rzrsharp.net/2013/07/25/testing-and-node-building-a-toolset.html';
+        var disqus_url = 'http://rzrsharp.net/2013/07/25/testing-and-node-building-a-toolset.html';
+        var disqus_script = 'embed.js';
+      
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = 'http://' + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = 'http://platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

@@ -4,7 +4,7 @@
   <title><![CDATA[Razor Sharp Design]]></title>
   <link href="http://rzrsharp.net/atom.xml" rel="self"/>
   <link href="http://rzrsharp.net/"/>
-  <updated>2013-07-25T17:08:14-07:00</updated>
+  <updated>2013-07-25T17:29:55-07:00</updated>
   <id>http://rzrsharp.net/</id>
   <author>
     <name><![CDATA[Justin Reidy]]></name>
@@ -12,6 +12,271 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    
+    <title type="html"><![CDATA[Testing and Node: Building a Toolset]]></title>
+    <link href="http://rzrsharp.net/2013/07/25/testing-and-node-building-a-toolset.html"/>
+    
+    <updated>2013-07-25T16:48:00-07:00</updated>
+    <id>http://rzrsharp.net/2013/07/25/testing-and-node-building-a-toolset</id>
+    
+    <content type="html"><![CDATA[<p><em>This is part two of a series on testing and Node; check out part one,
+<a href="http://rzrsharp.net/2013/07/16/testing-and-node-why-do-we-test.html">Why do we test</a>.</em></p>
+
+<p>Despite Node.js&rsquo;s relative youth, there&rsquo;s already a  vast ecosystem of tooling
+surrounding end-to-end application testing. But the bounteous availability of tools isn&rsquo;t
+as positive an aspect as it may appear; many tools lack maturity, while others
+have gone beyond the point of maturity to abandonware. Choosing the right
+testing toolset when starting a new Node project can be daunting, and can be
+enough to discourage you from testing in the first place.</p>
+
+<p>Don&rsquo;t delay. Don&rsquo;t put off. Follow the advice of the excellent
+<a href="http://www.growing-object-oriented-software.com/">Growing Object-Oriented Software, Guided by Tests</a>
+and set up your test infrastructure
+when you first set up your application.</p>
+
+<p>Today, we&rsquo;re going to go step-by-step through creating a new Node app and its accompanying test toolset.
+Over the rest of the series, we&rsquo;ll walk through writing a
+feature from the outside-in.</p>
+
+<p>Let&rsquo;s get started. Create a new directory for this project; I created one
+called <code>testing-and-node</code>. <code>cd</code> in and then <code>npm init</code>. If you haven&rsquo;t used
+<code>npm init</code> before, it just asks a series of questions to put together a
+<code>package.json</code> file for you. Fill in whatever answers you want, but when the
+script asks for the &ldquo;test command&rdquo;, make sure to enter <code>grunt test</code>.</p>
+
+<p>Speaking of which&hellip; you do have <a href="http://gruntjs.com/">Grunt</a> installed, right?
+Grunt is a fantastically powerful build tool for JS projects. While some
+developers prefer the power and unix-ness of Makefiles, and Rubyists long for
+Rake&rsquo;s API, Grunt has a comprehensive ecosystem of tasks that&rsquo;s growing daily.
+And since you&rsquo;re coding in JavaScript, you might as well write your build tasks
+in JS, too.</p>
+
+<p>If you <em>are</em> new to Grunt, you&rsquo;ll need to install the cli module for use
+globally:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'>npm install -g grunt-cli
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Next, install a local version of Grunt itself:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'>npm install --save grunt
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Great. Grunt relies on the presence of a file called <code>Gruntfile.js</code> to
+configure and run builds. Let&rsquo;s set that up now. Open a new Gruntfile.js file
+in your editor and enter the following:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+</pre></td><td class='code'><pre><code class='javascript'><span class='line'><span class="nx">module</span><span class="p">.</span><span class="nx">exports</span> <span class="o">=</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">grunt</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="nx">grunt</span><span class="p">.</span><span class="nx">initConfig</span><span class="p">({</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="p">});</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="nx">grunt</span><span class="p">.</span><span class="nx">registerTask</span><span class="p">(</span><span class="s1">&#39;test&#39;</span><span class="p">,</span> <span class="p">[]);</span> <span class="p">};</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Go ahead and run <code>npm test</code>. It&rsquo;s green. Hooray! Yes, it&rsquo;s true your tests
+don&rsquo;t currently do anything, but now you&rsquo;re free to start setting up the rest
+of your toolset. Let&rsquo;s install them in one bunch:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'>npm install --save-dev mocha sinon chai sinon-chai grunt-mocha-test grunt-mocha-webdriver
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>And if you&rsquo;re a fan of
+<a href="http://domenic.me/2012/10/14/youre-missing-the-point-of-promises/">promises</a>,
+you might as well install the following right now:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'>npm install --save Q
+</span><span class='line'>npm install --save-dev chai-as-promised
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>We&rsquo;ll also need to install a tool that&rsquo;s not a Node module:
+<a href="http://phantomjs.org/">PhantomJS</a>.  You can install it with
+<a href="http://brew.sh/">Homebrew</a> if you&rsquo;ve got it; otherwise, there&rsquo;s
+<a href="http://phantomjs.org/download.html">binary installers here</a>. If you already have
+Phantom installed, just make sure it&rsquo;s on the latest version.</p>
+
+<p>Let&rsquo;s go over the selection of each of these tools. There&rsquo;s certainly other
+sets of modules that would work equally well, but this is the toolset with
+which I&rsquo;m most familiar, and the one for which I&rsquo;ll advocate.</p>
+
+<h3>mocha <a href="http://visionmedia.github.io/mocha/">http://visionmedia.github.io/mocha/</a></h3>
+
+<p>There&rsquo;s a wide variety of testing frameworks available for Node, from the
+extraordinarily comprehensive (<a href="http://pivotal.github.io/jasmine/">Jasmine</a>) to
+the extraordinarily minimal (<a href="https://github.com/isaacs/node-tap">node-tap</a>).
+Mocha fits neatly in between these two extremes; its one role is to run tests,
+and it&rsquo;s agnostic about output, assertion library, and even interface-style
+(the only thing Mocha <em>isn&rsquo;t</em> agnostic about is <a href="https://github.com/visionmedia/mocha/pull/329">promise
+support</a>). Mocha&rsquo;s best feature
+is its ease of async use; supply a test with a callback, and it will be run
+asynchronously.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+</pre></td><td class='code'><pre><code class='javascript'><span class='line'><span class="nx">describe</span><span class="p">(</span><span class="s1">&#39;a sync test&#39;</span><span class="p">,</span> <span class="kd">function</span> <span class="p">()</span> <span class="p">{</span>
+</span><span class='line'>  <span class="nx">it</span><span class="p">(</span><span class="s1">&#39;is run synchronously&#39;</span><span class="p">,</span> <span class="kd">function</span> <span class="p">()</span> <span class="p">{</span>
+</span><span class='line'>    <span class="c1">//assert something synchronous</span>
+</span><span class='line'>  <span class="p">});</span>
+</span><span class='line'><span class="p">});</span>
+</span><span class='line'>
+</span><span class='line'><span class="nx">describe</span><span class="p">(</span><span class="s1">&#39;an async test&#39;</span><span class="p">,</span> <span class="kd">function</span> <span class="p">()</span> <span class="p">{</span>
+</span><span class='line'>  <span class="nx">it</span><span class="p">(</span><span class="s1">&#39;is run asynchronously&#39;</span><span class="p">,</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">done</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>    <span class="c1">//do something async</span>
+</span><span class='line'>    <span class="nx">done</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">result</span><span class="p">);</span>
+</span><span class='line'>  <span class="p">});</span>
+</span><span class='line'><span class="p">});</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<h3>sinon <a href="http://sinonjs.org/">http://sinonjs.org/</a></h3>
+
+<p>Since Mocha simply plays the role of test-runner, we need other components to complete our testing
+toolset. Sinon is a framework-agnostic library that provides spies, stubs, and
+mocks for JavaScript
+(<a href="http://martinfowler.com/articles/mocksArentStubs.html#TheDifferenceBetweenMocksAndStubs">Martin Fowler</a>
+provides a useful explanation of those terms). Spies, stubs, and mocks are
+integral for properly testing the interfaces through which your application
+objects communicate; Sinon makes it simple to verify how any function is
+called, and can even indicate whether a function has been new-ed.</p>
+
+<h3>chai <a href="http://chaijs.com/">chaijs.com</a></h3>
+
+<p>Completing our main set of testing
+tools is chai, a framework-agnostic assertion library. Node provides
+<a href="http://nodejs.org/api/assert.html">its own assertion api</a> directly in core, so it&rsquo;s not
+strictly necessary to include a third-party assertion module. But Chai provides
+a choice of excellent APIs, with error messages that should make the path from
+red to green much clearer. I&rsquo;m personally partial to Chai&rsquo;s
+<a href="http://chaijs.com/api/bdd/">expect</a> bdd interface. Another benefit of Chai is
+that it provides an easy mechanism for adding your own assertion language,
+which has led to assertion-plugins like sinon-chai and chai-as-promised.</p>
+
+<h3>sinon-chai <a href="http://chaijs.com/plugins/sinon-chai">http://chaijs.com/plugins/sinon-chai</a></h3>
+
+<p>I&rsquo;m a big believer that cleaner APIs lead to better code; while it&rsquo;s perfectly
+acceptable to test Sinon object properties directly, the sinon-chai plugin
+makes your tests even clearer. Instead of:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='javascript'><span class='line'><span class="nx">expect</span><span class="p">(</span><span class="nx">mySpy</span><span class="p">.</span><span class="nx">calledWith</span><span class="p">(</span><span class="s2">&quot;foo&quot;</span><span class="p">)).</span><span class="nx">to</span><span class="p">.</span><span class="nx">be</span><span class="p">.</span><span class="nx">ok</span><span class="p">;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>you can just write:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='javascript'><span class='line'><span class="nx">expect</span><span class="p">(</span><span class="nx">mySpy</span><span class="p">).</span><span class="nx">to</span><span class="p">.</span><span class="nx">have</span><span class="p">.</span><span class="nx">been</span><span class="p">.</span><span class="nx">calledWith</span><span class="p">(</span><span class="s2">&quot;foo&quot;</span><span class="p">);</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Since you&rsquo;re
+going to the trouble of using an expressive assertion library, it makes sense
+to make those assertions as clear as possible.</p>
+
+<h3>chai-as-promised <a href="http://chaijs.com/plugins/chai-as-promised">http://chaijs.com/plugins/chai-as-promised</a></h3>
+
+<p>For promise-users, chai-as-promised provides the same benefits as sinon-chai:
+more expressive test assertions. Instead of chaining a promise onto the subject
+of your test to verify the eventual resolution or rejection, chai-as-promised
+allows you to use the same chaining-API as the rest of Chai:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='javascript'><span class='line'><span class="nx">expect</span><span class="p">(</span><span class="nx">promiseFn</span><span class="p">({</span><span class="nx">foo</span><span class="o">:</span> <span class="s1">&#39;bar&#39;</span><span class="p">})).</span><span class="nx">to</span><span class="p">.</span><span class="nx">eventually</span><span class="p">.</span><span class="nx">deep</span><span class="p">.</span><span class="nx">equal</span><span class="p">(</span><span class="s1">&#39;foobar&#39;</span><span class="p">)</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<h3>grunt-mocha-test <a href="https://github.com/pghalliday/grunt-mocha-test">https://github.com/pghalliday/grunt-mocha-test</a></h3>
+
+<p>Because Mocha can be run on both the client and server, there&rsquo;s a surprisingly
+large number of Grunt tasks that use the testing framework; I prefer
+grunt-mocha-test because of its extreme simplicity. grunt-mocha-test uses the
+same options hash as Mocha itself; in fact, all it&rsquo;s doing is firing up processes
+with which to run Mocha instances. Of course, running those instances properly,
+and catching any weird exceptions, is harder than it sounds &mdash; grunt-mocha-test
+has figured out those fringe cases so you don&rsquo;t have to.</p>
+
+<h3>grunt-mocha-webdriver <a href="https://github.com/jmreidy/grunt-mocha-webdriver">https://github.com/jmreidy/grunt-mocha-webdriver</a></h3>
+
+<p>When it comes down to full-stack (aka acceptance or end-to-end) testing, you&rsquo;ll
+need a headless browser with which to interact. PhantomJS, which we&rsquo;ll get to
+below, provides a headless WebKit browser, but what if you want to run your
+acceptance tests against more than just a (fake) instance of WebKit? What if you
+want to know if your application will work on mobile browsers, or legacy
+versions of IE? That&rsquo;s where <a href="https://saucelabs.com/">SauceLabs</a> comes into
+play; it provides an IaaS for testing against any matrix of browsers and
+devices.</p>
+
+<p>grunt-mocha-webdriver allows you to write and run Mocha tests as you normally
+would, but with one huge benefit &mdash; it automatically inserts a
+<a href="https://github.com/admc/wd">WebDriver/Selenium</a> interface into your tests for you. With
+grunt-mocha-webdriver, you&rsquo;ll be able to run a single acceptance test against
+PhantomJS locally, and then run against a whole suite of browsers on SauceLabs
+when you deploy to your CI environment.</p>
+
+<p>If all of that sounds incredibly confusing now, it will make more sense in a
+future post in this series.</p>
+
+<h3>PhantomJS <a href="http://phantomjs.org/">http://phantomjs.org/</a></h3>
+
+<p>PhantomJS isn&rsquo;t a Node module; it&rsquo;s a headless WebKit browser. Traditionally,
+the interface through which you&rsquo;d interact with Phantom would be a JavaScript
+API, and it was notoriously tricky to setup and integrate into the rest of the
+testing stack. All that changed with PhantomJS&rsquo;s 1.8 release, which included
+<a href="https://github.com/detro/ghostdriver">Ghost Driver</a>,
+a pure JavaScript implementation of the WebDriver / Selenium Wire Protocol.
+With new versions of PhantomJS, you can run:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'>phantomjs --webdriver<span class="o">=</span>4444
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>That will keep an instance of Phantom running in the background, against which
+you can run your tests via grunt-mocha-webdriver.</p>
+
+<p>This whole process will be explained more in a later post in this series.</p>
+
+<hr>
+
+
+<br />
+
+
+<p>And with that, we have a working testing toolset. We&rsquo;re ready to build &mdash; which
+we&rsquo;ll start doing in the next post.</p>
+]]></content>
+    
+  </entry>
   
   <entry>
     
@@ -1958,257 +2223,6 @@ that uses minimalism and consistency to foster reuse.</p></blockquote>
 <p>These words work not just as signposts of good language design, but of everything from
 API construction to individual units of code. I&rsquo;m certainly planning on using them
 as my mantra as I slowly get back up to speed with work.</p>
-]]></content>
-    
-  </entry>
-  
-  <entry>
-    
-    <title type="html"><![CDATA[Introducing vows-bdd]]></title>
-    <link href="http://rzrsharp.net/2011/08/16/introducing-vows-bdd.html"/>
-    
-    <updated>2011-08-16T00:00:00-07:00</updated>
-    <id>http://rzrsharp.net/2011/08/16/introducing-vows-bdd</id>
-    
-    <content type="html"><![CDATA[<p>My work with Node.js has recently transformed from the occassional experiment to
-the building of a full-on side project. It&rsquo;s fascinating to be working with a set
-of tools that are so rapidly developing; the energy and excitement in the Node
-ecosystem far outweighs any annoyances with needing to adjust to changing APIs.</p>
-
-<h3>Embracing Vows</h3>
-
-<p>One of the tools which I&rsquo;ve really enjoyed learning is <a href="http://vowsjs.org">Vows.js</a>.
-Vows.js is a fully async Javascript testing library that allows for blazingly fast
-execution. (It&rsquo;s amazing how little changes in test speed can make TDD feel
-much less onerous.)  Vows&#8217; syntax can be a little tough to adjust to, but the speed,
-combined with the ability to construct &ldquo;test batches&rdquo;, make the barrier to entry
-worth the effort.</p>
-
-<p>While Vows is a near pefect tool for unit testing, I began to run into trouble with
-full-stack integration testing. Check out the contrived example below:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-<span class='line-number'>14</span>
-<span class='line-number'>15</span>
-<span class='line-number'>16</span>
-<span class='line-number'>17</span>
-<span class='line-number'>18</span>
-<span class='line-number'>19</span>
-<span class='line-number'>20</span>
-<span class='line-number'>21</span>
-<span class='line-number'>22</span>
-<span class='line-number'>23</span>
-<span class='line-number'>24</span>
-<span class='line-number'>25</span>
-<span class='line-number'>26</span>
-<span class='line-number'>27</span>
-<span class='line-number'>28</span>
-<span class='line-number'>29</span>
-<span class='line-number'>30</span>
-<span class='line-number'>31</span>
-<span class='line-number'>32</span>
-<span class='line-number'>33</span>
-<span class='line-number'>34</span>
-<span class='line-number'>35</span>
-<span class='line-number'>36</span>
-<span class='line-number'>37</span>
-<span class='line-number'>38</span>
-<span class='line-number'>39</span>
-<span class='line-number'>40</span>
-<span class='line-number'>41</span>
-<span class='line-number'>42</span>
-<span class='line-number'>43</span>
-<span class='line-number'>44</span>
-<span class='line-number'>45</span>
-<span class='line-number'>46</span>
-<span class='line-number'>47</span>
-<span class='line-number'>48</span>
-<span class='line-number'>49</span>
-</pre></td><td class='code'><pre><code class='coffeescript'><span class='line'><span class="nx">vows</span><span class="p">.</span><span class="nx">describe</span><span class="p">(</span><span class="s">&quot;Creating a User&quot;</span><span class="p">)</span>
-</span><span class='line'>  <span class="p">.</span><span class="nx">addBatch</span>
-</span><span class='line'>    <span class="s">&quot;To create a user&quot;</span><span class="o">:</span>
-</span><span class='line'>
-</span><span class='line'>      <span class="s">&quot;Given the server has started&quot;</span><span class="o">:</span>
-</span><span class='line'>        <span class="nv">topic:</span>
-</span><span class='line'>          <span class="nx">server</span><span class="p">.</span><span class="nx">ready</span><span class="p">,</span> <span class="nx">@callback</span>
-</span><span class='line'>
-</span><span class='line'>        <span class="s">&quot;and the DB is populated&quot;</span><span class="o">:</span>
-</span><span class='line'>          <span class="nv">topic:</span>
-</span><span class='line'>            <span class="nx">setupFixtures</span> <span class="nx">@callback</span>
-</span><span class='line'>
-</span><span class='line'>          <span class="s">&quot;and another setup function is required&quot;</span><span class="o">:</span>
-</span><span class='line'>            <span class="nv">topic: </span><span class="nf">-&gt;</span>
-</span><span class='line'>              <span class="nx">anotherSetup</span> <span class="nx">@callback</span>
-</span><span class='line'>
-</span><span class='line'>            <span class="s">&quot;When visiting the form at /user/new&quot;</span><span class="o">:</span>
-</span><span class='line'>              <span class="nv">topic: </span><span class="nf">-&gt;</span>
-</span><span class='line'>                <span class="nv">ctx = </span><span class="k">this</span>
-</span><span class='line'>                <span class="nx">server</span><span class="p">.</span><span class="nx">ready</span> <span class="nf">-&gt;</span>
-</span><span class='line'>                  <span class="nx">zombie</span><span class="p">.</span><span class="nx">visit</span> <span class="s">&quot;http://localhost:</span><span class="si">#{</span><span class="nx">port</span><span class="si">}</span><span class="s">/user/new&quot;</span><span class="p">,</span> <span class="nx">ctx</span><span class="p">.</span><span class="nx">callback</span>
-</span><span class='line'>                <span class="k">return</span>
-</span><span class='line'>
-</span><span class='line'>              <span class="s">&quot;then should allow entry of a username&quot;</span><span class="o">:</span> <span class="nf">(err,browser,status) -&gt;</span>
-</span><span class='line'>                <span class="nx">assert</span><span class="p">.</span><span class="nx">ok</span> <span class="nx">browser</span><span class="p">.</span><span class="nx">querySelector</span> <span class="s">&quot;:input[name=username]&quot;</span>
-</span><span class='line'>
-</span><span class='line'>              <span class="s">&quot;should allow entry of first and last name&quot;</span><span class="o">:</span> <span class="nf">(err,b,s) -&gt;</span>
-</span><span class='line'>                <span class="nx">assert</span><span class="p">.</span><span class="nx">ok</span> <span class="nx">b</span><span class="p">.</span><span class="nx">querySelector</span> <span class="s">&quot;:input[name=firstName]&quot;</span>
-</span><span class='line'>                <span class="nx">assert</span><span class="p">.</span><span class="nx">ok</span> <span class="nx">b</span><span class="p">.</span><span class="nx">querySelector</span> <span class="s">&quot;:input[name=lastName]&quot;</span>
-</span><span class='line'>
-</span><span class='line'>              <span class="s">&quot;should allow entry of a password&quot;</span><span class="o">:</span> <span class="nf">(err,b,s) -&gt;</span>
-</span><span class='line'>                <span class="nx">assert</span><span class="p">.</span><span class="nx">ok</span> <span class="nx">b</span><span class="p">.</span><span class="nx">querySelector</span> <span class="s">&quot;:input[name=password]&quot;</span>
-</span><span class='line'>
-</span><span class='line'>              <span class="s">&quot;should allow confirmation of a password&quot;</span><span class="o">:</span> <span class="nf">(err,b,s) -&gt;</span>
-</span><span class='line'>                <span class="nx">assert</span><span class="p">.</span><span class="nx">ok</span> <span class="nx">b</span><span class="p">.</span><span class="nx">querySelector</span> <span class="s">&quot;:input[name=passwordConfirm]&quot;</span>
-</span><span class='line'>
-</span><span class='line'>              <span class="s">&quot;and submitting the form&quot;</span><span class="o">:</span>
-</span><span class='line'>                <span class="nv">topic: </span><span class="nf">(browser,status) -&gt;</span>
-</span><span class='line'>                  <span class="nx">browser</span><span class="p">.</span><span class="nx">fill</span><span class="p">(</span><span class="s">&quot;username&quot;</span><span class="p">,</span> <span class="s">&quot;test&quot;</span><span class="p">)</span>
-</span><span class='line'>                         <span class="p">.</span><span class="nx">fill</span><span class="p">(</span><span class="s">&quot;firstName&quot;</span><span class="p">,</span> <span class="s">&quot;Justin&quot;</span><span class="p">)</span>
-</span><span class='line'>                         <span class="p">.</span><span class="nx">fill</span><span class="p">(</span><span class="s">&quot;lastName&quot;</span><span class="p">,</span> <span class="s">&quot;Reidy&quot;</span><span class="p">)</span>
-</span><span class='line'>                         <span class="p">.</span><span class="nx">fill</span><span class="p">(</span><span class="s">&quot;password&quot;</span><span class="p">,</span> <span class="s">&quot;foobar&quot;</span><span class="p">)</span>
-</span><span class='line'>                         <span class="p">.</span><span class="nx">fill</span><span class="p">(</span><span class="s">&quot;password&quot;</span><span class="p">,</span> <span class="s">&quot;foobar&quot;</span><span class="p">)</span>
-</span><span class='line'>                         <span class="p">.</span><span class="nx">pressButton</span> <span class="s">&quot;Sign Up!&quot;</span><span class="p">,</span> <span class="nx">@callback</span>
-</span><span class='line'>
-</span><span class='line'>                <span class="s">&quot;should create a new User&quot;</span><span class="o">:</span> <span class="nf">(err,browser,status) -&gt;</span>
-</span><span class='line'>                  <span class="nx">assert</span><span class="p">.</span><span class="nx">ok</span> <span class="nx">findNewUser</span><span class="p">()</span>
-</span><span class='line'>
-</span><span class='line'>        <span class="p">.</span><span class="nx">export</span> <span class="nx">module</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>Ouch. All that nesting makes for pretty unreadable code &ndash; even in CoffeeScript.</p>
-
-<h3>vows-bdd: an easier way to test</h3>
-
-<p>I&rsquo;ve never been a huge Cucumber fan, but modeling integration tests in a &ldquo;given-when
--then&rdquo; format makes them much easier for me to construct mentally. While the
-<a href="https://github.com/jadell/prenup">prenup</a> library made long Vows tests easier to read by introducing a
-fluent interface, I thought that I&rsquo;d love to marry this fluent approach with BDD&rsquo;s
-&ldquo;given-when-then&rdquo;.</p>
-
-<p>A couple days later and vows-bdd was born:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-<span class='line-number'>14</span>
-<span class='line-number'>15</span>
-<span class='line-number'>16</span>
-<span class='line-number'>17</span>
-<span class='line-number'>18</span>
-<span class='line-number'>19</span>
-<span class='line-number'>20</span>
-<span class='line-number'>21</span>
-<span class='line-number'>22</span>
-<span class='line-number'>23</span>
-<span class='line-number'>24</span>
-<span class='line-number'>25</span>
-<span class='line-number'>26</span>
-<span class='line-number'>27</span>
-<span class='line-number'>28</span>
-<span class='line-number'>29</span>
-<span class='line-number'>30</span>
-<span class='line-number'>31</span>
-<span class='line-number'>32</span>
-<span class='line-number'>33</span>
-<span class='line-number'>34</span>
-<span class='line-number'>35</span>
-<span class='line-number'>36</span>
-<span class='line-number'>37</span>
-<span class='line-number'>38</span>
-<span class='line-number'>39</span>
-<span class='line-number'>40</span>
-<span class='line-number'>41</span>
-</pre></td><td class='code'><pre><code class='coffeescript'><span class='line'><span class="nx">Feature</span><span class="p">(</span><span class="s">&quot;Creating a User&quot;</span><span class="p">)</span>
-</span><span class='line'>  <span class="p">.</span><span class="nx">scenario</span><span class="p">(</span><span class="s">&quot;Create a User via Form&quot;</span><span class="p">)</span>
-</span><span class='line'>
-</span><span class='line'>  <span class="p">.</span><span class="nx">given</span> <span class="s">&quot;the server is running&quot;</span><span class="p">,</span> <span class="nf">-&gt;</span>
-</span><span class='line'>    <span class="nx">server</span><span class="p">.</span><span class="nx">ready</span> <span class="nx">@callback</span>
-</span><span class='line'>
-</span><span class='line'>  <span class="p">.</span><span class="o">and</span> <span class="s">&quot;the DB is popuplated&quot;</span><span class="p">,</span> <span class="nf">-&gt;</span>
-</span><span class='line'>    <span class="nx">setupFixtures</span> <span class="nx">@callback</span>
-</span><span class='line'>
-</span><span class='line'>  <span class="p">.</span><span class="o">and</span> <span class="s">&quot;another setup function is called&quot;</span><span class="p">,</span> <span class="nf">-&gt;</span>
-</span><span class='line'>    <span class="nx">anotherSetup</span> <span class="nx">@callback</span>
-</span><span class='line'>
-</span><span class='line'>  <span class="p">.</span><span class="nx">when</span> <span class="s">&quot;I visit the form at user/new&quot;</span><span class="p">,</span> <span class="nf">-&gt;</span>
-</span><span class='line'>    <span class="nx">zombie</span><span class="p">.</span><span class="nx">visit</span> <span class="s">&quot;http://localhost:</span><span class="si">#{</span><span class="nx">port</span><span class="si">}</span><span class="s">/user/new&quot;</span><span class="p">,</span> <span class="nx">@callback</span>
-</span><span class='line'>
-</span><span class='line'>  <span class="p">.</span><span class="nx">then</span> <span class="s">&quot;I should see a username field&quot;</span><span class="p">,</span> <span class="nf">(err,browser,status) -&gt;</span>
-</span><span class='line'>    <span class="nx">assert</span><span class="p">.</span><span class="nx">ok</span> <span class="nx">browser</span><span class="p">.</span><span class="nx">querySelector</span> <span class="s">&quot;:input[name=username]&quot;</span>
-</span><span class='line'>
-</span><span class='line'>  <span class="p">.</span><span class="o">and</span> <span class="s">&quot;I should see entries for first and last name&quot;</span><span class="p">,</span> <span class="nf">(err,browser,status) -&gt;</span>
-</span><span class='line'>    <span class="nx">assert</span><span class="p">.</span><span class="nx">ok</span> <span class="nx">browser</span><span class="p">.</span><span class="nx">querySelector</span> <span class="s">&quot;:input[name=firstName]&quot;</span>
-</span><span class='line'>    <span class="nx">assert</span><span class="p">.</span><span class="nx">ok</span> <span class="nx">browser</span><span class="p">.</span><span class="nx">querySelector</span> <span class="s">&quot;:input[name=lastName]&quot;</span>
-</span><span class='line'>
-</span><span class='line'>  <span class="p">.</span><span class="o">and</span> <span class="s">&quot;I should see a password entry&quot;</span><span class="p">,</span> <span class="nf">(err,browser,status) -&gt;</span>
-</span><span class='line'>    <span class="nx">assert</span><span class="p">.</span><span class="nx">ok</span> <span class="nx">browser</span><span class="p">.</span><span class="nx">querySelector</span><span class="p">,</span> <span class="s">&quot;:input[name=password]&quot;</span>
-</span><span class='line'>
-</span><span class='line'>  <span class="p">.</span><span class="o">and</span> <span class="s">&quot;I should see a password confirmation&quot;</span><span class="p">,</span> <span class="nf">(err,browser,status) -&gt;</span>
-</span><span class='line'>    <span class="nx">assert</span><span class="p">.</span><span class="nx">ok</span> <span class="nx">browser</span><span class="p">.</span><span class="nx">querySelector</span><span class="p">,</span> <span class="s">&quot;:input[name=passwordConfirm]&quot;</span>
-</span><span class='line'>
-</span><span class='line'>  <span class="p">.</span><span class="nx">when</span> <span class="s">&quot;I submit the form&quot;</span><span class="p">,</span> <span class="nf">(browser,status) -&gt;</span>
-</span><span class='line'>    <span class="nx">browser</span><span class="p">.</span><span class="nx">fill</span><span class="p">(</span><span class="s">&quot;username&quot;</span><span class="p">,</span> <span class="s">&quot;test&quot;</span><span class="p">)</span>
-</span><span class='line'>           <span class="p">.</span><span class="nx">fill</span><span class="p">(</span><span class="s">&quot;firstName&quot;</span><span class="p">,</span> <span class="s">&quot;Justin&quot;</span><span class="p">)</span>
-</span><span class='line'>           <span class="p">.</span><span class="nx">fill</span><span class="p">(</span><span class="s">&quot;lastName&quot;</span><span class="p">,</span> <span class="s">&quot;Reidy&quot;</span><span class="p">)</span>
-</span><span class='line'>           <span class="p">.</span><span class="nx">fill</span><span class="p">(</span><span class="s">&quot;password&quot;</span><span class="p">,</span> <span class="s">&quot;foobar&quot;</span><span class="p">)</span>
-</span><span class='line'>           <span class="p">.</span><span class="nx">fill</span><span class="p">(</span><span class="s">&quot;password&quot;</span><span class="p">,</span> <span class="s">&quot;foobar&quot;</span><span class="p">)</span>
-</span><span class='line'>           <span class="p">.</span><span class="nx">pressButton</span> <span class="s">&quot;Sign Up!&quot;</span><span class="p">,</span> <span class="nx">@callback</span>
-</span><span class='line'>
-</span><span class='line'>  <span class="p">.</span><span class="nx">then</span> <span class="s">&quot;a new User should be created&quot;</span><span class="p">,</span> <span class="nf">(err,browser,status) -&gt;</span>
-</span><span class='line'>    <span class="nx">assert</span><span class="p">.</span><span class="nx">ok</span> <span class="nx">findNewUser</span><span class="p">()</span>
-</span><span class='line'>
-</span><span class='line'>  <span class="p">.</span><span class="nx">complete</span><span class="p">()</span>
-</span><span class='line'>  <span class="p">.</span><span class="nx">finish</span><span class="p">(</span><span class="nx">module</span><span class="p">)</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>Checkout the <a href="https://github.com/jmreidy/vows-bdd">repo on Github</a>
-for more documentation and info.</p>
-
-<h3>Open-Source is scary!</h3>
-
-<p>The vast majority of my career has taken place in enterprise world, where code is
-rarely, if ever, shared with anyone on the outside, and even <em>using</em> open-source
-code is considered dangerous. While I&rsquo;ve contributed to OSS libraries
-before, I&rsquo;ve never posted my own creation. It&rsquo;s fairly nerve-wracking to put your
-work out in the wild, especially when you&rsquo;re building on top of such amazing
-contributions from incredible developers.</p>
-
-<p>In fact, I probably would&rsquo;ve sat on this little library forever, constantly trying
-to perfect it, if not for a
-<a href="http://blog.nodejitsu.com/the-nodejs-philosophy">fantastic blog post</a>
-written by Charlie Robbins(<a href="http://twitter.com/indexzero">@indexzero</a>)
-over at Nodejitsu. I think his post perfectly expresses the spirt and mentality
-of the Node community right now,
-and his emphasis on experimentation via small bits of functionality made me realize:
-this code may not be perfect, and it might not even do that much, but if <em>I</em> find it
-useful, then maybe someone else will too.</p>
-
-<p>So please &ndash; <a href="https://github.com/jmreidy/vows-bdd">checkout vows-bdd</a> and give it a whirl.
-Any suggestions or comments would be very much appreciated!</p>
 ]]></content>
     
   </entry>
