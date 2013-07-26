@@ -4,7 +4,7 @@
   <title><![CDATA[Category: Node.js | Razor Sharp Design]]></title>
   <link href="http://rzrsharp.net/blog/categories/node-dot-js/atom.xml" rel="self"/>
   <link href="http://rzrsharp.net/"/>
-  <updated>2013-07-25T17:06:27-07:00</updated>
+  <updated>2013-07-25T17:08:14-07:00</updated>
   <id>http://rzrsharp.net/</id>
   <author>
     <name><![CDATA[Justin Reidy]]></name>
@@ -12,198 +12,6 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
-  
-  <entry>
-    <title type="html"><![CDATA[Testing and Node: Building a Toolset]]></title>
-    <link href="http://rzrsharp.net/2013/07/25/testing-and-node-building-a-toolset.html"/>
-    <updated>2013-07-25T16:48:00-07:00</updated>
-    <id>http://rzrsharp.net/2013/07/25/testing-and-node-building-a-toolset</id>
-    <content type="html"><![CDATA[<p><em>This is part two of a series on testing and Node; check out part one,
-<a href="/2013/07/16/testing-and-node-why-do-we-test.html">Why do we test</a>.</em></p>
-
-<p>Despite Node.js&rsquo;s relative youth, there&rsquo;s already a  vast ecosystem of tooling
-surrounding end-to-end application testing. But the bounteous availability of tools isn&rsquo;t
-as positive an aspect as it may appear; many tools lack maturity, while others
-have gone beyond the point of maturity to abandonware. Choosing the right
-testing toolset when starting a new Node project can be daunting, and can be
-enough to discourage you from testing in the first place.</p>
-
-<p>Don&rsquo;t delay. Don&rsquo;t put off. Follow the advice of the excellent
-<a href="http://www.growing-object-oriented-software.com/">Growing Object-Oriented Software, Guided by Tests</a>
-and set up your test infrastructure
-when you first set up your application.</p>
-
-<p>Today, we&rsquo;re going to go step-by-step through creating a new Node app and its accompanying test toolset.
-Over the rest of the series, we&rsquo;ll walk through writing a
-feature from the outside-in.</p>
-
-<p>Let&rsquo;s get started. Create a new directory for this project; I created one
-called <code>testing-and-node</code>. <code>cd</code> in and then <code>npm init</code>. If you haven&rsquo;t used
-<code>npm init</code> before, it just asks a series of questions to put together a
-<code>package.json</code> file for you. Fill in whatever answers you want, but when the
-script asks for the &ldquo;test command&rdquo;, make sure to enter <code>grunt test</code>.</p>
-
-<p>Speaking of which&hellip; you do have <a href="http://gruntjs.com/">Grunt</a> installed, right?
-Grunt is a fantastically powerful build tool for JS projects. While some
-developers prefer the power and unix-ness of Makefiles, and Rubyists long for
-Rake&rsquo;s API, Grunt has a comprehensive ecosystem of tasks that&rsquo;s growing daily.
-And since you&rsquo;re coding in JavaScript, you might as well write your build tasks
-in JS, too.</p>
-
-<p>If you <em>are</em> new to Grunt, you&rsquo;ll need to install the cli module for use
-globally:</p>
-
-<p><code>bash
-npm install -g grunt-cli
-</code></p>
-
-<p>Next, install a local version of Grunt itself:</p>
-
-<p><code>bash
-npm install --save grunt
-</code></p>
-
-<p>Great. Grunt relies on the presence of a file called <code>Gruntfile.js</code> to
-configure and run builds. Let&rsquo;s set that up now. Open a new Gruntfile.js file
-in your editor and enter the following:</p>
-
-<p>```javascript
-module.exports = function (grunt) {</p>
-
-<p>  grunt.initConfig({</p>
-
-<p>  });</p>
-
-<p>  grunt.registerTask(&lsquo;test&rsquo;, []); };
-```</p>
-
-<p>Go ahead and run <code>npm test</code>. It&rsquo;s green. Hooray! Yes, it&rsquo;s true your tests
-don&rsquo;t currently do anything, but now you&rsquo;re free to start setting up the rest
-of your toolset. Let&rsquo;s install them in one bunch:</p>
-
-<p><code>bash
-npm install --save-dev mocha sinon chai sinon-chai grunt-mocha-test
-</code></p>
-
-<p>And if you&rsquo;re a fan of
-<a href="http://domenic.me/2012/10/14/youre-missing-the-point-of-promises/">promises</a>,
-you might as well install the following right now:</p>
-
-<p><code>bash
-npm install --save Q
-npm install --save-dev chai-as-promised
-</code></p>
-
-<p>Let&rsquo;s go over the selection of each of these tools. There&rsquo;s certainly other
-sets of modules that would work equally well, but this is the toolset with
-which I&rsquo;m most familiar, and the one for which I&rsquo;ll advocate.</p>
-
-<h3>mocha <a href="http://visionmedia.github.io/mocha/">http://visionmedia.github.io/mocha/</a></h3>
-
-<p>There&rsquo;s a wide variety of testing frameworks available for Node, from the
-extraordinarily comprehensive (<a href="http://pivotal.github.io/jasmine/">Jasmine</a>) to
-the extraordinarily minimal (<a href="https://github.com/isaacs/node-tap">node-tap</a>).
-Mocha fits neatly in between these two extremes; its one role is to run tests,
-and it&rsquo;s agnostic about output, assertion library, and even interface-style
-(the only thing Mocha <em>isn&rsquo;t</em> agnostic about is <a href="https://github.com/visionmedia/mocha/pull/329">promise
-support</a>). Mocha&rsquo;s best feature
-is its ease of async use; supply a test with a callback, and it will be run
-asynchronously.</p>
-
-<p>```javascript
-describe(&lsquo;a sync test&rsquo;, function () {
-  it(&lsquo;is run synchronously&rsquo;, function () {</p>
-
-<pre><code>//assert something synchronous
-</code></pre>
-
-<p>  });
-});</p>
-
-<p>describe(&lsquo;an async test&rsquo;, function () {
-  it(&lsquo;is run asynchronously&rsquo;, function (done) {</p>
-
-<pre><code>//do something async
-done(err, result);
-</code></pre>
-
-<p>  });
-});
-```</p>
-
-<h3>sinon <a href="http://sinonjs.org/">http://sinonjs.org/</a></h3>
-
-<p>Since Mocha simply plays the role of test-runner, we need other components to complete our testing
-toolset. Sinon is a framework-agnostic library that provides spies, stubs, and
-mocks for JavaScript
-(<a href="http://martinfowler.com/articles/mocksArentStubs.html#TheDifferenceBetweenMocksAndStubs">Martin Fowler</a>
-provides a useful explanation of those terms). Spies, stubs, and mocks are
-integral for properly testing the interfaces through which your application
-objects communicate; Sinon makes it simple to verify how any function is
-called, and can even indicate whether a function has been new-ed.</p>
-
-<h3>chai <a href="http://chaijs.com/">chaijs.com</a></h3>
-
-<p>Completing our main set of testing
-tools is chai, a framework-agnostic assertion library. Node provides
-<a href="http://nodejs.org/api/assert.html">its own assertion api</a> directly in core, so it&rsquo;s not
-strictly necessary to include a third-party assertion module. But Chai provides
-a choice of excellent APIs, with error messages that should make the path from
-red to green much clearer. I&rsquo;m personally partial to Chai&rsquo;s
-<a href="http://chaijs.com/api/bdd/">expect</a> bdd interface. Another benefit of Chai is
-that it provides an easy mechanism for adding your own assertion language,
-which has led to assertion-plugins like sinon-chai and chai-as-promised.</p>
-
-<h3>sinon-chai <a href="http://chaijs.com/plugins/sinon-chai">http://chaijs.com/plugins/sinon-chai</a></h3>
-
-<p>I&rsquo;m a big believer that cleaner APIs lead to better code; while it&rsquo;s perfectly
-acceptable to test Sinon object properties directly, the sinon-chai plugin
-makes your tests even clearer. Instead of:</p>
-
-<p><code>javascript
-expect(mySpy.calledWith("foo")).to.be.ok;
-</code></p>
-
-<p>you can just write:</p>
-
-<p><code>javascript
-expect(mySpy).to.have.been.calledWith("foo");
-</code></p>
-
-<p>Since you&rsquo;re
-going to the trouble of using an expressive assertion library, it makes sense
-to make those assertions as clear as possible.</p>
-
-<h3>chai-as-promised <a href="http://chaijs.com/plugins/chai-as-promised">http://chaijs.com/plugins/chai-as-promised</a></h3>
-
-<p>For promise-users, chai-as-promised provides the same benefits as sinon-chai:
-more expressive test assertions. Instead of chaining a promise onto the subject
-of your test to verify the eventual resolution or rejection, chai-as-promised
-allows you to use the same chaining-API as the rest of Chai:</p>
-
-<p><code>javascript
-expect(promiseFn({foo: 'bar'})).to.eventually.deep.equal('foobar')
-</code></p>
-
-<h3>grunt-mocha-test <a href="https://github.com/pghalliday/grunt-mocha-test">https://github.com/pghalliday/grunt-mocha-test</a></h3>
-
-<p>Because Mocha can be run on both the client and server, there&rsquo;s a surprisingly
-large number of Grunt tasks that use the testing framework; I prefer
-grunt-mocha-test because of its extreme simplicity. grunt-mocha-test uses the
-same options hash as Mocha itself; in fact, all it&rsquo;s doing is firing up processes
-with which to run Mocha instances. Of course, running those instances properly,
-and catching any weird exceptions, is harder than it sounds &mdash; grunt-mocha-test
-has figured out those fringe cases so you don&rsquo;t have to.</p>
-
-<hr>
-
-
-<br />
-
-
-<p>And with that, we have a working testing toolset. We&rsquo;re ready to build &mdash; which we&rsquo;ll start doing in the next post.</p>
-]]></content>
-  </entry>
   
   <entry>
     <title type="html"><![CDATA[Testing and Node: Why Do We Test?]]></title>
@@ -590,6 +398,174 @@ an error, since the library throws and propagates errors for you automatically.
 In promise chains, then, you have the benefit of isolating exceptions (only proceeding
 from step to step if everything is ok) without the extra semantics of <code>if (err) return cb(err)</code>
 from continuation passing.</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Client-Side Testing Insanity]]></title>
+    <link href="http://rzrsharp.net/2012/08/01/client-side-testing-insanity.html"/>
+    <updated>2012-08-01T10:31:00-07:00</updated>
+    <id>http://rzrsharp.net/2012/08/01/client-side-testing-insanity</id>
+    <content type="html"><![CDATA[<p>Client-side unit testing is crazy.</p>
+
+<p>Before you skip below to yell at me in the comments section, I don&rsquo;t mean that
+the <em>idea</em> of client-side unit testing is crazy. On the contrary: we need
+client-side tests more than ever! With ever-increasing complexity in our
+frontend code, not to mention the reliance on frameworks, building a web
+application without client-side tests is completely inadvisible.</p>
+
+<p>But the process. Ohhhh, the <em>process</em> of client-side testing is bonkers.</p>
+
+<p>Let&rsquo;s take the example of a modern Node.js web app setup.
+I’ve got the app’s configuration wired with <a href="http://gruntjs.com">grunt.js</a>.
+(If you’re not using grunt, you should be!) During development, server
+files are watched for changes and automatically kickoff <a href="http://visionmedia.github.com/mocha/">mocha</a> tests, which
+display their results in the grunt console. Great!</p>
+
+<p>Client-side changes kickoff their own unit tests, which of course are also
+using mocha for consitency in testing vocabulary. But because of the nature of
+client-side testing, we can’t just call <code>require</code> on the unit under test.
+Instead, we need something like the following setup:</p>
+
+<ul>
+<li><p><a href="http://requirejs.org/">requirejs</a> for managing dependencies</p></li>
+<li><p><a href="http://phantomjs.org/">PhantomJS</a> for running a headless browser</p></li>
+<li><p><a href="https://github.com/kmiyashiro/grunt-mocha">grunt-mocha</a>, which manages the
+PhantomJS process and reports test results to the grunt console</p></li>
+<li><p>an HTML fixture for loading the requirejs config, the browser environment, and test files</p></li>
+</ul>
+
+
+<p>This setup worked. It also felt downright medieval compared to the simple
+server-side mocha testing configuration.</p>
+
+<p>I’m not the only person who’s frustrated with this process. Chris Dickinson at
+<a href="http://urbanairship.com/">Urban Airship</a> recently released <a href="https://github.com/urbanairship/drive.js">Drive.js</a>,
+a unit testing framework and test driver that eases some of the above
+configuration. But in any of the setups I&rsquo;ve seen, your client-side “unit” tests feel
+much more like integration tests. If you need to load your entire client-side
+framework, load a headless browser, or even fire up an instance of your server
+to test a single function of your client-side code&hellip; why not just ignore
+client-side unit testing and skip straight to integration tests? The lack of
+true isolation of the system under test could lead to some frustrating false
+results anyway.</p>
+
+<p>There needs to be a better way. I’m not looking for a lot in my testing setup:</p>
+
+<ul>
+<li><p>I want to run my client-side tests with the same mocha vocabulary and
+configuration as my server tests</p></li>
+<li><p>I want to isolate my tests to requiring a single file and its immediate
+dependencies, and testing it</p></li>
+</ul>
+
+
+<p>That’s really it. And I think I’ve found a solution.</p>
+
+<p>First, I’ve needed to refactor my client-side code to follow the
+<a href="http://wiki.commonjs.org/wiki/Modules/1.1">CommonJS requires model</a>. I’ve also switched to
+<a href="https://github.com/substack/node-browserify">browserify</a> from requirejs, although this switch
+is no longer a necessity — requirejs has introduced a
+<a href="https://github.com/jrburke/r.js/blob/master/build/example.build.js#L412">new configuration option</a>,
+<code>cjsTranslate</code>, which will wrap CommonJS defined modules. Using the CommonJS
+approach means that my mocha tests can require my client-side files. Great.</p>
+
+<p>But the much larger problem with client-side testing is those pesky browser
+globals: the <code>window</code>object, the DOM itself, not to mention global code like
+jQuery, Backbone, etc.  How can we test code that relies on the presence of
+those globals, <em>without</em> resorting to running PhantomJS?</p>
+
+<p>The answer comes in two parts: <a href="https://github.com/tmpvar/jsdom/">jsdom</a>, and
+<a href="http://nodejs.org/api/vm.html">the Node.js vm module</a>.</p>
+
+<p>jsdom provides a server-side implementation of the DOM, while the vm module
+provides the “global” object that we can use to provide a fake browser
+environment to our client-side files. While I’m still fleshing out the
+implementation, the results so far have drastically improved my ease with
+client-side testing.</p>
+
+<p>Here&rsquo;s how it works. In a mocha test file, instead of a strict require call, I’m using a helper
+(passing <code>this</code>, the mocha test context):</p>
+
+<p>``` javascript</p>
+
+<p>setupClientScript.call(this, &ldquo;admin/postEdit&rdquo;, done);</p>
+
+<p>```</p>
+
+<p><code>setupClientScript</code> loads a jsdom window, injects global javascripts (like jQuery),
+and wires the client-side file being tested. Here it looks in a slightly simplified form:</p>
+
+<p>``` javascript</p>
+
+<p>var setupClientScript = function(path, done) {
+  var relPath = context.clientRoot + path;
+  var self = this;
+  jsdom.env({</p>
+
+<pre><code>html: '&lt;html&gt;&lt;head&gt;&lt;/head&gt;&lt;body&gt;&lt;/body&gt;&lt;/html&gt;',
+src: context.globalScripts,
+done: function(errors, window) {
+self.clientRequires = requireClientScript(relPath, window, {});
+self.clientRequires[path] = self.clientRequires[relPath];
+  done();
+}
+</code></pre>
+
+<p>  });
+};</p>
+
+<p>```</p>
+
+<p>Remember, the client-side <code>require</code> can’t <em>just</em> inject the DOM into the
+file under test, it also needs to make sure the file’s dependencies have access to
+the DOM:</p>
+
+<p>``` javascript</p>
+
+<p>var requireClientScript = function(path, window, r) {
+  var script = fs.readFileSync(require.resolve(path)).toString();
+  var module = { exports: {} };
+  var context = vm.createContext(global);</p>
+
+<p>  context.window = window;
+  context.exports = module.exports;
+  context.module = module;
+  context.require = function(path) {</p>
+
+<pre><code>r[path] = requireClientScript(path, window);
+return r[path];
+</code></pre>
+
+<p>  };
+  vm.runInNewContext(script, context);</p>
+
+<p>  if &reg; {</p>
+
+<pre><code>r[path] = module.exports;
+r.window = window;
+return r;
+</code></pre>
+
+<p>  } else {</p>
+
+<pre><code>return module.exports;
+</code></pre>
+
+<p>  }
+};</p>
+
+<p>```</p>
+
+<p>And that’s it. Now, any test function can call <code>this.clientRequires</code> to have
+access to the client-side file under test. No test server being spun up. No
+complex configuration or requirejs rewiring. No full-on headless browsers like
+PhantomJS. Just a single <code>before</code> setup call, and you can test with
+mocha as you normally would.</p>
+
+<p>As I wrote above, I’m still fleshing out the implementation, working out the
+interface and fixing deficiencies. I’ll be publishing the code when things are more
+mature, but in the meantime I&rsquo;d love to hear some feedback.</p>
 ]]></content>
   </entry>
   
