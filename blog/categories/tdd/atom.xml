@@ -4,7 +4,7 @@
   <title><![CDATA[Category: TDD | Razor Sharp Design]]></title>
   <link href="http://rzrsharp.net/blog/categories/tdd/atom.xml" rel="self"/>
   <link href="http://rzrsharp.net/"/>
-  <updated>2013-07-16T16:34:50-07:00</updated>
+  <updated>2013-07-25T17:06:27-07:00</updated>
   <id>http://rzrsharp.net/</id>
   <author>
     <name><![CDATA[Justin Reidy]]></name>
@@ -12,6 +12,198 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Testing and Node: Building a Toolset]]></title>
+    <link href="http://rzrsharp.net/2013/07/25/testing-and-node-building-a-toolset.html"/>
+    <updated>2013-07-25T16:48:00-07:00</updated>
+    <id>http://rzrsharp.net/2013/07/25/testing-and-node-building-a-toolset</id>
+    <content type="html"><![CDATA[<p><em>This is part two of a series on testing and Node; check out part one,
+<a href="/2013/07/16/testing-and-node-why-do-we-test.html">Why do we test</a>.</em></p>
+
+<p>Despite Node.js&rsquo;s relative youth, there&rsquo;s already a  vast ecosystem of tooling
+surrounding end-to-end application testing. But the bounteous availability of tools isn&rsquo;t
+as positive an aspect as it may appear; many tools lack maturity, while others
+have gone beyond the point of maturity to abandonware. Choosing the right
+testing toolset when starting a new Node project can be daunting, and can be
+enough to discourage you from testing in the first place.</p>
+
+<p>Don&rsquo;t delay. Don&rsquo;t put off. Follow the advice of the excellent
+<a href="http://www.growing-object-oriented-software.com/">Growing Object-Oriented Software, Guided by Tests</a>
+and set up your test infrastructure
+when you first set up your application.</p>
+
+<p>Today, we&rsquo;re going to go step-by-step through creating a new Node app and its accompanying test toolset.
+Over the rest of the series, we&rsquo;ll walk through writing a
+feature from the outside-in.</p>
+
+<p>Let&rsquo;s get started. Create a new directory for this project; I created one
+called <code>testing-and-node</code>. <code>cd</code> in and then <code>npm init</code>. If you haven&rsquo;t used
+<code>npm init</code> before, it just asks a series of questions to put together a
+<code>package.json</code> file for you. Fill in whatever answers you want, but when the
+script asks for the &ldquo;test command&rdquo;, make sure to enter <code>grunt test</code>.</p>
+
+<p>Speaking of which&hellip; you do have <a href="http://gruntjs.com/">Grunt</a> installed, right?
+Grunt is a fantastically powerful build tool for JS projects. While some
+developers prefer the power and unix-ness of Makefiles, and Rubyists long for
+Rake&rsquo;s API, Grunt has a comprehensive ecosystem of tasks that&rsquo;s growing daily.
+And since you&rsquo;re coding in JavaScript, you might as well write your build tasks
+in JS, too.</p>
+
+<p>If you <em>are</em> new to Grunt, you&rsquo;ll need to install the cli module for use
+globally:</p>
+
+<p><code>bash
+npm install -g grunt-cli
+</code></p>
+
+<p>Next, install a local version of Grunt itself:</p>
+
+<p><code>bash
+npm install --save grunt
+</code></p>
+
+<p>Great. Grunt relies on the presence of a file called <code>Gruntfile.js</code> to
+configure and run builds. Let&rsquo;s set that up now. Open a new Gruntfile.js file
+in your editor and enter the following:</p>
+
+<p>```javascript
+module.exports = function (grunt) {</p>
+
+<p>  grunt.initConfig({</p>
+
+<p>  });</p>
+
+<p>  grunt.registerTask(&lsquo;test&rsquo;, []); };
+```</p>
+
+<p>Go ahead and run <code>npm test</code>. It&rsquo;s green. Hooray! Yes, it&rsquo;s true your tests
+don&rsquo;t currently do anything, but now you&rsquo;re free to start setting up the rest
+of your toolset. Let&rsquo;s install them in one bunch:</p>
+
+<p><code>bash
+npm install --save-dev mocha sinon chai sinon-chai grunt-mocha-test
+</code></p>
+
+<p>And if you&rsquo;re a fan of
+<a href="http://domenic.me/2012/10/14/youre-missing-the-point-of-promises/">promises</a>,
+you might as well install the following right now:</p>
+
+<p><code>bash
+npm install --save Q
+npm install --save-dev chai-as-promised
+</code></p>
+
+<p>Let&rsquo;s go over the selection of each of these tools. There&rsquo;s certainly other
+sets of modules that would work equally well, but this is the toolset with
+which I&rsquo;m most familiar, and the one for which I&rsquo;ll advocate.</p>
+
+<h3>mocha <a href="http://visionmedia.github.io/mocha/">http://visionmedia.github.io/mocha/</a></h3>
+
+<p>There&rsquo;s a wide variety of testing frameworks available for Node, from the
+extraordinarily comprehensive (<a href="http://pivotal.github.io/jasmine/">Jasmine</a>) to
+the extraordinarily minimal (<a href="https://github.com/isaacs/node-tap">node-tap</a>).
+Mocha fits neatly in between these two extremes; its one role is to run tests,
+and it&rsquo;s agnostic about output, assertion library, and even interface-style
+(the only thing Mocha <em>isn&rsquo;t</em> agnostic about is <a href="https://github.com/visionmedia/mocha/pull/329">promise
+support</a>). Mocha&rsquo;s best feature
+is its ease of async use; supply a test with a callback, and it will be run
+asynchronously.</p>
+
+<p>```javascript
+describe(&lsquo;a sync test&rsquo;, function () {
+  it(&lsquo;is run synchronously&rsquo;, function () {</p>
+
+<pre><code>//assert something synchronous
+</code></pre>
+
+<p>  });
+});</p>
+
+<p>describe(&lsquo;an async test&rsquo;, function () {
+  it(&lsquo;is run asynchronously&rsquo;, function (done) {</p>
+
+<pre><code>//do something async
+done(err, result);
+</code></pre>
+
+<p>  });
+});
+```</p>
+
+<h3>sinon <a href="http://sinonjs.org/">http://sinonjs.org/</a></h3>
+
+<p>Since Mocha simply plays the role of test-runner, we need other components to complete our testing
+toolset. Sinon is a framework-agnostic library that provides spies, stubs, and
+mocks for JavaScript
+(<a href="http://martinfowler.com/articles/mocksArentStubs.html#TheDifferenceBetweenMocksAndStubs">Martin Fowler</a>
+provides a useful explanation of those terms). Spies, stubs, and mocks are
+integral for properly testing the interfaces through which your application
+objects communicate; Sinon makes it simple to verify how any function is
+called, and can even indicate whether a function has been new-ed.</p>
+
+<h3>chai <a href="http://chaijs.com/">chaijs.com</a></h3>
+
+<p>Completing our main set of testing
+tools is chai, a framework-agnostic assertion library. Node provides
+<a href="http://nodejs.org/api/assert.html">its own assertion api</a> directly in core, so it&rsquo;s not
+strictly necessary to include a third-party assertion module. But Chai provides
+a choice of excellent APIs, with error messages that should make the path from
+red to green much clearer. I&rsquo;m personally partial to Chai&rsquo;s
+<a href="http://chaijs.com/api/bdd/">expect</a> bdd interface. Another benefit of Chai is
+that it provides an easy mechanism for adding your own assertion language,
+which has led to assertion-plugins like sinon-chai and chai-as-promised.</p>
+
+<h3>sinon-chai <a href="http://chaijs.com/plugins/sinon-chai">http://chaijs.com/plugins/sinon-chai</a></h3>
+
+<p>I&rsquo;m a big believer that cleaner APIs lead to better code; while it&rsquo;s perfectly
+acceptable to test Sinon object properties directly, the sinon-chai plugin
+makes your tests even clearer. Instead of:</p>
+
+<p><code>javascript
+expect(mySpy.calledWith("foo")).to.be.ok;
+</code></p>
+
+<p>you can just write:</p>
+
+<p><code>javascript
+expect(mySpy).to.have.been.calledWith("foo");
+</code></p>
+
+<p>Since you&rsquo;re
+going to the trouble of using an expressive assertion library, it makes sense
+to make those assertions as clear as possible.</p>
+
+<h3>chai-as-promised <a href="http://chaijs.com/plugins/chai-as-promised">http://chaijs.com/plugins/chai-as-promised</a></h3>
+
+<p>For promise-users, chai-as-promised provides the same benefits as sinon-chai:
+more expressive test assertions. Instead of chaining a promise onto the subject
+of your test to verify the eventual resolution or rejection, chai-as-promised
+allows you to use the same chaining-API as the rest of Chai:</p>
+
+<p><code>javascript
+expect(promiseFn({foo: 'bar'})).to.eventually.deep.equal('foobar')
+</code></p>
+
+<h3>grunt-mocha-test <a href="https://github.com/pghalliday/grunt-mocha-test">https://github.com/pghalliday/grunt-mocha-test</a></h3>
+
+<p>Because Mocha can be run on both the client and server, there&rsquo;s a surprisingly
+large number of Grunt tasks that use the testing framework; I prefer
+grunt-mocha-test because of its extreme simplicity. grunt-mocha-test uses the
+same options hash as Mocha itself; in fact, all it&rsquo;s doing is firing up processes
+with which to run Mocha instances. Of course, running those instances properly,
+and catching any weird exceptions, is harder than it sounds &mdash; grunt-mocha-test
+has figured out those fringe cases so you don&rsquo;t have to.</p>
+
+<hr>
+
+
+<br />
+
+
+<p>And with that, we have a working testing toolset. We&rsquo;re ready to build &mdash; which we&rsquo;ll start doing in the next post.</p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Testing and Node: Why Do We Test?]]></title>

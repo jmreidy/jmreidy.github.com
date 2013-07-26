@@ -9,8 +9,8 @@
   <meta name="author" content="Justin Reidy">
 
   
-  <meta name="description" content="Sometimes it&rsquo;s difficult to find an easy answer to common coding questions. Because
-Google ignores most punctuation, even the most exact &hellip;">
+  <meta name="description" content="My work with Node.js has recently transformed from the occassional experiment to
+the building of a full-on side project. It&rsquo;s fascinating to be &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -78,6 +78,284 @@ Google ignores most punctuation, even the most exact &hellip;">
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+  
+    
+      <h1 class="entry-title"><a href="/2011/08/16/introducing-vows-bdd.html">Introducing Vows-bdd</a></h1>
+      
+      
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2011-08-16T00:00:00-07:00" pubdate data-updated="true">Aug 16<span>th</span>, 2011</time>
+        
+         | <a href="/2011/08/16/introducing-vows-bdd.html#disqus_thread">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>My work with Node.js has recently transformed from the occassional experiment to
+the building of a full-on side project. It&rsquo;s fascinating to be working with a set
+of tools that are so rapidly developing; the energy and excitement in the Node
+ecosystem far outweighs any annoyances with needing to adjust to changing APIs.</p>
+
+<h3>Embracing Vows</h3>
+
+<p>One of the tools which I&rsquo;ve really enjoyed learning is <a href="http://vowsjs.org">Vows.js</a>.
+Vows.js is a fully async Javascript testing library that allows for blazingly fast
+execution. (It&rsquo;s amazing how little changes in test speed can make TDD feel
+much less onerous.)  Vows&#8217; syntax can be a little tough to adjust to, but the speed,
+combined with the ability to construct &ldquo;test batches&rdquo;, make the barrier to entry
+worth the effort.</p>
+
+<p>While Vows is a near pefect tool for unit testing, I began to run into trouble with
+full-stack integration testing. Check out the contrived example below:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+<span class='line-number'>41</span>
+<span class='line-number'>42</span>
+<span class='line-number'>43</span>
+<span class='line-number'>44</span>
+<span class='line-number'>45</span>
+<span class='line-number'>46</span>
+<span class='line-number'>47</span>
+<span class='line-number'>48</span>
+<span class='line-number'>49</span>
+</pre></td><td class='code'><pre><code class='coffeescript'><span class='line'><span class="nx">vows</span><span class="p">.</span><span class="nx">describe</span><span class="p">(</span><span class="s">&quot;Creating a User&quot;</span><span class="p">)</span>
+</span><span class='line'>  <span class="p">.</span><span class="nx">addBatch</span>
+</span><span class='line'>    <span class="s">&quot;To create a user&quot;</span><span class="o">:</span>
+</span><span class='line'>
+</span><span class='line'>      <span class="s">&quot;Given the server has started&quot;</span><span class="o">:</span>
+</span><span class='line'>        <span class="nv">topic:</span>
+</span><span class='line'>          <span class="nx">server</span><span class="p">.</span><span class="nx">ready</span><span class="p">,</span> <span class="nx">@callback</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="s">&quot;and the DB is populated&quot;</span><span class="o">:</span>
+</span><span class='line'>          <span class="nv">topic:</span>
+</span><span class='line'>            <span class="nx">setupFixtures</span> <span class="nx">@callback</span>
+</span><span class='line'>
+</span><span class='line'>          <span class="s">&quot;and another setup function is required&quot;</span><span class="o">:</span>
+</span><span class='line'>            <span class="nv">topic: </span><span class="nf">-&gt;</span>
+</span><span class='line'>              <span class="nx">anotherSetup</span> <span class="nx">@callback</span>
+</span><span class='line'>
+</span><span class='line'>            <span class="s">&quot;When visiting the form at /user/new&quot;</span><span class="o">:</span>
+</span><span class='line'>              <span class="nv">topic: </span><span class="nf">-&gt;</span>
+</span><span class='line'>                <span class="nv">ctx = </span><span class="k">this</span>
+</span><span class='line'>                <span class="nx">server</span><span class="p">.</span><span class="nx">ready</span> <span class="nf">-&gt;</span>
+</span><span class='line'>                  <span class="nx">zombie</span><span class="p">.</span><span class="nx">visit</span> <span class="s">&quot;http://localhost:</span><span class="si">#{</span><span class="nx">port</span><span class="si">}</span><span class="s">/user/new&quot;</span><span class="p">,</span> <span class="nx">ctx</span><span class="p">.</span><span class="nx">callback</span>
+</span><span class='line'>                <span class="k">return</span>
+</span><span class='line'>
+</span><span class='line'>              <span class="s">&quot;then should allow entry of a username&quot;</span><span class="o">:</span> <span class="nf">(err,browser,status) -&gt;</span>
+</span><span class='line'>                <span class="nx">assert</span><span class="p">.</span><span class="nx">ok</span> <span class="nx">browser</span><span class="p">.</span><span class="nx">querySelector</span> <span class="s">&quot;:input[name=username]&quot;</span>
+</span><span class='line'>
+</span><span class='line'>              <span class="s">&quot;should allow entry of first and last name&quot;</span><span class="o">:</span> <span class="nf">(err,b,s) -&gt;</span>
+</span><span class='line'>                <span class="nx">assert</span><span class="p">.</span><span class="nx">ok</span> <span class="nx">b</span><span class="p">.</span><span class="nx">querySelector</span> <span class="s">&quot;:input[name=firstName]&quot;</span>
+</span><span class='line'>                <span class="nx">assert</span><span class="p">.</span><span class="nx">ok</span> <span class="nx">b</span><span class="p">.</span><span class="nx">querySelector</span> <span class="s">&quot;:input[name=lastName]&quot;</span>
+</span><span class='line'>
+</span><span class='line'>              <span class="s">&quot;should allow entry of a password&quot;</span><span class="o">:</span> <span class="nf">(err,b,s) -&gt;</span>
+</span><span class='line'>                <span class="nx">assert</span><span class="p">.</span><span class="nx">ok</span> <span class="nx">b</span><span class="p">.</span><span class="nx">querySelector</span> <span class="s">&quot;:input[name=password]&quot;</span>
+</span><span class='line'>
+</span><span class='line'>              <span class="s">&quot;should allow confirmation of a password&quot;</span><span class="o">:</span> <span class="nf">(err,b,s) -&gt;</span>
+</span><span class='line'>                <span class="nx">assert</span><span class="p">.</span><span class="nx">ok</span> <span class="nx">b</span><span class="p">.</span><span class="nx">querySelector</span> <span class="s">&quot;:input[name=passwordConfirm]&quot;</span>
+</span><span class='line'>
+</span><span class='line'>              <span class="s">&quot;and submitting the form&quot;</span><span class="o">:</span>
+</span><span class='line'>                <span class="nv">topic: </span><span class="nf">(browser,status) -&gt;</span>
+</span><span class='line'>                  <span class="nx">browser</span><span class="p">.</span><span class="nx">fill</span><span class="p">(</span><span class="s">&quot;username&quot;</span><span class="p">,</span> <span class="s">&quot;test&quot;</span><span class="p">)</span>
+</span><span class='line'>                         <span class="p">.</span><span class="nx">fill</span><span class="p">(</span><span class="s">&quot;firstName&quot;</span><span class="p">,</span> <span class="s">&quot;Justin&quot;</span><span class="p">)</span>
+</span><span class='line'>                         <span class="p">.</span><span class="nx">fill</span><span class="p">(</span><span class="s">&quot;lastName&quot;</span><span class="p">,</span> <span class="s">&quot;Reidy&quot;</span><span class="p">)</span>
+</span><span class='line'>                         <span class="p">.</span><span class="nx">fill</span><span class="p">(</span><span class="s">&quot;password&quot;</span><span class="p">,</span> <span class="s">&quot;foobar&quot;</span><span class="p">)</span>
+</span><span class='line'>                         <span class="p">.</span><span class="nx">fill</span><span class="p">(</span><span class="s">&quot;password&quot;</span><span class="p">,</span> <span class="s">&quot;foobar&quot;</span><span class="p">)</span>
+</span><span class='line'>                         <span class="p">.</span><span class="nx">pressButton</span> <span class="s">&quot;Sign Up!&quot;</span><span class="p">,</span> <span class="nx">@callback</span>
+</span><span class='line'>
+</span><span class='line'>                <span class="s">&quot;should create a new User&quot;</span><span class="o">:</span> <span class="nf">(err,browser,status) -&gt;</span>
+</span><span class='line'>                  <span class="nx">assert</span><span class="p">.</span><span class="nx">ok</span> <span class="nx">findNewUser</span><span class="p">()</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="p">.</span><span class="nx">export</span> <span class="nx">module</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Ouch. All that nesting makes for pretty unreadable code &ndash; even in CoffeeScript.</p>
+
+<h3>vows-bdd: an easier way to test</h3>
+
+<p>I&rsquo;ve never been a huge Cucumber fan, but modeling integration tests in a &ldquo;given-when
+-then&rdquo; format makes them much easier for me to construct mentally. While the
+<a href="https://github.com/jadell/prenup">prenup</a> library made long Vows tests easier to read by introducing a
+fluent interface, I thought that I&rsquo;d love to marry this fluent approach with BDD&rsquo;s
+&ldquo;given-when-then&rdquo;.</p>
+
+<p>A couple days later and vows-bdd was born:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+<span class='line-number'>41</span>
+</pre></td><td class='code'><pre><code class='coffeescript'><span class='line'><span class="nx">Feature</span><span class="p">(</span><span class="s">&quot;Creating a User&quot;</span><span class="p">)</span>
+</span><span class='line'>  <span class="p">.</span><span class="nx">scenario</span><span class="p">(</span><span class="s">&quot;Create a User via Form&quot;</span><span class="p">)</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="p">.</span><span class="nx">given</span> <span class="s">&quot;the server is running&quot;</span><span class="p">,</span> <span class="nf">-&gt;</span>
+</span><span class='line'>    <span class="nx">server</span><span class="p">.</span><span class="nx">ready</span> <span class="nx">@callback</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="p">.</span><span class="o">and</span> <span class="s">&quot;the DB is popuplated&quot;</span><span class="p">,</span> <span class="nf">-&gt;</span>
+</span><span class='line'>    <span class="nx">setupFixtures</span> <span class="nx">@callback</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="p">.</span><span class="o">and</span> <span class="s">&quot;another setup function is called&quot;</span><span class="p">,</span> <span class="nf">-&gt;</span>
+</span><span class='line'>    <span class="nx">anotherSetup</span> <span class="nx">@callback</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="p">.</span><span class="nx">when</span> <span class="s">&quot;I visit the form at user/new&quot;</span><span class="p">,</span> <span class="nf">-&gt;</span>
+</span><span class='line'>    <span class="nx">zombie</span><span class="p">.</span><span class="nx">visit</span> <span class="s">&quot;http://localhost:</span><span class="si">#{</span><span class="nx">port</span><span class="si">}</span><span class="s">/user/new&quot;</span><span class="p">,</span> <span class="nx">@callback</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="p">.</span><span class="nx">then</span> <span class="s">&quot;I should see a username field&quot;</span><span class="p">,</span> <span class="nf">(err,browser,status) -&gt;</span>
+</span><span class='line'>    <span class="nx">assert</span><span class="p">.</span><span class="nx">ok</span> <span class="nx">browser</span><span class="p">.</span><span class="nx">querySelector</span> <span class="s">&quot;:input[name=username]&quot;</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="p">.</span><span class="o">and</span> <span class="s">&quot;I should see entries for first and last name&quot;</span><span class="p">,</span> <span class="nf">(err,browser,status) -&gt;</span>
+</span><span class='line'>    <span class="nx">assert</span><span class="p">.</span><span class="nx">ok</span> <span class="nx">browser</span><span class="p">.</span><span class="nx">querySelector</span> <span class="s">&quot;:input[name=firstName]&quot;</span>
+</span><span class='line'>    <span class="nx">assert</span><span class="p">.</span><span class="nx">ok</span> <span class="nx">browser</span><span class="p">.</span><span class="nx">querySelector</span> <span class="s">&quot;:input[name=lastName]&quot;</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="p">.</span><span class="o">and</span> <span class="s">&quot;I should see a password entry&quot;</span><span class="p">,</span> <span class="nf">(err,browser,status) -&gt;</span>
+</span><span class='line'>    <span class="nx">assert</span><span class="p">.</span><span class="nx">ok</span> <span class="nx">browser</span><span class="p">.</span><span class="nx">querySelector</span><span class="p">,</span> <span class="s">&quot;:input[name=password]&quot;</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="p">.</span><span class="o">and</span> <span class="s">&quot;I should see a password confirmation&quot;</span><span class="p">,</span> <span class="nf">(err,browser,status) -&gt;</span>
+</span><span class='line'>    <span class="nx">assert</span><span class="p">.</span><span class="nx">ok</span> <span class="nx">browser</span><span class="p">.</span><span class="nx">querySelector</span><span class="p">,</span> <span class="s">&quot;:input[name=passwordConfirm]&quot;</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="p">.</span><span class="nx">when</span> <span class="s">&quot;I submit the form&quot;</span><span class="p">,</span> <span class="nf">(browser,status) -&gt;</span>
+</span><span class='line'>    <span class="nx">browser</span><span class="p">.</span><span class="nx">fill</span><span class="p">(</span><span class="s">&quot;username&quot;</span><span class="p">,</span> <span class="s">&quot;test&quot;</span><span class="p">)</span>
+</span><span class='line'>           <span class="p">.</span><span class="nx">fill</span><span class="p">(</span><span class="s">&quot;firstName&quot;</span><span class="p">,</span> <span class="s">&quot;Justin&quot;</span><span class="p">)</span>
+</span><span class='line'>           <span class="p">.</span><span class="nx">fill</span><span class="p">(</span><span class="s">&quot;lastName&quot;</span><span class="p">,</span> <span class="s">&quot;Reidy&quot;</span><span class="p">)</span>
+</span><span class='line'>           <span class="p">.</span><span class="nx">fill</span><span class="p">(</span><span class="s">&quot;password&quot;</span><span class="p">,</span> <span class="s">&quot;foobar&quot;</span><span class="p">)</span>
+</span><span class='line'>           <span class="p">.</span><span class="nx">fill</span><span class="p">(</span><span class="s">&quot;password&quot;</span><span class="p">,</span> <span class="s">&quot;foobar&quot;</span><span class="p">)</span>
+</span><span class='line'>           <span class="p">.</span><span class="nx">pressButton</span> <span class="s">&quot;Sign Up!&quot;</span><span class="p">,</span> <span class="nx">@callback</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="p">.</span><span class="nx">then</span> <span class="s">&quot;a new User should be created&quot;</span><span class="p">,</span> <span class="nf">(err,browser,status) -&gt;</span>
+</span><span class='line'>    <span class="nx">assert</span><span class="p">.</span><span class="nx">ok</span> <span class="nx">findNewUser</span><span class="p">()</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="p">.</span><span class="nx">complete</span><span class="p">()</span>
+</span><span class='line'>  <span class="p">.</span><span class="nx">finish</span><span class="p">(</span><span class="nx">module</span><span class="p">)</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Checkout the <a href="https://github.com/jmreidy/vows-bdd">repo on Github</a>
+for more documentation and info.</p>
+
+<h3>Open-Source is scary!</h3>
+
+<p>The vast majority of my career has taken place in enterprise world, where code is
+rarely, if ever, shared with anyone on the outside, and even <em>using</em> open-source
+code is considered dangerous. While I&rsquo;ve contributed to OSS libraries
+before, I&rsquo;ve never posted my own creation. It&rsquo;s fairly nerve-wracking to put your
+work out in the wild, especially when you&rsquo;re building on top of such amazing
+contributions from incredible developers.</p>
+
+<p>In fact, I probably would&rsquo;ve sat on this little library forever, constantly trying
+to perfect it, if not for a
+<a href="http://blog.nodejitsu.com/the-nodejs-philosophy">fantastic blog post</a>
+written by Charlie Robbins(<a href="http://twitter.com/indexzero">@indexzero</a>)
+over at Nodejitsu. I think his post perfectly expresses the spirt and mentality
+of the Node community right now,
+and his emphasis on experimentation via small bits of functionality made me realize:
+this code may not be perfect, and it might not even do that much, but if <em>I</em> find it
+useful, then maybe someone else will too.</p>
+
+<p>So please &ndash; <a href="https://github.com/jmreidy/vows-bdd">checkout vows-bdd</a> and give it a whirl.
+Any suggestions or comments would be very much appreciated!</p>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -736,6 +1014,10 @@ some stimulating writing!</p>
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/2013/07/25/testing-and-node-building-a-toolset.html">Testing and Node: Building a Toolset</a>
+      </li>
+    
+      <li class="post">
         <a href="/2013/07/16/testing-and-node-why-do-we-test.html">Testing and Node: Why Do We Test?</a>
       </li>
     
@@ -749,10 +1031,6 @@ some stimulating writing!</p>
     
       <li class="post">
         <a href="/2013/04/02/towards-a-unified-js-stack.html">Towards a Unified JS Stack</a>
-      </li>
-    
-      <li class="post">
-        <a href="/2012/10/01/error-isolation-with-promises.html">Error Isolation with Promises</a>
       </li>
     
   </ul>

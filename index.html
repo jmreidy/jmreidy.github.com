@@ -9,8 +9,8 @@
   <meta name="author" content="Justin Reidy">
 
   
-  <meta name="description" content="Why do we test our code? The question itself seems sacrilegious in today&rsquo;s developer culture. Admitting
-that you aren&rsquo;t building a &hellip;">
+  <meta name="description" content="This is part two of a series on testing and Node; check out part one,
+Why do we test. Despite Node.js&rsquo;s relative youth, there&rsquo;s already a &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -78,6 +78,250 @@ that you aren&rsquo;t building a &hellip;">
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+  
+    
+      <h1 class="entry-title"><a href="/2013/07/25/testing-and-node-building-a-toolset.html">Testing and Node: Building a Toolset</a></h1>
+      
+      
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-07-25T16:48:00-07:00" pubdate data-updated="true">Jul 25<span>th</span>, 2013</time>
+        
+         | <a href="/2013/07/25/testing-and-node-building-a-toolset.html#disqus_thread">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p><em>This is part two of a series on testing and Node; check out part one,
+<a href="/2013/07/16/testing-and-node-why-do-we-test.html">Why do we test</a>.</em></p>
+
+<p>Despite Node.js&rsquo;s relative youth, there&rsquo;s already a  vast ecosystem of tooling
+surrounding end-to-end application testing. But the bounteous availability of tools isn&rsquo;t
+as positive an aspect as it may appear; many tools lack maturity, while others
+have gone beyond the point of maturity to abandonware. Choosing the right
+testing toolset when starting a new Node project can be daunting, and can be
+enough to discourage you from testing in the first place.</p>
+
+<p>Don&rsquo;t delay. Don&rsquo;t put off. Follow the advice of the excellent
+<a href="http://www.growing-object-oriented-software.com/">Growing Object-Oriented Software, Guided by Tests</a>
+and set up your test infrastructure
+when you first set up your application.</p>
+
+<p>Today, we&rsquo;re going to go step-by-step through creating a new Node app and its accompanying test toolset.
+Over the rest of the series, we&rsquo;ll walk through writing a
+feature from the outside-in.</p>
+
+<p>Let&rsquo;s get started. Create a new directory for this project; I created one
+called <code>testing-and-node</code>. <code>cd</code> in and then <code>npm init</code>. If you haven&rsquo;t used
+<code>npm init</code> before, it just asks a series of questions to put together a
+<code>package.json</code> file for you. Fill in whatever answers you want, but when the
+script asks for the &ldquo;test command&rdquo;, make sure to enter <code>grunt test</code>.</p>
+
+<p>Speaking of which&hellip; you do have <a href="http://gruntjs.com/">Grunt</a> installed, right?
+Grunt is a fantastically powerful build tool for JS projects. While some
+developers prefer the power and unix-ness of Makefiles, and Rubyists long for
+Rake&rsquo;s API, Grunt has a comprehensive ecosystem of tasks that&rsquo;s growing daily.
+And since you&rsquo;re coding in JavaScript, you might as well write your build tasks
+in JS, too.</p>
+
+<p>If you <em>are</em> new to Grunt, you&rsquo;ll need to install the cli module for use
+globally:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'>npm install -g grunt-cli
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Next, install a local version of Grunt itself:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'>npm install --save grunt
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Great. Grunt relies on the presence of a file called <code>Gruntfile.js</code> to
+configure and run builds. Let&rsquo;s set that up now. Open a new Gruntfile.js file
+in your editor and enter the following:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+</pre></td><td class='code'><pre><code class='javascript'><span class='line'><span class="nx">module</span><span class="p">.</span><span class="nx">exports</span> <span class="o">=</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">grunt</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="nx">grunt</span><span class="p">.</span><span class="nx">initConfig</span><span class="p">({</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="p">});</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="nx">grunt</span><span class="p">.</span><span class="nx">registerTask</span><span class="p">(</span><span class="s1">&#39;test&#39;</span><span class="p">,</span> <span class="p">[]);</span> <span class="p">};</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Go ahead and run <code>npm test</code>. It&rsquo;s green. Hooray! Yes, it&rsquo;s true your tests
+don&rsquo;t currently do anything, but now you&rsquo;re free to start setting up the rest
+of your toolset. Let&rsquo;s install them in one bunch:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'>npm install --save-dev mocha sinon chai sinon-chai grunt-mocha-test
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>And if you&rsquo;re a fan of
+<a href="http://domenic.me/2012/10/14/youre-missing-the-point-of-promises/">promises</a>,
+you might as well install the following right now:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'>npm install --save Q
+</span><span class='line'>npm install --save-dev chai-as-promised
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Let&rsquo;s go over the selection of each of these tools. There&rsquo;s certainly other
+sets of modules that would work equally well, but this is the toolset with
+which I&rsquo;m most familiar, and the one for which I&rsquo;ll advocate.</p>
+
+<h3>mocha <a href="http://visionmedia.github.io/mocha/">http://visionmedia.github.io/mocha/</a></h3>
+
+<p>There&rsquo;s a wide variety of testing frameworks available for Node, from the
+extraordinarily comprehensive (<a href="http://pivotal.github.io/jasmine/">Jasmine</a>) to
+the extraordinarily minimal (<a href="https://github.com/isaacs/node-tap">node-tap</a>).
+Mocha fits neatly in between these two extremes; its one role is to run tests,
+and it&rsquo;s agnostic about output, assertion library, and even interface-style
+(the only thing Mocha <em>isn&rsquo;t</em> agnostic about is <a href="https://github.com/visionmedia/mocha/pull/329">promise
+support</a>). Mocha&rsquo;s best feature
+is its ease of async use; supply a test with a callback, and it will be run
+asynchronously.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+</pre></td><td class='code'><pre><code class='javascript'><span class='line'><span class="nx">describe</span><span class="p">(</span><span class="s1">&#39;a sync test&#39;</span><span class="p">,</span> <span class="kd">function</span> <span class="p">()</span> <span class="p">{</span>
+</span><span class='line'>  <span class="nx">it</span><span class="p">(</span><span class="s1">&#39;is run synchronously&#39;</span><span class="p">,</span> <span class="kd">function</span> <span class="p">()</span> <span class="p">{</span>
+</span><span class='line'>    <span class="c1">//assert something synchronous</span>
+</span><span class='line'>  <span class="p">});</span>
+</span><span class='line'><span class="p">});</span>
+</span><span class='line'>
+</span><span class='line'><span class="nx">describe</span><span class="p">(</span><span class="s1">&#39;an async test&#39;</span><span class="p">,</span> <span class="kd">function</span> <span class="p">()</span> <span class="p">{</span>
+</span><span class='line'>  <span class="nx">it</span><span class="p">(</span><span class="s1">&#39;is run asynchronously&#39;</span><span class="p">,</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">done</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>    <span class="c1">//do something async</span>
+</span><span class='line'>    <span class="nx">done</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">result</span><span class="p">);</span>
+</span><span class='line'>  <span class="p">});</span>
+</span><span class='line'><span class="p">});</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<h3>sinon <a href="http://sinonjs.org/">http://sinonjs.org/</a></h3>
+
+<p>Since Mocha simply plays the role of test-runner, we need other components to complete our testing
+toolset. Sinon is a framework-agnostic library that provides spies, stubs, and
+mocks for JavaScript
+(<a href="http://martinfowler.com/articles/mocksArentStubs.html#TheDifferenceBetweenMocksAndStubs">Martin Fowler</a>
+provides a useful explanation of those terms). Spies, stubs, and mocks are
+integral for properly testing the interfaces through which your application
+objects communicate; Sinon makes it simple to verify how any function is
+called, and can even indicate whether a function has been new-ed.</p>
+
+<h3>chai <a href="http://chaijs.com/">chaijs.com</a></h3>
+
+<p>Completing our main set of testing
+tools is chai, a framework-agnostic assertion library. Node provides
+<a href="http://nodejs.org/api/assert.html">its own assertion api</a> directly in core, so it&rsquo;s not
+strictly necessary to include a third-party assertion module. But Chai provides
+a choice of excellent APIs, with error messages that should make the path from
+red to green much clearer. I&rsquo;m personally partial to Chai&rsquo;s
+<a href="http://chaijs.com/api/bdd/">expect</a> bdd interface. Another benefit of Chai is
+that it provides an easy mechanism for adding your own assertion language,
+which has led to assertion-plugins like sinon-chai and chai-as-promised.</p>
+
+<h3>sinon-chai <a href="http://chaijs.com/plugins/sinon-chai">http://chaijs.com/plugins/sinon-chai</a></h3>
+
+<p>I&rsquo;m a big believer that cleaner APIs lead to better code; while it&rsquo;s perfectly
+acceptable to test Sinon object properties directly, the sinon-chai plugin
+makes your tests even clearer. Instead of:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='javascript'><span class='line'><span class="nx">expect</span><span class="p">(</span><span class="nx">mySpy</span><span class="p">.</span><span class="nx">calledWith</span><span class="p">(</span><span class="s2">&quot;foo&quot;</span><span class="p">)).</span><span class="nx">to</span><span class="p">.</span><span class="nx">be</span><span class="p">.</span><span class="nx">ok</span><span class="p">;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>you can just write:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='javascript'><span class='line'><span class="nx">expect</span><span class="p">(</span><span class="nx">mySpy</span><span class="p">).</span><span class="nx">to</span><span class="p">.</span><span class="nx">have</span><span class="p">.</span><span class="nx">been</span><span class="p">.</span><span class="nx">calledWith</span><span class="p">(</span><span class="s2">&quot;foo&quot;</span><span class="p">);</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Since you&rsquo;re
+going to the trouble of using an expressive assertion library, it makes sense
+to make those assertions as clear as possible.</p>
+
+<h3>chai-as-promised <a href="http://chaijs.com/plugins/chai-as-promised">http://chaijs.com/plugins/chai-as-promised</a></h3>
+
+<p>For promise-users, chai-as-promised provides the same benefits as sinon-chai:
+more expressive test assertions. Instead of chaining a promise onto the subject
+of your test to verify the eventual resolution or rejection, chai-as-promised
+allows you to use the same chaining-API as the rest of Chai:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='javascript'><span class='line'><span class="nx">expect</span><span class="p">(</span><span class="nx">promiseFn</span><span class="p">({</span><span class="nx">foo</span><span class="o">:</span> <span class="s1">&#39;bar&#39;</span><span class="p">})).</span><span class="nx">to</span><span class="p">.</span><span class="nx">eventually</span><span class="p">.</span><span class="nx">deep</span><span class="p">.</span><span class="nx">equal</span><span class="p">(</span><span class="s1">&#39;foobar&#39;</span><span class="p">)</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<h3>grunt-mocha-test <a href="https://github.com/pghalliday/grunt-mocha-test">https://github.com/pghalliday/grunt-mocha-test</a></h3>
+
+<p>Because Mocha can be run on both the client and server, there&rsquo;s a surprisingly
+large number of Grunt tasks that use the testing framework; I prefer
+grunt-mocha-test because of its extreme simplicity. grunt-mocha-test uses the
+same options hash as Mocha itself; in fact, all it&rsquo;s doing is firing up processes
+with which to run Mocha instances. Of course, running those instances properly,
+and catching any weird exceptions, is harder than it sounds &mdash; grunt-mocha-test
+has figured out those fringe cases so you don&rsquo;t have to.</p>
+
+<hr>
+
+
+<br />
+
+
+<p>And with that, we have a working testing toolset. We&rsquo;re ready to build &mdash; which we&rsquo;ll start doing in the next post.</p>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -1339,116 +1583,6 @@ next week!</p>
 
     </article>
   
-  
-    <article>
-      
-  <header>
-  
-    
-      <h1 class="entry-title"><a href="/2012/02/17/goodbye-brooklyn-hello-portland.html">Goodbye, Brooklyn. Hello, Portland!</a></h1>
-      
-      
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2012-02-17T13:23:00-08:00" pubdate data-updated="true">Feb 17<span>th</span>, 2012</time>
-        
-         | <a href="/2012/02/17/goodbye-brooklyn-hello-portland.html#disqus_thread">Comments</a>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>Two and a half years ago, Meaghin and I moved from Washington, DC to Brooklyn.
-Our move came as a bit of a shock to our family and friends &ndash; partly because of
-its suddenness, and also because of its proximity to our marriage. The move to
-Brooklyn was not motivated by a job opportunity or anything similar; instead,
-we had started feeling constrained by DC after five years of living there, and
-couldn&rsquo;t imagine a more challenging and exciting place to live than New York
-(and Brooklyn in particular). A week after getting married, we made the
-decision to move, and three weeks after that, we found ourselves surrounded by
-boxes in an apartment overlooking the East River and Manhattan.</p>
-
-<p>The first few months of living in New York definitely delivered on the
-&ldquo;challenging&rdquo; part of our expectations; not a day went by that didn&rsquo;t evoke
-memories of Seinfeld plot-lines. Crazy co-op boards? Difficult supers?
-Ridiculous encounters on the subway? More than one New York stereotype proved
-its roots in authenticity. But as we grew used to the city and its
-neighborhoods, learned how to quickly cut from one area to another, discovered
-which subway lines consistently failed, and realized that one should avoid 5th
-Ave and Times Square at all costs, the challenges started to dissipate and left
-only excitement. New York, in its intensity and genuine melting pot of cultures
-and backgrounds, presents an amazing opportunity for people to define
-themselves. What matters most to you, and why does it matter? In a city where
-practically any hobby or interest can be pursued, you&rsquo;ve got to seriously
-prioritize your time, and that prioritization goes a long way towards
-identifying exactly who you are.</p>
-
-<p>But for all the excitement and growth, I started to notice another development
-in myself: pernicious cynicism. While I had once dreamed of tackling big
-problems and making the world a better place, years of living in DC and New
-York made me view such ideas as hopelessly naive. The seeming intractability of
-so many daily problems, the realization that apparently important movements
-were actually driven by petty motivations; older, wiser me didn&rsquo;t look at
-idealists with disdain, but rather with a wistful admiration of their blissful
-ignorance.</p>
-
-<p>Then I spent time in Portland, OR.</p>
-
-<p>It&rsquo;s hard to describe the feeling of Portland. And I don&rsquo;t mean the city
-portrayed on Portlandia &ndash; although that show is certainly accurate in its
-skewering. I have never been to a place where so many people devote themselves
-to mastering a craft, not just because of the rewards of the mastery, but
-because <em>not</em> mastering that craft is simply not an option. There&rsquo;s an
-entrepreneurial spirit that pervades Portland, but it&rsquo;s one that&rsquo;s devoted to
-developing new ideas and contributing back to the community. Even this &ldquo;return
-to community&rdquo; is not the traditional &ldquo;I&rsquo;ve done well so I&rsquo;m giving back&rdquo; idea,
-but rather a networked entrepreneurship, a continuous exploration of &ldquo;How can
-my idea involve the unique work of that awesome <whatever>?&rdquo;</p>
-
-<p>Mikeal Rogers, organizer of NodeConf, <a href="http://www.mikealrogers.com/posts/what-is-the-maximum-number-of-courses.html">described Portland with
-admiration</a>:</p>
-
-<pre><code>There are times and places, great cities, that are remembered much more
-fondly than they were thought of at the time. Paris in the twenties when it
-was home to Hemingway, Picaso and Fitzgerald. Or San Francisco in the 50s
-when the beat generation migrated from New York to call it home. So
-impressionable were those years that the echo fuels future, lesser,
-generations for decades.
-
-When you're in Portland, Oregon you can't help but think it might be such
-a place and the time. For what it will be remembered I have no idea, but
-everyone seems to be bursting with creativity and no one is content until
-they have done more.
-</code></pre>
-
-<p>Spending time in Portland pierced the shell of cynicism that I&rsquo;d developed, and
-rekindled my motivations to build something real and lasting, to improve my
-community. Portland provides the inspiration; New York has provided the
-confidence and skillset to do something about it.</p>
-
-<p>So once again Meaghin and I find ourselves surrounded by boxes and preparing
-for a big move. In a month I&rsquo;ll be a resident of Portland. I can&rsquo;t wait to find
-out what the future will bring.</p>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/blog/page/2/">&larr; Older</a>
@@ -1468,6 +1602,10 @@ out what the future will bring.</p>
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/2013/07/25/testing-and-node-building-a-toolset.html">Testing and Node: Building a Toolset</a>
+      </li>
+    
+      <li class="post">
         <a href="/2013/07/16/testing-and-node-why-do-we-test.html">Testing and Node: Why Do We Test?</a>
       </li>
     
@@ -1481,10 +1619,6 @@ out what the future will bring.</p>
     
       <li class="post">
         <a href="/2013/04/02/towards-a-unified-js-stack.html">Towards a Unified JS Stack</a>
-      </li>
-    
-      <li class="post">
-        <a href="/2012/10/01/error-isolation-with-promises.html">Error Isolation with Promises</a>
       </li>
     
   </ul>
